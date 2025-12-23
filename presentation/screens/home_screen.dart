@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
-import 'package:fitness_aura_athletix/routes/app_route.dart';
+import '../../routes/app_route.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -187,15 +187,37 @@ class _WelcomeTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Pull a friendly name; falls back to generic greeting.
-    final name = AuthService().currentDisplayName;
-    final text = name != null && name.isNotEmpty
-        ? 'Welcome back, $name 👋'
-        : 'Welcome Back 👋';
+    final name = (AuthService().currentDisplayName ?? '').trim();
+    final text = name.isNotEmpty ? 'Welcome back, $name 👋' : 'Welcome Back 👋';
     return Text(
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: const TextStyle(color: Colors.white, fontSize: 20),
+    );
+  }
+}
+
+class _WelcomeHeader extends StatelessWidget {
+  const _WelcomeHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: const BoxDecoration(
+        color: Colors.green,
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      child: Row(
+        children: const [
+          Expanded(child: _WelcomeTitle()),
+          CircleAvatar(
+            backgroundColor: Colors.white24,
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 }
