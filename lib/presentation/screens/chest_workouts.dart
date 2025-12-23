@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 class ChestWorkouts extends StatelessWidget {
 	const ChestWorkouts({Key? key}) : super(key: key);
@@ -102,11 +103,7 @@ class ChestWorkouts extends StatelessWidget {
 												child: Image.asset(
 													ex.image,
 													fit: BoxFit.cover,
-													errorBuilder: (c, e, s) => Container(
-														color: Colors.grey.shade200,
-														child: const Icon(Icons.fitness_center, size: 48, color: Colors.grey),
-														alignment: Alignment.center,
-													),
+													errorBuilder: (c, e, s) => _imageFallback(ex.title),
 												),
 											),
 										),
@@ -160,11 +157,7 @@ class ExerciseDetail extends StatelessWidget {
 							child: Image.asset(
 								exercise.image,
 								fit: BoxFit.cover,
-								errorBuilder: (c, e, s) => Container(
-									color: Colors.grey.shade200,
-									child: const Icon(Icons.fitness_center, size: 96, color: Colors.grey),
-									alignment: Alignment.center,
-								),
+								errorBuilder: (c, e, s) => _imageFallback(exercise.title, large: true),
 							),
 						),
 						Padding(
@@ -179,12 +172,22 @@ class ExerciseDetail extends StatelessWidget {
 									Text(exercise.description, style: const TextStyle(fontSize: 16)),
 									const SizedBox(height: 20),
 									ElevatedButton.icon(
-										onPressed: () {
-											// Placeholder: you could integrate StorageService to save a performed workout here.
-											Navigator.pop(context);
-										},
-										icon: const Icon(Icons.check),
-										label: const Text('Mark as Done'),
+										onPressed: () async {
+										final entry = WorkoutEntry(
+											id: '${exercise.id}_${DateTime.now().millisecondsSinceEpoch}',
+											date: DateTime.now(),
+											workoutType: 'chest',
+											durationMinutes: 30,
+											notes: exercise.title,
+										);
+										await StorageService().saveEntry(entry);
+										ScaffoldMessenger.of(context).showSnackBar(
+											SnackBar(content: Text('${exercise.title} marked as done')),
+										);
+										Navigator.pop(context);
+									},
+									icon: const Icon(Icons.check),
+									label: const Text('Mark as Done'),
 									),
 								],
 							),
@@ -194,5 +197,30 @@ class ExerciseDetail extends StatelessWidget {
 			),
 		);
 	}
+}
+
+Widget _imageFallback(String title, {bool large = false}) {
+	final initials = _initialsFromTitle(title);
+	return Container(
+		color: Colors.grey.shade200,
+		alignment: Alignment.center,
+		child: Container(
+			width: large ? 120 : 56,
+			height: large ? 120 : 56,
+			decoration: BoxDecoration(
+				color: Colors.blueGrey.shade100,
+				borderRadius: BorderRadius.circular(8),
+			),
+			alignment: Alignment.center,
+			child: Text(initials, style: TextStyle(fontSize: large ? 28 : 16, color: Colors.blueGrey.shade700, fontWeight: FontWeight.bold)),
+		),
+	);
+}
+
+String _initialsFromTitle(String title) {
+	final parts = title.split(RegExp(r'\s+'))..removeWhere((s) => s.isEmpty);
+	if (parts.isEmpty) return '';
+	if (parts.length == 1) return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+	return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
