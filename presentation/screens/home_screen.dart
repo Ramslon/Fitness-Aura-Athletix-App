@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../lib/services/auth_service.dart';
-import '../../routes/app_route.dart';
+import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:fitness_aura_athletix/routes/app_route.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<_Featurecard> features = [
+    final List<_FeatureCard> features = [
       _FeatureCard(
         title: 'Premium Wellness',
         description:
-            'AI wellness report,fitness coaching, and wearable insights.',
+            'AI wellness reports, fitness coaching, and wearable insights.',
         icon: Icons.workspace_premium,
         color: const Color.fromARGB(255, 137, 151, 235),
         route: AppRoutes.premiumFeatures,
@@ -32,8 +32,8 @@ class HomeScreen extends StatelessWidget {
       ),
       _FeatureCard(
         title: 'Shoulder Workouts',
-        description: 'Check your leg workouts,train and save your progress for tracking to keep it fit.',
-        icon: Icons.volunteer_activism,
+        description: 'Workouts and plans for shoulder strength and mobility.',
+        icon: Icons.fitness_center,
         color: Colors.brown.shade400,
         route: AppRoutes.shoulderWorkouts,
       ),
@@ -61,19 +61,12 @@ class HomeScreen extends StatelessWidget {
         route: AppRoutes.dailyWorkoutAnalysis,
       ),
       _FeatureCard(
-        title: '',
-        description: '.',
-        icon: Icons.restaurant_menu,
-        color: Colors.orange.shade400,
-        route: AppRoutes.,
-      ),
-      _FeatureCard(
         title: 'Fitness Coach',
         description:
-            'Chat with your personal fitness trainee assistant for guidance.',
+            'Chat with your personal fitness assistant for guidance and tips.',
         icon: Icons.chat_bubble_outline,
         color: Colors.blue.shade400,
-        route: AppRoutes.,
+        route: AppRoutes.premiumFeatures,
       ),
       _FeatureCard(
         title: 'Community',
@@ -100,7 +93,8 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fitness Aura Athletix'
+        title: const Text(
+          'Fitness Aura Athletix',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -114,6 +108,46 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             const _WelcomeHeader(),
+            const SizedBox(height: 12),
+            // Quick summary cards
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('Streak', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 6),
+                          Text('3 days', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('This week', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 6),
+                          Text('4 workouts', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             const SizedBox(height: 20),
             GridView.builder(
               shrinkWrap: true,
@@ -144,6 +178,8 @@ class HomeScreen extends StatelessWidget {
 
 
 class _WelcomeTitle extends StatelessWidget {
+  const _WelcomeTitle({super.key});
+
   @override
   Widget build(BuildContext context) {
     // Pull a friendly name; falls back to generic greeting.
