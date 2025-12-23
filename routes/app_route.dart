@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../presentation/screens/premium_features_screen.dart';
-import '../presentation/screens/onboarding_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/onboarding_screen.dart' as lib_onboarding;
 import '../presentation/screens/home_screen.dart';
 import '../presentation/screens/auth_screen.dart';
 import '../presentation/screens/arm_workouts.dart';
@@ -43,7 +43,7 @@ class AppRoutes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+        return MaterialPageRoute(builder: (_) => const lib_onboarding.OnboardingScreen());
       case auth:
         return MaterialPageRoute(builder: (_) => const AuthScreen());
       case home:
