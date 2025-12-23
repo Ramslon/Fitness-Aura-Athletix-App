@@ -8,79 +8,83 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<_FeatureCard> features = [
-      _FeatureCard(
-        title: 'Premium Wellness',
-        description:
-            'AI wellness reports, fitness coaching, and wearable insights.',
-        icon: Icons.workspace_premium,
-        color: const Color.fromARGB(255, 137, 151, 235),
-        route: AppRoutes.premiumFeatures,
-      ),
+      // Workout categories
       _FeatureCard(
         title: 'Arm Workouts',
-        description: 'Check your arm workouts,train and save your for tracking progress to keep it fit.',
-        icon: Icons.volunteer_activism,
-        color: Colors.brown.shade400,
+        description: 'Targeted arm routines — biceps, triceps and forearms with sets & reps.',
+        icon: Icons.fitness_center,
+        color: Colors.indigo.shade400,
         route: AppRoutes.armWorkouts,
       ),
       _FeatureCard(
         title: 'Chest Workouts',
-        description: 'Check your chest workouts,train and save your progress for tracking to keep it fit.',
-        icon: Icons.volunteer_activism,
-        color: Colors.brown.shade400,
+        description: 'Bench press, push-ups and chest isolation moves for strength & hypertrophy.',
+        icon: Icons.favorite,
+        color: Colors.red.shade400,
         route: AppRoutes.chestWorkouts,
       ),
       _FeatureCard(
-        title: 'Shoulder Workouts',
-        description: 'Workouts and plans for shoulder strength and mobility.',
-        icon: Icons.fitness_center,
-        color: Colors.brown.shade400,
-        route: AppRoutes.shoulderWorkouts,
-      ),
-      _FeatureCard(
         title: 'Leg Workouts',
-        description: 'Check your leg workouts,train and save your progress for tracking to keep it fit.',
-        icon: Icons.volunteer_activism,
-        color: Colors.brown.shade400,
+        description: 'Squats, lunges and plyometrics for lower-body power and endurance.',
+        icon: Icons.directions_run,
+        color: Colors.teal.shade400,
         route: AppRoutes.legWorkouts,
       ),
       _FeatureCard(
         title: 'Back Workouts',
-        description: 'Check your back workouts,train and save your progress for tracking to keep it fit.',
-        icon: Icons.volunteer_activism,
-        color: Colors.brown.shade400,
+        description: 'Pulls, rows and posterior chain work to build a strong back.',
+        icon: Icons.back_hand,
+        color: Colors.blueGrey.shade700,
         route: AppRoutes.backWorkouts,
       ),
-      // Core features
+      _FeatureCard(
+        title: 'Shoulder Workouts',
+        description: 'Presses, raises and mobility drills for stronger shoulders and posture.',
+        icon: Icons.self_improvement,
+        color: Colors.orange.shade400,
+        route: AppRoutes.shoulderWorkouts,
+      ),
+
+      // Analysis & premium
       _FeatureCard(
         title: 'Daily Workout Analysis',
         description:
-            'See daily performances vs. recommendation and get AI insights to improve your daily workouts.',
-        icon: Icons.bar_chart,
+            'AI-driven analysis comparing performance to recommendations with improvement tips.',
+        icon: Icons.analytics,
         color: Colors.green.shade400,
         route: AppRoutes.dailyWorkoutAnalysis,
       ),
       _FeatureCard(
-        title: 'Fitness Coach',
-        description:
-            'Chat with your personal fitness assistant for guidance and tips.',
-        icon: Icons.chat_bubble_outline,
-        color: Colors.blue.shade400,
+        title: 'Premium Features',
+        description: 'Unlock advanced coaching, personalized plans and wearable integrations.',
+        icon: Icons.workspace_premium,
+        color: const Color.fromARGB(255, 137, 151, 235),
         route: AppRoutes.premiumFeatures,
       ),
+
+      // Community & progress
       _FeatureCard(
-        title: 'Community',
-        description: 'Snap and Share progess of your body fitness and flex ,tips, join challenges, and stay motivated.',
-        icon: Icons.groups_2_outlined,
-        color: Colors.blueGrey.shade400,
-        route: AppRoutes.socialCommunity,
-      ),
-      _FeatureCard(
-        title: 'Progress Tracker',
-        description: 'Visualize your workouts and fitness journey over time.',
+        title: 'Progress Dashboard',
+        description: 'Charts and history to visualize your strength and consistency over time.',
         icon: Icons.show_chart,
         color: Colors.purple.shade400,
         route: AppRoutes.progressDashboard,
+      ),
+      _FeatureCard(
+        title: 'Community Feed',
+        description: 'Share updates, join challenges and get motivated with the community.',
+        icon: Icons.groups,
+        color: Colors.blueGrey.shade400,
+        route: AppRoutes.socialCommunity,
+      ),
+
+      // Support & settings
+      _FeatureCard(
+        title: 'Help & FAQ',
+        description: 'Get answers, how-tos and troubleshooting for the app features.',
+        icon: Icons.help_outline,
+        color: Colors.grey.shade600,
+        route: AppRoutes.helpFaq,
       ),
       _FeatureCard(
         title: 'Privacy & Security',
