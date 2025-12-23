@@ -11,7 +11,6 @@ import '../presentation/screens/daily_workout_analysis_screen.dart';
 import '../presentation/screens/help_faq_screen.dart';
 import '../presentation/screens/leg_workouts.dart';
 import '../presentation/screens/notification_settings_screen.dart';
-import '../presentation/screens/onboarding_screen.dart';
 import '../presentation/screens/offline_accessibility_screen.dart';
 import '../presentation/screens/privacy_settings_screen.dart';
 import '../presentation/screens/profile_screen.dart';
