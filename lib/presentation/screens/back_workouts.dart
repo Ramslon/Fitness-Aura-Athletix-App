@@ -180,19 +180,53 @@ class BackExerciseDetail extends StatelessWidget {
 									const SizedBox(height: 20),
 									ElevatedButton.icon(
 										onPressed: () async {
-											final entry = WorkoutEntry(
-												id: '${exercise.id}_${DateTime.now().millisecondsSinceEpoch}',
-												date: DateTime.now(),
-												workoutType: 'back',
-												durationMinutes: 30,
-												notes: exercise.title,
-											);
-											await StorageService().saveEntry(entry);
-											ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${exercise.title} marked as done')));
-											Navigator.pop(context);
-										},
-										icon: const Icon(Icons.check),
-										label: const Text('Mark as Done'),
+										final result = await showDialog<Map<String, dynamic>>(
+											context: context,
+											builder: (ctx) {
+												int duration = 30;
+												String notes = exercise.title;
+												return StatefulBuilder(builder: (c, setState) {
+													return AlertDialog(
+														title: Text('Mark "${exercise.title}" done'),
+														content: Column(
+															mainAxisSize: MainAxisSize.min,
+															children: [
+																TextFormField(
+																	initialValue: duration.toString(),
+																	keyboardType: TextInputType.number,
+																	decoration: const InputDecoration(labelText: 'Duration (minutes)'),
+																	onChanged: (v) => setState(() => duration = int.tryParse(v) ?? 30),
+																),
+																TextFormField(
+																	initialValue: notes,
+																	decoration: const InputDecoration(labelText: 'Notes (optional)'),
+																	onChanged: (v) => setState(() => notes = v),
+																),
+															],
+														),
+														actions: [
+														TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+														ElevatedButton(onPressed: () => Navigator.pop(ctx, {'duration': duration, 'notes': notes}), child: const Text('Save')),
+														],
+													);
+												});
+											},
+										);
+
+										if (result == null) return;
+										final entry = WorkoutEntry(
+											id: '${exercise.id}_${DateTime.now().millisecondsSinceEpoch}',
+											date: DateTime.now(),
+											workoutType: 'back',
+											durationMinutes: (result['duration'] as int),
+											notes: (result['notes'] as String?),
+										);
+										await StorageService().saveEntry(entry);
+										ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${exercise.title} marked as done')));
+										Navigator.pop(context);
+									},
+									icon: const Icon(Icons.check),
+									label: const Text('Mark as Done'),
 									),
 								],
 							),
