@@ -50,6 +50,17 @@ $images += @(
 "assets/images/arm_skull_crusher.png"
 )
 
+# Shoulder exercise thumbnails
+$images += @(
+"assets/images/shoulder_military_barbell_press.png",
+"assets/images/shoulder_overhead_dumbbell_press.png",
+"assets/images/shoulder_arnold_press.png",
+"assets/images/shoulder_lateral_raises.png",
+"assets/images/shoulder_front_raises.png",
+"assets/images/shoulder_rear_delt_fly.png",
+"assets/images/shoulder_upright_row.png",
+"assets/images/shoulder_shrugs.png"
+)
 $colors = @(
 [System.Drawing.Color]::FromArgb(255, 52, 152, 219), # blue
 [System.Drawing.Color]::FromArgb(255, 46, 204, 113), # green
