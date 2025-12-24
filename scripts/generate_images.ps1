@@ -36,6 +36,20 @@ $images = @(
 "assets/images/leg_glute_bridges.png"
 )
 
+# Arm exercise thumbnails
+$images += @(
+"assets/images/arm_dumbbell_bicep_curls.png",
+"assets/images/arm_hammer_curls.png",
+"assets/images/arm_concentration_curls.png",
+"assets/images/arm_barbell_curls.png",
+"assets/images/arm_preacher_curls.png",
+"assets/images/arm_overhead_tricep_extension.png",
+"assets/images/arm_tricep_kickbacks.png",
+"assets/images/arm_tricep_dips.png",
+"assets/images/arm_cross_grip.png",
+"assets/images/arm_skull_crusher.png"
+)
+
 $colors = @(
 [System.Drawing.Color]::FromArgb(255, 52, 152, 219), # blue
 [System.Drawing.Color]::FromArgb(255, 46, 204, 113), # green
