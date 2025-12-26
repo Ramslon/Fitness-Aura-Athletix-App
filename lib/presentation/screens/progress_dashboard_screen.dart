@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cross_file/cross_file.dart';
 
 class ProgressDashboardScreen extends StatefulWidget {
   const ProgressDashboardScreen({super.key});
@@ -108,14 +114,21 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Last 7 Days', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Last 7 Days', style: TextStyle(fontWeight: FontWeight.bold)),
+                              TextButton.icon(
+                                onPressed: _exportCsv,
+                                icon: const Icon(Icons.share),
+                                label: const Text('Export CSV'),
+                              )
+                            ],
+                          ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 140,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: _buildLast7Bars(),
-                            ),
+                            height: 200,
+                            child: _buildChart(),
                           ),
                         ],
                       ),
@@ -192,4 +205,63 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       );
     });
   }
+
+  Widget _buildChart() {
+    final data = <_DayCount>[];
+    final now = DateTime.now();
+    final ordered = List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final count = _last7DaysCounts[key] ?? 0;
+      final label = '${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday % 7]}';
+      return _DayCount(label, count);
+    });
+
+    data.addAll(ordered);
+
+    final series = [
+      charts.Series<_DayCount, String>(
+        id: 'workouts',
+        domainFn: (d, _) => d.day,
+        measureFn: (d, _) => d.count,
+        colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+        data: data,
+      ),
+    ];
+
+    return charts.BarChart(
+      series,
+      animate: true,
+      domainAxis: const charts.OrdinalAxisSpec(renderSpec: charts.SmallTickRendererSpec(labelRotation: 0)),
+    );
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      final rows = <String>['date,count'];
+      // Ensure deterministic ordering
+      final orderedKeys = _last7DaysCounts.keys.toList()..sort();
+      for (final k in orderedKeys) {
+        rows.add('$k,${_last7DaysCounts[k]}');
+      }
+      final csv = rows.join('\n');
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/progress_${DateTime.now().toIso8601String()}.csv');
+      await file.writeAsString(csv);
+
+      // Use share_plus to share the CSV file
+      await Share.shareXFiles([XFile(file.path)], text: 'Progress data (last 7 days)');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
+  }
+
+}
+
+class _DayCount {
+  final String day;
+  final int count;
+  _DayCount(this.day, this.count);
+}
 }
