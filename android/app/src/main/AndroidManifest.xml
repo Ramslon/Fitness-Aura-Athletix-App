@@ -3,6 +3,16 @@
         android:label="fitness_aura_athletix"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- FileProvider required for sharing files on Android (used by share_plus) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"
