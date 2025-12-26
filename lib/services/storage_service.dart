@@ -105,6 +105,29 @@ class StorageService {
 	String _dateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 	static const _analysisKey = 'daily_analysis_notes_v1';
+
+	// Generic settings helpers
+	static const _kSettingsPrefix = 'app_setting_';
+
+	Future<void> saveStringSetting(String key, String value) async {
+		final prefs = await _prefs;
+		await prefs.setString('$_kSettingsPrefix$key', value);
+	}
+
+	Future<String?> loadStringSetting(String key) async {
+		final prefs = await _prefs;
+		return prefs.getString('$_kSettingsPrefix$key');
+	}
+
+	Future<void> saveBoolSetting(String key, bool value) async {
+		final prefs = await _prefs;
+		await prefs.setBool('$_kSettingsPrefix$key', value);
+	}
+
+	Future<bool?> loadBoolSetting(String key) async {
+		final prefs = await _prefs;
+		return prefs.getBool('$_kSettingsPrefix$key');
+	}
 }
 
 class WorkoutEntry {
