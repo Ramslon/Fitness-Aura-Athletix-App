@@ -264,4 +264,4 @@ class _DayCount {
   final int count;
   _DayCount(this.day, this.count);
 }
-}
+
