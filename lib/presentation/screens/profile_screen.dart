@@ -83,3 +83,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
 		return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
 	}
 
+	}
+
