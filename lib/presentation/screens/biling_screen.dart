@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/currency_service.dart';
 import 'package:fitness_aura_athletix/services/payment_service.dart';
+import 'package:fitness_aura_athletix/services/payment_provider.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:intl/intl.dart';
 
 class BillingScreen extends StatefulWidget {
 	const BillingScreen({super.key});
@@ -14,6 +16,7 @@ class _BillingScreenState extends State<BillingScreen> {
 	String _currency = 'KES';
 	double _amountKes = 50;
 	bool _processing = false;
+	String _selectedProvider = 'Test';
 
 	@override
 	void didChangeDependencies() {
@@ -31,6 +34,9 @@ class _BillingScreenState extends State<BillingScreen> {
 
 	Future<void> _pay() async {
 		setState(() => _processing = true);
+		if (_selectedProvider == 'Test') {
+			PaymentService().registerProvider(TestPaymentProvider());
+		}
 		final success = await PaymentService().processPayment(amount: _displayAmount, currency: _currency, description: 'Premium upgrade');
 		setState(() => _processing = false);
 		if (success) {
@@ -52,10 +58,17 @@ class _BillingScreenState extends State<BillingScreen> {
 					const SizedBox(height: 12),
 					Text('Plan price: ${_amountKes.toInt()} KES'),
 					const SizedBox(height: 8),
-					DropdownButton<String>(value: _currency, items: const [DropdownMenuItem(value: 'KES', child: Text('KES')), DropdownMenuItem(value: 'USD', child: Text('USD')), DropdownMenuItem(value: 'EUR', child: Text('EUR'))], onChanged: (v) { if (v != null) setState(() => _currency = v); }),
+					Row(children: [
+						DropdownButton<String>(value: _currency, items: const [DropdownMenuItem(value: 'KES', child: Text('KES')), DropdownMenuItem(value: 'USD', child: Text('USD')), DropdownMenuItem(value: 'EUR', child: Text('EUR'))], onChanged: (v) { if (v != null) setState(() => _currency = v); }),
+						const SizedBox(width: 12),
+						Expanded(child: Text('Pay: ${NumberFormat.simpleCurrency(name: _currency).format(_displayAmount)}', style: const TextStyle(fontWeight: FontWeight.bold))),
+					]),
 					const SizedBox(height: 12),
-					Text('Pay: ${_displayAmount.toString()} $_currency'),
-					const SizedBox(height: 20),
+					const Text('Payment provider', style: TextStyle(fontWeight: FontWeight.bold)),
+					const SizedBox(height: 8),
+					DropdownButton<String>(value: _selectedProvider, items: const [DropdownMenuItem(value: 'Test', child: Text('Test (no real provider)')), DropdownMenuItem(value: 'Stripe', child: Text('Stripe (configure later)')), DropdownMenuItem(value: 'MPesa', child: Text('MPesa (configure later)'))], onChanged: (v) { if (v != null) setState(() => _selectedProvider = v); }),
+					const SizedBox(height: 12),
+					const SizedBox(height: 8),
 					_processing ? const Center(child: CircularProgressIndicator()) : ElevatedButton(onPressed: _pay, child: const Text('Pay now')),
 					const SizedBox(height: 12),
 					TextButton(onPressed: () async { await StorageService().saveBoolSetting('premium', false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Purchase cancelled'))); Navigator.of(context).pop(); }, child: const Text('Cancel')),
