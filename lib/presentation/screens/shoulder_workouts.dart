@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 
 class ShoulderWorkouts extends StatelessWidget {
   const ShoulderWorkouts({Key? key}) : super(key: key);
@@ -93,11 +94,7 @@ class ShoulderWorkouts extends StatelessWidget {
                     Expanded(
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        child: Image.asset(
-                          ex.image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => _imageFallback(ex.title),
-                        ),
+                        child: LocalImagePlaceholder(id: ex.id, assetPath: ex.image, fit: BoxFit.cover),
                       ),
                     ),
                     Padding(
@@ -147,11 +144,7 @@ class ShoulderExerciseDetail extends StatelessWidget {
           children: [
             SizedBox(
               height: 240,
-              child: Image.asset(
-                exercise.image,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => _imageFallback(exercise.title, large: true),
-              ),
+              child: LocalImagePlaceholder(id: exercise.id, assetPath: exercise.image, fit: BoxFit.cover, height: 240),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
