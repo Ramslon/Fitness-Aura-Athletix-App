@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:fitness_aura_athletix/services/offline_cache_service.dart';
+import 'package:fitness_aura_athletix/services/offline_sync_service.dart';
 
 class OfflineAccessibilityScreen extends StatefulWidget {
 	const OfflineAccessibilityScreen({super.key});
@@ -36,10 +38,33 @@ class _OfflineAccessibilityScreenState extends State<OfflineAccessibilityScreen>
 	}
 
 	Future<void> _toggleDownloaded(bool v) async {
-		// In a real app this would trigger background download of content.
-		await StorageService().saveBoolSetting('offline_downloaded', v);
-		setState(() => _downloadedForOffline = v);
-		ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(v ? 'Content saved for offline use' : 'Offline content cleared')));
+		setState(() => _loading = true);
+		try {
+			if (v) {
+				await OfflineCacheService().downloadCoreContent();
+			} else {
+				await OfflineCacheService().clearCache();
+			}
+			final dl = await OfflineCacheService().isDownloaded();
+			setState(() => _downloadedForOffline = dl);
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(dl ? 'Content saved for offline use' : 'Offline content cleared')));
+		} catch (e) {
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+		} finally {
+			setState(() => _loading = false);
+		}
+	}
+
+	Future<void> _syncNow() async {
+		setState(() => _loading = true);
+		try {
+			final ok = await OfflineSyncService().syncNow();
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Sync completed' : 'Sync failed')));
+		} catch (e) {
+			ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync error: $e')));
+		} finally {
+			setState(() => _loading = false);
+		}
 	}
 
 	Future<void> _toggleLargeText(bool v) async { await StorageService().saveBoolSetting('access_large_text', v); setState(() => _largeText = v); }
@@ -62,14 +87,17 @@ class _OfflineAccessibilityScreenState extends State<OfflineAccessibilityScreen>
 								onChanged: _toggleDownloaded,
 							),
 							const SizedBox(height: 12),
-							ElevatedButton.icon(
-								icon: const Icon(Icons.download_for_offline),
-								label: const Text('Force download now'),
-								onPressed: () async {
-									// Simulate a download action.
-									await _toggleDownloaded(true);
-								},
-							),
+							Row(children: [
+								ElevatedButton.icon(
+									icon: const Icon(Icons.download_for_offline),
+									label: const Text('Force download now'),
+									onPressed: () async {
+										await _toggleDownloaded(true);
+									},
+								),
+								const SizedBox(width: 12),
+								OutlinedButton.icon(onPressed: _syncNow, icon: const Icon(Icons.sync), label: const Text('Sync now')),
+							]),
 							const Divider(height: 30),
 
 							const Text('Accessibility', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
