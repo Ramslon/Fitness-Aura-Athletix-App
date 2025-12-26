@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/services/ai_gym_workout_plan.dart';
+import 'package:fitness_aura_athletix/presentation/screens/privacy_settings_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -28,8 +30,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final api = await StorageService().loadStringSetting('llm_api_key');
-    final endpoint = await StorageService().loadStringSetting('llm_endpoint');
+    // API key and endpoint stored securely when available. Fall back to
+    // non-secure settings if secure values are not present (for older installs).
+    final apiSecure = await StorageService().loadSecureString('llm_api_key');
+    final endpointSecure = await StorageService().loadSecureString('llm_endpoint');
+    final apiFallback = await StorageService().loadStringSetting('llm_api_key');
+    final endpointFallback = await StorageService().loadStringSetting('llm_endpoint');
+    final api = apiSecure ?? apiFallback;
+    final endpoint = endpointSecure ?? endpointFallback;
     final notifications = await StorageService().loadBoolSetting('notifications_enabled');
     final theme = await StorageService().loadStringSetting('theme_mode');
     setState(() {
@@ -42,8 +50,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveLlMSettings() async {
-    await StorageService().saveStringSetting('llm_api_key', _apiController.text.trim());
-    await StorageService().saveStringSetting('llm_endpoint', _endpointController.text.trim());
+    // Save API key and endpoint into secure storage.
+    await StorageService().saveSecureString('llm_api_key', _apiController.text.trim());
+    await StorageService().saveSecureString('llm_endpoint', _endpointController.text.trim());
     AiGymWorkoutPlan().configure(apiKey: _apiController.text.trim(), endpoint: _endpointController.text.trim());
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI settings saved')));
   }
@@ -120,6 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 ElevatedButton(onPressed: _saveLlMSettings, child: const Text('Save AI Settings')),
                 const Divider(height: 30),
+
+                ListTile(leading: const Icon(Icons.person), title: const Text('Profile'), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()))),
+                ListTile(leading: const Icon(Icons.lock), title: const Text('Privacy & Security'), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()))),
 
                 const Text('General', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),

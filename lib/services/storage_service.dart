@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -17,6 +18,8 @@ class StorageService {
 	factory StorageService() => _instance;
 
 	Future<SharedPreferences> get _prefs async => await SharedPreferences.getInstance();
+
+	final FlutterSecureStorage _secure = const FlutterSecureStorage();
 
 	Future<List<Map<String, dynamic>>> _readEntriesRaw() async {
 		final prefs = await _prefs;
@@ -127,6 +130,26 @@ class StorageService {
 	Future<bool?> loadBoolSetting(String key) async {
 		final prefs = await _prefs;
 		return prefs.getBool('$_kSettingsPrefix$key');
+	}
+
+	// Secure storage helpers (for API keys and secrets). Keys are namespaced with
+	// 'secure_' prefix when written to the secure storage provider.
+
+	Future<void> saveSecureString(String key, String value) async {
+		await _secure.write(key: 'secure_$key', value: value);
+	}
+
+	Future<String?> loadSecureString(String key) async {
+		return await _secure.read(key: 'secure_$key');
+	}
+
+	Future<void> deleteSecureString(String key) async {
+		await _secure.delete(key: 'secure_$key');
+	}
+
+	Future<bool> hasSecureString(String key) async {
+		final v = await loadSecureString(key);
+		return v != null && v.isNotEmpty;
 	}
 }
 
