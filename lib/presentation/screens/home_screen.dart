@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
-import '../../../routes/app_route.dart';
+import 'package:fitness_aura_athletix/routes/app_route.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
