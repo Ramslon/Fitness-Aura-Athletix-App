@@ -81,6 +81,30 @@ class StorageService {
 	}
 
 	bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+	/// Persist a short analysis note for the given date (uses ISO yyyy-MM-dd keying).
+	Future<void> saveAnalysisNoteForDate(DateTime date, String note) async {
+		final prefs = await _prefs;
+		final key = _analysisKey;
+		final raw = prefs.getString(key);
+		final Map<String, dynamic> map = raw == null || raw.isEmpty ? {} : Map<String, dynamic>.from(jsonDecode(raw));
+		map[_dateKey(date)] = note;
+		await prefs.setString(key, jsonEncode(map));
+	}
+
+	/// Load the saved analysis note for a given date, or null if none.
+	Future<String?> loadAnalysisNoteForDate(DateTime date) async {
+		final prefs = await _prefs;
+		final key = _analysisKey;
+		final raw = prefs.getString(key);
+		if (raw == null || raw.isEmpty) return null;
+		final Map<String, dynamic> map = Map<String, dynamic>.from(jsonDecode(raw));
+		return map[_dateKey(date)] as String?;
+	}
+
+	String _dateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+	static const _analysisKey = 'daily_analysis_notes_v1';
 }
 
 class WorkoutEntry {

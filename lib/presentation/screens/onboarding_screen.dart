@@ -43,7 +43,8 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
     ),
     _OnboardingPage(
       title: 'Daily Analysis',
-      description: 'Get daily analysis with suggested improvements where necessary.',
+      description:
+          'Get daily analysis with suggested improvements where necessary.',
       icon: Icons.analytics,
     ),
     _OnboardingPage(
@@ -83,7 +84,8 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                 controller: _pageController,
                 onPageChanged: (index) => setState(() => _currentPage = index),
                 itemCount: _pages.length,
-                itemBuilder: (context, index) => _OnboardingCard(page: _pages[index]),
+                itemBuilder: (context, index) =>
+                    _OnboardingCard(page: _pages[index]),
               ),
             ),
             Padding(
@@ -98,7 +100,9 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                     height: 8,
                     width: _currentPage == index ? 20 : 8,
                     decoration: BoxDecoration(
-                      color: _currentPage == index ? Colors.green : Colors.grey.shade400,
+                      color: _currentPage == index
+                          ? Colors.green
+                          : Colors.grey.shade400,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -113,7 +117,10 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 14,
+                  ),
                 ),
                 onPressed: _nextPage,
                 child: Text(
@@ -134,7 +141,11 @@ class _OnboardingPage {
   final String description;
   final IconData icon;
 
-  _OnboardingPage({required this.title, required this.description, required this.icon});
+  _OnboardingPage({
+    required this.title,
+    required this.description,
+    required this.icon,
+  });
 }
 
 class _OnboardingCard extends StatelessWidget {
@@ -150,11 +161,7 @@ class _OnboardingCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(
-            child: Icon(
-              page.icon,
-              size: 120,
-              color: Colors.green.shade400,
-            ),
+            child: Icon(page.icon, size: 120, color: Colors.green.shade400),
           ),
           const SizedBox(height: 20),
           Text(
@@ -235,9 +242,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // await prefs.setString('onboarding_data', jsonEncode(data));
 
     // For now, simply show a confirmation and return the data to caller.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Onboarding saved locally')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Onboarding saved locally')));
 
     Navigator.of(context).pop(data);
   }
@@ -268,17 +275,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Tell us about yourself', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Tell us about yourself',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder()),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your name' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Full name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter your name'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _ageController,
-                  decoration: const InputDecoration(labelText: 'Age', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Age',
+                    border: OutlineInputBorder(),
+                  ),
                   keyboardType: TextInputType.number,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Enter your age';
@@ -289,47 +307,68 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _gender,
-                  items: [
-                    'Male',
-                    'Female',
-                    'Non-binary',
-                    'Prefer not to say',
-                  ].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                  initialValue: _gender,
+                  items: ['Male', 'Female', 'Non-binary', 'Prefer not to say']
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
                   onChanged: (v) => setState(() => _gender = v ?? _gender),
-                  decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Gender',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _goal,
-                  items: [
-                    'Build muscle',
-                    'Lose fat',
-                    'Improve endurance',
-                    'General fitness',
-                  ].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                  initialValue: _goal,
+                  items:
+                      [
+                            'Build muscle',
+                            'Lose fat',
+                            'Improve endurance',
+                            'General fitness',
+                          ]
+                          .map(
+                            (g) => DropdownMenuItem(value: g, child: Text(g)),
+                          )
+                          .toList(),
                   onChanged: (v) => setState(() => _goal = v ?? _goal),
-                  decoration: const InputDecoration(labelText: 'Primary goal', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'Primary goal',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _experience,
+                  initialValue: _experience,
                   items: ['Beginner', 'Intermediate', 'Advanced']
-                      .map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (v) => setState(() => _experience = v ?? _experience),
-                  decoration: const InputDecoration(labelText: 'Experience level', border: OutlineInputBorder()),
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  onChanged: (v) =>
+                      setState(() => _experience = v ?? _experience),
+                  decoration: const InputDecoration(
+                    labelText: 'Experience level',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Preferred workout days', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Preferred workout days',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 8),
                 _buildDaysChips(),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _preferredTime,
+                  initialValue: _preferredTime,
                   items: ['Morning', 'Afternoon', 'Evening']
-                      .map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (v) => setState(() => _preferredTime = v ?? _preferredTime),
-                  decoration: const InputDecoration(labelText: 'Preferred time', border: OutlineInputBorder()),
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  onChanged: (v) =>
+                      setState(() => _preferredTime = v ?? _preferredTime),
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred time',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile(
@@ -338,23 +377,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   onChanged: (v) => setState(() => _useMetric = v),
                 ),
                 const SizedBox(height: 12),
-                Row(children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _heightController,
-                      decoration: InputDecoration(labelText: _useMetric ? 'Height (cm)' : 'Height (in)', border: const OutlineInputBorder()),
-                      keyboardType: TextInputType.number,
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _heightController,
+                        decoration: InputDecoration(
+                          labelText: _useMetric ? 'Height (cm)' : 'Height (in)',
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _weightController,
-                      decoration: InputDecoration(labelText: _useMetric ? 'Weight (kg)' : 'Weight (lb)', border: const OutlineInputBorder()),
-                      keyboardType: TextInputType.number,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _weightController,
+                        decoration: InputDecoration(
+                          labelText: _useMetric ? 'Weight (kg)' : 'Weight (lb)',
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
