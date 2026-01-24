@@ -14,6 +14,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _streak = 0;
   int _thisWeek = 0;
   bool _loading = true;
+  double _consistencyPercent = 0;
+  String _mostImprovedMuscle = 'N/A';
+  String _weakestMuscle = 'N/A';
+  int _strengthTrends = 0; // Number of exercises with improvements
 
   @override
   void initState() {
@@ -25,9 +29,38 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _loading = true);
     final streak = await StorageService().currentStreak();
     final week = await StorageService().workoutsThisWeek();
+    final muscleFreq = await StorageService().getMuscleGroupFrequency();
+    final overload = await StorageService().getProgressiveOverloadMetrics();
+    final totalEntries = await StorageService().loadEntries();
+
+    // Calculate consistency: workouts this week / ideal workouts (assume 5 ideal per week)
+    double consistency = week > 0 ? (week / 5.0 * 100).clamp(0, 100) : 0;
+
+    // Find most improved muscle (most volume increase)
+    String mostImproved = 'N/A';
+    if (overload.isNotEmpty) {
+      final sorted = overload.where((m) => m.hasVolumeIncrease).toList();
+      if (sorted.isNotEmpty) {
+        sorted.sort((a, b) => b.volumeIncreasePercentage.compareTo(a.volumeIncreasePercentage));
+        mostImproved = sorted[0].bodyPart;
+      }
+    }
+
+    // Find weakest muscle (least trained this week)
+    String weakest = 'N/A';
+    if (muscleFreq.isNotEmpty) {
+      final sorted = muscleFreq.toList();
+      sorted.sort((a, b) => a.workoutCountLastWeek.compareTo(b.workoutCountLastWeek));
+      weakest = sorted[0].muscleGroup;
+    }
+
     setState(() {
       _streak = streak;
       _thisWeek = week;
+      _consistencyPercent = consistency;
+      _mostImprovedMuscle = mostImproved;
+      _weakestMuscle = weakest;
+      _strengthTrends = overload.where((m) => m.hasWeightIncrease || m.hasRepIncrease).length;
       _loading = false;
     });
   }
@@ -189,11 +222,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Streak',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            'Current Streak 🔥',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '$_streak days', style: const TextStyle(fontSize: 16)),
+                          Text(_loading ? '...' : '$_streak days', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
                         ],
                       ),
                     ),
@@ -209,11 +242,99 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'This week',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            'Weekly Consistency',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '$_thisWeek workouts', style: const TextStyle(fontSize: 16)),
+                          Text(_loading ? '...' : '${_consistencyPercent.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Strength Trends 📈',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(_loading ? '...' : '$_strengthTrends improving', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'This Week',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(_loading ? '...' : '$_thisWeek workouts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Most Improved 💪',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(_loading ? '...' : _mostImprovedMuscle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.purple)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Focus Area ⚠️',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(_loading ? '...' : _weakestMuscle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange)),
                         ],
                       ),
                     ),
