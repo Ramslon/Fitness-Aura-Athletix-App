@@ -19,6 +19,7 @@ import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/progress_dashboard_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/setting_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/shoulder_workouts.dart';
+import 'package:fitness_aura_athletix/presentation/screens/achievements_motivation_screen.dart';
 
 class AppRoutes {
   static const String premiumFeatures = '/premium-features';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const String legWorkouts = '/leg-workouts';
   static const String backWorkouts = '/back-workouts';
   static const String billing = '/billing';
+  static const String achievements = '/achievements';
   static const String privacySettings = '/privacy-settings';
   static const String socialCommunity = '/community-feed';
   static const String profile = '/profile';
@@ -73,6 +75,10 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const PremiumFeaturesScreen());
       case billing:
         return MaterialPageRoute(builder: (_) => const BillingScreen());
+      case achievements:
+        return MaterialPageRoute(
+          builder: (_) => const AchievementsMotivationScreen(),
+        );
       case privacySettings:
         return MaterialPageRoute(builder: (_) => const PrivacySettingsScreen());
       case socialCommunity:

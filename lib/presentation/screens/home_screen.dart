@@ -163,6 +163,14 @@ class _HomeScreenState extends State<HomeScreen> {
         route: AppRoutes.goalTracking,
       ),
       _FeatureCard(
+        title: 'PRs & Achievements',
+        description:
+            'Personal records, consistency badges, and overload streaks.',
+        icon: Icons.emoji_events,
+        color: Colors.orange.shade400,
+        route: AppRoutes.achievements,
+      ),
+      _FeatureCard(
         title: 'Volume & Load',
         description:
             'Automatic volume calculations and comparisons (Today/Week/Month).',
