@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 // charts_flutter is incompatible with the current Flutter SDK; use a simple
 // built-in bar visualization instead to avoid build errors.
 import 'package:share_plus/share_plus.dart';
@@ -23,6 +24,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   int _streak = 0;
   int _thisWeek = 0;
   Map<String, int> _last7DaysCounts = {};
+  List<ProgressiveOverloadMetrics> _overloadMetrics = [];
+  List<MuscleGroupFrequency> _muscleFrequency = [];
 
   @override
   void initState() {
@@ -35,6 +38,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final entries = await StorageService().loadEntries();
     final streak = await StorageService().currentStreak();
     final week = await StorageService().workoutsThisWeek();
+    final overload = await StorageService().getProgressiveOverloadMetrics();
+    final muscleFreq = await StorageService().getMuscleGroupFrequency();
 
     final now = DateTime.now();
     final last7 = List.generate(7, (i) {
@@ -59,6 +64,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       _streak = streak;
       _thisWeek = week;
       _last7DaysCounts = counts.map((k, v) => MapEntry(k, v));
+      _overloadMetrics = overload;
+      _muscleFrequency = muscleFreq;
       _loading = false;
     });
   }
@@ -80,6 +87,143 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     );
   }
 
+  Widget _buildProgressiveOverloadSection() {
+    if (_overloadMetrics.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('📊 Progressive Overload Tracking', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text('Log more exercises to track improvements', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('📊 Progressive Overload Tracking', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 12),
+            ..._overloadMetrics.take(5).map((metric) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(metric.exerciseName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Row(
+                      children: [
+                        if (metric.hasWeightIncrease)
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Chip(
+                                avatar: const Text('🔼'),
+                                label: Text('${metric.weightIncreasePercentage.toStringAsFixed(1)}% weight'),
+                                backgroundColor: Colors.green.shade100,
+                              ),
+                            ),
+                          ),
+                        if (metric.hasRepIncrease)
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Chip(
+                                avatar: const Text('🔁'),
+                                label: Text('+${metric.currentReps - metric.previousReps} reps'),
+                                backgroundColor: Colors.blue.shade100,
+                              ),
+                            ),
+                          ),
+                        if (metric.hasVolumeIncrease)
+                          Flexible(
+                            child: Chip(
+                              avatar: const Text('📈'),
+                              label: Text('${metric.volumeIncreasePercentage.toStringAsFixed(1)}% volume'),
+                              backgroundColor: Colors.orange.shade100,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMuscleFrequencySection() {
+    if (_muscleFrequency.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🔁 Workout Frequency per Muscle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text('Start logging exercises to track frequency', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('🔁 Workout Frequency per Muscle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 12),
+            ..._muscleFrequency.map((freq) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(freq.muscleGroup, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text('Avg: ${freq.averageFrequencyPerWeek.toStringAsFixed(1)}x/week', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Chip(
+                          label: Text('${freq.workoutCountLastWeek}x this week'),
+                          backgroundColor: Colors.purple.shade100,
+                        ),
+                        const SizedBox(width: 8),
+                        Chip(
+                          label: Text('${freq.workoutCountLastMonth}x this month'),
+                          backgroundColor: Colors.indigo.shade100,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,10 +233,11 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
                   Row(
                     children: [
                       Expanded(child: _metricCard('Total Workouts', '$_totalWorkouts')),
@@ -108,6 +253,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                       Expanded(child: _metricCard('This Week', '$_thisWeek workouts', color: Colors.blue.shade50)),
                     ],
                   ),
+                  const SizedBox(height: 18),
+                  _buildProgressiveOverloadSection(),
+                  const SizedBox(height: 12),
+                  _buildMuscleFrequencySection(),
                   const SizedBox(height: 18),
                   Card(
                     child: Padding(
@@ -136,20 +285,32 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Expanded(
-                    child: _entries.isEmpty
-                        ? const Center(child: Text('No workout history yet.'))
-                        : ListView.builder(
-                            itemCount: _entries.length,
-                            itemBuilder: (context, i) {
-                              final e = _entries.reversed.toList()[i];
-                              return ListTile(
-                                leading: const Icon(Icons.fitness_center),
-                                title: Text('${e.workoutType} — ${e.durationMinutes} min'),
-                                subtitle: Text('${e.date.toLocal().toString().split(' ').first}'),
-                              );
-                            },
-                          ),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Workout History', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          _entries.isEmpty
+                              ? const Center(child: Text('No workout history yet.'))
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: _entries.length,
+                                  itemBuilder: (context, i) {
+                                    final e = _entries.reversed.toList()[i];
+                                    return ListTile(
+                                      leading: const Icon(Icons.fitness_center),
+                                      title: Text('${e.workoutType} — ${e.durationMinutes} min'),
+                                      subtitle: Text('${e.date.toLocal().toString().split(' ').first}'),
+                                    );
+                                  },
+                                ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -170,7 +331,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                       ),
                     ],
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
     );

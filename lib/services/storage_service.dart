@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
+import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -198,6 +199,88 @@ class StorageService {
 			final same = r.dateRecorded.year == date.year && r.dateRecorded.month == date.month && r.dateRecorded.day == date.day;
 			return same;
 		}).toList()..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+	}
+
+	// Progressive Overload Tracking
+	Future<List<ProgressiveOverloadMetrics>> getProgressiveOverloadMetrics() async {
+		final records = await loadExerciseRecords();
+		if (records.isEmpty) return [];
+
+		final metrics = <ProgressiveOverloadMetrics>[];
+		final groupedByExercise = <String, List<ExerciseRecord>>{};
+
+		// Group records by exercise name
+		for (final record in records) {
+			groupedByExercise.putIfAbsent(record.exerciseName, () => []);
+			groupedByExercise[record.exerciseName]!.add(record);
+		}
+
+		// For each exercise, find the latest and previous records to calculate improvements
+		for (final exerciseName in groupedByExercise.keys) {
+			final exerciseRecords = groupedByExercise[exerciseName]!
+				..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+
+			if (exerciseRecords.length >= 2) {
+				final latest = exerciseRecords[0];
+				final previous = exerciseRecords[1];
+
+				final latestVolume = (latest.weight * latest.sets * latest.repsPerSet).toInt();
+				final previousVolume = (previous.weight * previous.sets * previous.repsPerSet).toInt();
+
+				metrics.add(ProgressiveOverloadMetrics(
+					exerciseName: exerciseName,
+					bodyPart: latest.bodyPart,
+					previousWeight: previous.weight,
+					currentWeight: latest.weight,
+					previousReps: previous.repsPerSet,
+					currentReps: latest.repsPerSet,
+					previousSets: previous.sets,
+					currentSets: latest.sets,
+					previousVolume: previousVolume,
+					currentVolume: latestVolume,
+					lastPerformedDate: latest.dateRecorded,
+					previousPerformedDate: previous.dateRecorded,
+				));
+			}
+		}
+
+		return metrics;
+	}
+
+	Future<List<MuscleGroupFrequency>> getMuscleGroupFrequency() async {
+		final records = await loadExerciseRecords();
+		if (records.isEmpty) return [];
+
+		final now = DateTime.now();
+		final weekAgo = now.subtract(const Duration(days: 7));
+		final monthAgo = now.subtract(const Duration(days: 30));
+
+		final groupedByMuscle = <String, List<ExerciseRecord>>{};
+
+		// Group records by body part
+		for (final record in records) {
+			groupedByMuscle.putIfAbsent(record.bodyPart, () => []);
+			groupedByMuscle[record.bodyPart]!.add(record);
+		}
+
+		final frequency = <MuscleGroupFrequency>[];
+
+		for (final muscle in groupedByMuscle.keys) {
+			final muscleRecords = groupedByMuscle[muscle]!;
+			final weekCount = muscleRecords.where((r) => r.dateRecorded.isAfter(weekAgo)).length;
+			final monthCount = muscleRecords.where((r) => r.dateRecorded.isAfter(monthAgo)).length;
+			final lastWorkout = muscleRecords.reduce((a, b) => a.dateRecorded.isAfter(b.dateRecorded) ? a : b);
+
+			frequency.add(MuscleGroupFrequency(
+				muscleGroup: muscle,
+				workoutCountLastWeek: weekCount,
+				workoutCountLastMonth: monthCount,
+				averageFrequencyPerWeek: monthCount > 0 ? (monthCount / 4.3) : 0,
+				lastWorkoutDate: lastWorkout.dateRecorded,
+			));
+		}
+
+		return frequency..sort((a, b) => b.workoutCountLastWeek.compareTo(a.workoutCountLastWeek));
 	}
 }
 
