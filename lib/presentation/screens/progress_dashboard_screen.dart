@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
+import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
 // charts_flutter is incompatible with the current Flutter SDK; use a simple
 // built-in bar visualization instead to avoid build errors.
 import 'package:share_plus/share_plus.dart';
@@ -26,6 +27,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   Map<String, int> _last7DaysCounts = {};
   List<ProgressiveOverloadMetrics> _overloadMetrics = [];
   List<MuscleGroupFrequency> _muscleFrequency = [];
+  List<MuscleBalanceAnalysis> _muscleBalance = [];
+  List<MuscleImbalanceWarning> _imbalanceWarnings = [];
 
   @override
   void initState() {
@@ -40,6 +43,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final week = await StorageService().workoutsThisWeek();
     final overload = await StorageService().getProgressiveOverloadMetrics();
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
+    final muscleBalance = await StorageService().getMuscleBalanceAnalysis();
+    final imbalanceWarnings = await StorageService().getMuscleImbalanceWarnings();
 
     final now = DateTime.now();
     final last7 = List.generate(7, (i) {
@@ -66,6 +71,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       _last7DaysCounts = counts.map((k, v) => MapEntry(k, v));
       _overloadMetrics = overload;
       _muscleFrequency = muscleFreq;
+      _muscleBalance = muscleBalance;
+      _imbalanceWarnings = imbalanceWarnings;
       _loading = false;
     });
   }
@@ -224,6 +231,143 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     );
   }
 
+  Widget _buildMuscleBalanceSection() {
+    if (_muscleBalance.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🎯 Targeted Body Part Analysis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text('Log exercises to analyze muscle balance', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('🎯 Targeted Body Part Analysis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 12),
+                ..._muscleBalance.map((muscle) {
+                  final isOptimal = muscle.weeklyFrequency >= 2 && !muscle.isUnderTrained;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(muscle.muscleGroup, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            Chip(
+                              avatar: Text(muscle.weeklyFrequency >= 2 ? '✅' : '⚠️'),
+                              label: Text('${muscle.weeklyFrequency}x this week'),
+                              backgroundColor: isOptimal ? Colors.green.shade100 : Colors.orange.shade100,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Volume: ${muscle.volumeThisWeek.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 12)),
+                                  Text('Per Session: ${muscle.averageVolumePerSession.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (muscle.warning != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              border: Border.all(color: Colors.orange.shade300),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(muscle.warning!, style: const TextStyle(fontSize: 12, color: Colors.orange)),
+                          ),
+                        ],
+                        if (muscle != _muscleBalance.last) const Divider(height: 16),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        ),
+        if (_imbalanceWarnings.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('⚠️ Muscle Imbalance Warnings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange)),
+                  const SizedBox(height: 12),
+                  ..._imbalanceWarnings.map((warning) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: warning.isCritical ? Colors.red.shade50 : Colors.orange.shade50,
+                          border: Border.all(
+                            color: warning.isCritical ? Colors.red.shade300 : Colors.orange.shade300,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              warning.warning ?? '',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: warning.isCritical ? Colors.red : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              warning.suggestion,
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ratio: ${warning.volumeRatio.toStringAsFixed(2)}:1',
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -257,6 +401,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                   _buildProgressiveOverloadSection(),
                   const SizedBox(height: 12),
                   _buildMuscleFrequencySection(),
+                  const SizedBox(height: 12),
+                  _buildMuscleBalanceSection(),
                   const SizedBox(height: 18),
                   Card(
                     child: Padding(

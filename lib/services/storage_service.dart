@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
+import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -281,6 +282,174 @@ class StorageService {
 		}
 
 		return frequency..sort((a, b) => b.workoutCountLastWeek.compareTo(a.workoutCountLastWeek));
+	}
+
+	// Muscle Balance Analysis
+	Future<List<MuscleBalanceAnalysis>> getMuscleBalanceAnalysis() async {
+		final records = await loadExerciseRecords();
+		if (records.isEmpty) return [];
+
+		final now = DateTime.now();
+		final weekAgo = now.subtract(const Duration(days: 7));
+
+		final muscleData = <String, List<ExerciseRecord>>{};
+
+		// Group records by muscle and filter to this week
+		for (final record in records) {
+			if (record.dateRecorded.isAfter(weekAgo)) {
+				muscleData.putIfAbsent(record.bodyPart, () => []);
+				muscleData[record.bodyPart]!.add(record);
+			}
+		}
+
+		// Recommended frequencies based on training science
+		const recommendedFrequencies = {
+			'Chest': 2,
+			'Back': 2,
+			'Legs': 2,
+			'Shoulders': 2,
+			'Arms': 2,
+			'Core': 3,
+			'Glutes': 2,
+			'Abs': 3,
+		};
+
+		final analysis = <MuscleBalanceAnalysis>[];
+		final totalVolume = muscleData.entries.fold<double>(0, (sum, entry) {
+			final volume = entry.value.fold<double>(0, (s, r) => s + (r.weight * r.sets * r.repsPerSet));
+			return sum + volume;
+		});
+
+		for (final muscle in muscleData.keys) {
+			final records = muscleData[muscle]!;
+			final frequency = records.length;
+			final volume = records.fold<double>(0, (s, r) => s + (r.weight * r.sets * r.repsPerSet));
+			final recommendedFreq = recommendedFrequencies[muscle] ?? 2;
+			final avgVolume = frequency > 0 ? volume / frequency : 0;
+
+			String? warning;
+			bool isUnderTrained = false;
+			bool hasImbalance = false;
+
+			// Check if under-trained
+			if (frequency < recommendedFreq) {
+				isUnderTrained = true;
+				warning = '⚠️ $muscle trained $frequency× this week. Recommended: $recommendedFreq–${recommendedFreq + 1}×';
+			}
+
+			analysis.add(MuscleBalanceAnalysis(
+				muscleGroup: muscle,
+				weeklyFrequency: frequency,
+				volumeThisWeek: volume,
+				averageVolumePerSession: avgVolume,
+				warning: warning,
+				isUnderTrained: isUnderTrained,
+				hasImbalance: false, // Will be calculated in balance check
+			));
+		}
+
+		return analysis..sort((a, b) => b.weeklyFrequency.compareTo(a.weeklyFrequency));
+	}
+
+	Future<List<MuscleTrainingRecommendation>> getMuscleTrainingRecommendations() async {
+		final analysis = await getMuscleBalanceAnalysis();
+		const recommendedFrequencies = {
+			'Chest': 2,
+			'Back': 2,
+			'Legs': 2,
+			'Shoulders': 2,
+			'Arms': 2,
+			'Core': 3,
+			'Glutes': 2,
+			'Abs': 3,
+		};
+
+		final recommendations = <MuscleTrainingRecommendation>[];
+		final totalVolume = analysis.fold<double>(0, (sum, a) => sum + a.volumeThisWeek);
+		final avgVolumePerMuscle = totalVolume / (analysis.length > 0 ? analysis.length : 1);
+
+		for (final muscle in analysis) {
+			final recommendedFreq = recommendedFrequencies[muscle.muscleGroup] ?? 2;
+			final volumeDiff = muscle.volumeThisWeek - (avgVolumePerMuscle);
+			final volumeBalance = avgVolumePerMuscle > 0 ? muscle.volumeThisWeek / avgVolumePerMuscle : 1.0;
+
+			String recommendation;
+			if (muscle.weeklyFrequency < recommendedFreq) {
+				recommendation = 'Add ${recommendedFreq - muscle.weeklyFrequency} more session(s) for ${muscle.muscleGroup}';
+			} else if (muscle.weeklyFrequency > recommendedFreq + 1) {
+				recommendation = '${muscle.muscleGroup} is being trained frequently; consider deload week';
+			} else {
+				recommendation = '${muscle.muscleGroup} training frequency is optimal';
+			}
+
+			recommendations.add(MuscleTrainingRecommendation(
+				muscleGroup: muscle.muscleGroup,
+				currentFrequency: muscle.weeklyFrequency,
+				recommendedFrequency: recommendedFreq,
+				volumeDifference: volumeDiff,
+				recommendation: recommendation,
+				volumeBalance: volumeBalance,
+			));
+		}
+
+		return recommendations..sort((a, b) => a.currentFrequency.compareTo(b.currentFrequency));
+	}
+
+	Future<List<MuscleImbalanceWarning>> getMuscleImbalanceWarnings() async {
+		final analysis = await getMuscleBalanceAnalysis();
+		if (analysis.length < 2) return [];
+
+		final warnings = <MuscleImbalanceWarning>[];
+
+		// Define muscle pairs to check for balance
+		const balancePairs = [
+			('Chest', 'Back'),
+			('Shoulders', 'Back'),
+			('Legs', 'Back'),
+			('Core', 'Glutes'),
+		];
+
+		for (final pair in balancePairs) {
+			final primary = analysis.firstWhere(
+				(m) => m.muscleGroup == pair.$1,
+				orElse: () => MuscleBalanceAnalysis(
+					muscleGroup: pair.$1,
+					weeklyFrequency: 0,
+					volumeThisWeek: 0,
+					averageVolumePerSession: 0,
+					isUnderTrained: false,
+					hasImbalance: false,
+				),
+			);
+
+			final secondary = analysis.firstWhere(
+				(m) => m.muscleGroup == pair.$2,
+				orElse: () => MuscleBalanceAnalysis(
+					muscleGroup: pair.$2,
+					weeklyFrequency: 0,
+					volumeThisWeek: 0,
+					averageVolumePerSession: 0,
+					isUnderTrained: false,
+					hasImbalance: false,
+				),
+			);
+
+			final ratio = secondary.volumeThisWeek > 0 ? primary.volumeThisWeek / secondary.volumeThisWeek : 0;
+
+			if (secondary.volumeThisWeek > 0 && ratio > 1.3) {
+				final isCritical = ratio > 1.5;
+				warnings.add(MuscleImbalanceWarning(
+					primaryMuscle: pair.$1,
+					secondaryMuscle: pair.$2,
+					volumeRatio: ratio,
+					warning: '⚠️ ${pair.$1} volume is ${(ratio * 100 - 100).toStringAsFixed(0)}% higher than ${pair.$2} → imbalance risk',
+					suggestion: 'Increase ${pair.$2} training volume or decrease ${pair.$1}',
+					isCritical: isCritical,
+				));
+			}
+		}
+
+		return warnings;
 	}
 }
 
