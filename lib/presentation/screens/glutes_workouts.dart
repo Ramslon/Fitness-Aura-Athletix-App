@@ -2,89 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 
-class ArmWorkouts extends StatelessWidget {
-	const ArmWorkouts({Key? key}) : super(key: key);
+class GlutesWorkouts extends StatelessWidget {
+	const GlutesWorkouts({Key? key}) : super(key: key);
 
 	static final List<_Exercise> _exercises = [
-		// Biceps
 		_Exercise(
-			id: 'dumbbell_bicep_curls',
-			title: 'Dumbbell Bicep Curls',
-			description: 'Classic dumbbell curls for biceps peak and control.',
-			image: 'assets/images/arm_dumbbell_bicep_curls.png',
+			id: 'barbell_squat',
+			title: 'Barbell Squat',
+			description: 'Heavy compound movement that targets glutes, quads, and hamstrings.',
+			image: 'assets/images/glutes_barbell_squat.png',
+			setsReps: '4 sets x 6-8 reps',
+		),
+		_Exercise(
+			id: 'glute_bridge',
+			title: 'Glute Bridge',
+			description: 'Bodyweight or weighted glute bridge focuses on glute activation and isolation.',
+			image: 'assets/images/glutes_glute_bridge.png',
+			setsReps: '3 sets x 12-15 reps',
+		),
+		_Exercise(
+			id: 'hip_thrust',
+			title: 'Barbell Hip Thrust',
+			description: 'Hip thrust is one of the most effective exercises for glute hypertrophy.',
+			image: 'assets/images/glutes_hip_thrust.png',
 			setsReps: '3 sets x 8-12 reps',
 		),
 		_Exercise(
-			id: 'hammer_curls',
-			title: 'Hammer Curls',
-			description: 'Hammer curls emphasize brachialis and forearms.',
-			image: 'assets/images/arm_hammer_curls.png',
-			setsReps: '3 sets x 8-12 reps',
-		),
-		_Exercise(
-			id: 'concentration_curls',
-			title: 'Concentration Curls',
-			description: 'Strict unilateral curl for peak contraction.',
-			image: 'assets/images/arm_concentration_curls.png',
+			id: 'rumanian_deadlift',
+			title: 'Romanian Deadlift',
+			description: 'RDL targets glutes and hamstrings with emphasis on the posterior chain.',
+			image: 'assets/images/glutes_romanian_deadlift.png',
 			setsReps: '3 sets x 8-10 reps',
 		),
 		_Exercise(
-			id: 'barbell_curls',
-			title: 'Barbell Curls',
-			description: 'Barbell curls for heavy loading and mass.',
-			image: 'assets/images/arm_barbell_curls.png',
-			setsReps: '4 sets x 6-10 reps',
-		),
-		_Exercise(
-			id: 'preacher_curls',
-			title: 'Preacher Curls',
-			description: 'Preacher bench isolates the biceps and prevents cheating.',
-			image: 'assets/images/arm_preacher_curls.png',
-			setsReps: '3 sets x 8-12 reps',
-		),
-
-		// Triceps
-		_Exercise(
-			id: 'overhead_tricep_extension',
-			title: 'Overhead Tricep Extension',
-			description: 'Overhead extension targets the long head of the triceps.',
-			image: 'assets/images/arm_overhead_tricep_extension.png',
+			id: 'leg_press',
+			title: 'Leg Press',
+			description: 'Machine leg press allows heavy loading and targets all leg muscles including glutes.',
+			image: 'assets/images/glutes_leg_press.png',
 			setsReps: '3 sets x 8-12 reps',
 		),
 		_Exercise(
-			id: 'tricep_kickbacks',
-			title: 'Tricep Kickbacks',
-			description: 'Kickbacks for isolating the lateral head of triceps.',
-			image: 'assets/images/arm_tricep_kickbacks.png',
+			id: 'bulgarian_split_squat',
+			title: 'Bulgarian Split Squat',
+			description: 'Single-leg variation that isolates each glute and improves balance.',
+			image: 'assets/images/glutes_bulgarian_split_squat.png',
+			setsReps: '3 sets x 10 reps per leg',
+		),
+		_Exercise(
+			id: 'cable_glute_kickback',
+			title: 'Cable Glute Kickback',
+			description: 'Cable kickback provides constant tension for glute isolation.',
+			image: 'assets/images/glutes_cable_kickback.png',
+			setsReps: '3 sets x 12-15 reps per side',
+		),
+		_Exercise(
+			id: 'leg_curl',
+			title: 'Leg Curl',
+			description: 'Machine leg curl targets hamstrings and lower glutes.',
+			image: 'assets/images/glutes_leg_curl.png',
 			setsReps: '3 sets x 10-12 reps',
-		),
-		_Exercise(
-			id: 'tricep_dips',
-			title: 'Tricep Dips',
-			description: 'Bodyweight dips (or weighted) for triceps and chest.',
-			image: 'assets/images/arm_tricep_dips.png',
-			setsReps: '3 sets x 8-15 reps',
-		),
-		_Exercise(
-			id: 'cross_grip',
-			title: 'Cross Grip Tricep Press',
-			description: 'Cross-grip pressing emphasizes triceps differently.',
-			image: 'assets/images/arm_cross_grip.png',
-			setsReps: '3 sets x 6-10 reps',
-		),
-		_Exercise(
-			id: 'skull_crusher',
-			title: 'Skull Crushers',
-			description: 'Lying triceps extensions (skull crushers) for mass.',
-			image: 'assets/images/arm_skull_crusher.png',
-			setsReps: '3 sets x 8-12 reps',
 		),
 	];
 
 	@override
 	Widget build(BuildContext context) {
 		return Scaffold(
-			appBar: AppBar(title: const Text('Arm Workouts')),
+			appBar: AppBar(title: const Text('Glutes Workouts')),
 			body: Padding(
 				padding: const EdgeInsets.all(12.0),
 				child: GridView.builder(
@@ -100,7 +83,7 @@ class ArmWorkouts extends StatelessWidget {
 						return GestureDetector(
 							onTap: () => Navigator.push(
 								context,
-								MaterialPageRoute(builder: (_) => ArmExerciseDetail(exercise: ex)),
+								MaterialPageRoute(builder: (_) => GlutesExerciseDetail(exercise: ex)),
 							),
 							child: Card(
 								shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -146,10 +129,10 @@ class _Exercise {
 	const _Exercise({required this.id, required this.title, required this.description, required this.image, required this.setsReps});
 }
 
-class ArmExerciseDetail extends StatelessWidget {
+class GlutesExerciseDetail extends StatelessWidget {
 	final _Exercise exercise;
 
-	const ArmExerciseDetail({Key? key, required this.exercise}) : super(key: key);
+	const GlutesExerciseDetail({Key? key, required this.exercise}) : super(key: key);
 
 	@override
 	Widget build(BuildContext context) {
@@ -180,7 +163,7 @@ class ArmExerciseDetail extends StatelessWidget {
 												context: context,
 												builder: (ctx) => ExerciseLogDialog(
 													exerciseName: exercise.title,
-													bodyPart: 'Arms',
+													bodyPart: 'Glutes',
 												),
 											);
 										},
@@ -196,29 +179,3 @@ class ArmExerciseDetail extends StatelessWidget {
 		);
 	}
 }
-
-Widget _imageFallback(String title, {bool large = false}) {
-	final initials = _initialsFromTitle(title);
-	return Container(
-		color: Colors.grey.shade200,
-		alignment: Alignment.center,
-		child: Container(
-			width: large ? 120 : 56,
-			height: large ? 120 : 56,
-			decoration: BoxDecoration(
-				color: Colors.blueGrey.shade100,
-				borderRadius: BorderRadius.circular(8),
-			),
-			alignment: Alignment.center,
-			child: Text(initials, style: TextStyle(fontSize: large ? 28 : 16, color: Colors.blueGrey.shade700, fontWeight: FontWeight.bold)),
-		),
-	);
-}
-
-String _initialsFromTitle(String title) {
-	final parts = title.split(RegExp(r'\s+'))..removeWhere((s) => s.isEmpty);
-	if (parts.isEmpty) return '';
-	if (parts.length == 1) return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
-	return (parts[0][0] + parts[1][0]).toUpperCase();
-}
-

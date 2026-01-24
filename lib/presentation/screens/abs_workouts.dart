@@ -2,89 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 
-class ArmWorkouts extends StatelessWidget {
-	const ArmWorkouts({Key? key}) : super(key: key);
+class AbsWorkouts extends StatelessWidget {
+	const AbsWorkouts({Key? key}) : super(key: key);
 
 	static final List<_Exercise> _exercises = [
-		// Biceps
 		_Exercise(
-			id: 'dumbbell_bicep_curls',
-			title: 'Dumbbell Bicep Curls',
-			description: 'Classic dumbbell curls for biceps peak and control.',
-			image: 'assets/images/arm_dumbbell_bicep_curls.png',
-			setsReps: '3 sets x 8-12 reps',
+			id: 'crunches',
+			title: 'Crunches',
+			description: 'Classic crunches target upper abdominals with a shortened range of motion.',
+			image: 'assets/images/abs_crunches.png',
+			setsReps: '3 sets x 12-15 reps',
 		),
 		_Exercise(
-			id: 'hammer_curls',
-			title: 'Hammer Curls',
-			description: 'Hammer curls emphasize brachialis and forearms.',
-			image: 'assets/images/arm_hammer_curls.png',
-			setsReps: '3 sets x 8-12 reps',
+			id: 'cable_crunch',
+			title: 'Cable Crunch',
+			description: 'Cable crunch provides constant tension throughout the movement.',
+			image: 'assets/images/abs_cable_crunch.png',
+			setsReps: '3 sets x 12-15 reps',
 		),
 		_Exercise(
-			id: 'concentration_curls',
-			title: 'Concentration Curls',
-			description: 'Strict unilateral curl for peak contraction.',
-			image: 'assets/images/arm_concentration_curls.png',
-			setsReps: '3 sets x 8-10 reps',
+			id: 'decline_sit_ups',
+			title: 'Decline Sit-ups',
+			description: 'Sit-ups on an incline bench increase resistance for greater abs activation.',
+			image: 'assets/images/abs_decline_situps.png',
+			setsReps: '3 sets x 10-15 reps',
 		),
 		_Exercise(
-			id: 'barbell_curls',
-			title: 'Barbell Curls',
-			description: 'Barbell curls for heavy loading and mass.',
-			image: 'assets/images/arm_barbell_curls.png',
-			setsReps: '4 sets x 6-10 reps',
-		),
-		_Exercise(
-			id: 'preacher_curls',
-			title: 'Preacher Curls',
-			description: 'Preacher bench isolates the biceps and prevents cheating.',
-			image: 'assets/images/arm_preacher_curls.png',
-			setsReps: '3 sets x 8-12 reps',
-		),
-
-		// Triceps
-		_Exercise(
-			id: 'overhead_tricep_extension',
-			title: 'Overhead Tricep Extension',
-			description: 'Overhead extension targets the long head of the triceps.',
-			image: 'assets/images/arm_overhead_tricep_extension.png',
-			setsReps: '3 sets x 8-12 reps',
-		),
-		_Exercise(
-			id: 'tricep_kickbacks',
-			title: 'Tricep Kickbacks',
-			description: 'Kickbacks for isolating the lateral head of triceps.',
-			image: 'assets/images/arm_tricep_kickbacks.png',
+			id: 'weighted_crunch',
+			title: 'Weighted Crunch',
+			description: 'Adding weight to crunches increases difficulty and promotes hypertrophy.',
+			image: 'assets/images/abs_weighted_crunch.png',
 			setsReps: '3 sets x 10-12 reps',
 		),
 		_Exercise(
-			id: 'tricep_dips',
-			title: 'Tricep Dips',
-			description: 'Bodyweight dips (or weighted) for triceps and chest.',
-			image: 'assets/images/arm_tricep_dips.png',
-			setsReps: '3 sets x 8-15 reps',
+			id: 'machine_crunch',
+			title: 'Machine Crunch',
+			description: 'Machine crunch provides guided movement and adjustable resistance.',
+			image: 'assets/images/abs_machine_crunch.png',
+			setsReps: '3 sets x 12-15 reps',
 		),
 		_Exercise(
-			id: 'cross_grip',
-			title: 'Cross Grip Tricep Press',
-			description: 'Cross-grip pressing emphasizes triceps differently.',
-			image: 'assets/images/arm_cross_grip.png',
-			setsReps: '3 sets x 6-10 reps',
+			id: 'captain_chair_knee_raise',
+			title: 'Captain Chair Knee Raise',
+			description: 'Knee raise on captain\'s chair targets lower abs effectively.',
+			image: 'assets/images/abs_captain_chair.png',
+			setsReps: '3 sets x 12-15 reps',
 		),
 		_Exercise(
-			id: 'skull_crusher',
-			title: 'Skull Crushers',
-			description: 'Lying triceps extensions (skull crushers) for mass.',
-			image: 'assets/images/arm_skull_crusher.png',
+			id: 'ab_wheel_crunch',
+			title: 'Ab Wheel Crunch',
+			description: 'Ab wheel crunch is a variation that targets upper and mid abdominals.',
+			image: 'assets/images/abs_ab_wheel_crunch.png',
 			setsReps: '3 sets x 8-12 reps',
+		),
+		_Exercise(
+			id: 'incline_treadmill_walk',
+			title: 'Incline Treadmill Walk',
+			description: 'Walking on an incline engages core and abdominal muscles.',
+			image: 'assets/images/abs_incline_walk.png',
+			setsReps: '3 sets x 10-15 minutes',
 		),
 	];
 
 	@override
 	Widget build(BuildContext context) {
 		return Scaffold(
-			appBar: AppBar(title: const Text('Arm Workouts')),
+			appBar: AppBar(title: const Text('Abs Workouts')),
 			body: Padding(
 				padding: const EdgeInsets.all(12.0),
 				child: GridView.builder(
@@ -100,7 +83,7 @@ class ArmWorkouts extends StatelessWidget {
 						return GestureDetector(
 							onTap: () => Navigator.push(
 								context,
-								MaterialPageRoute(builder: (_) => ArmExerciseDetail(exercise: ex)),
+								MaterialPageRoute(builder: (_) => AbsExerciseDetail(exercise: ex)),
 							),
 							child: Card(
 								shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -146,10 +129,10 @@ class _Exercise {
 	const _Exercise({required this.id, required this.title, required this.description, required this.image, required this.setsReps});
 }
 
-class ArmExerciseDetail extends StatelessWidget {
+class AbsExerciseDetail extends StatelessWidget {
 	final _Exercise exercise;
 
-	const ArmExerciseDetail({Key? key, required this.exercise}) : super(key: key);
+	const AbsExerciseDetail({Key? key, required this.exercise}) : super(key: key);
 
 	@override
 	Widget build(BuildContext context) {
@@ -180,7 +163,7 @@ class ArmExerciseDetail extends StatelessWidget {
 												context: context,
 												builder: (ctx) => ExerciseLogDialog(
 													exerciseName: exercise.title,
-													bodyPart: 'Arms',
+													bodyPart: 'Abs',
 												),
 											);
 										},
@@ -196,29 +179,3 @@ class ArmExerciseDetail extends StatelessWidget {
 		);
 	}
 }
-
-Widget _imageFallback(String title, {bool large = false}) {
-	final initials = _initialsFromTitle(title);
-	return Container(
-		color: Colors.grey.shade200,
-		alignment: Alignment.center,
-		child: Container(
-			width: large ? 120 : 56,
-			height: large ? 120 : 56,
-			decoration: BoxDecoration(
-				color: Colors.blueGrey.shade100,
-				borderRadius: BorderRadius.circular(8),
-			),
-			alignment: Alignment.center,
-			child: Text(initials, style: TextStyle(fontSize: large ? 28 : 16, color: Colors.blueGrey.shade700, fontWeight: FontWeight.bold)),
-		),
-	);
-}
-
-String _initialsFromTitle(String title) {
-	final parts = title.split(RegExp(r'\s+'))..removeWhere((s) => s.isEmpty);
-	if (parts.isEmpty) return '';
-	if (parts.length == 1) return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
-	return (parts[0][0] + parts[1][0]).toUpperCase();
-}
-

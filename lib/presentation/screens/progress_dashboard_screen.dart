@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
+// charts_flutter is incompatible with the current Flutter SDK; use a simple
+// built-in bar visualization instead to avoid build errors.
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cross_file/cross_file.dart';
@@ -207,32 +208,11 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   }
 
   Widget _buildChart() {
-    final data = <_DayCount>[];
-    final now = DateTime.now();
-    final ordered = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: 6 - i));
-      final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-      final count = _last7DaysCounts[key] ?? 0;
-      final label = '${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday % 7]}';
-      return _DayCount(label, count);
-    });
-
-    data.addAll(ordered);
-
-    final series = [
-      charts.Series<_DayCount, String>(
-        id: 'workouts',
-        domainFn: (d, _) => d.day,
-        measureFn: (d, _) => d.count,
-        colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-        data: data,
-      ),
-    ];
-
-    return charts.BarChart(
-      series,
-      animate: true,
-      domainAxis: const charts.OrdinalAxisSpec(renderSpec: charts.SmallTickRendererSpec(labelRotation: 0)),
+    // Simple in-widget bar chart using existing counts to avoid external
+    // chart package incompatibilities.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: _buildLast7Bars(),
     );
   }
 

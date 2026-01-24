@@ -7,7 +7,6 @@ import 'package:fitness_aura_athletix/presentation/screens/auth_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/arm_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/back_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/chest_workouts.dart';
-import 'package:fitness_aura_athletix/presentation/screens/biling_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/community_feed_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/daily_workout_analysis_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/help_faq_screen.dart';
@@ -19,9 +18,6 @@ import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/progress_dashboard_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/setting_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/shoulder_workouts.dart';
-import 'package:fitness_aura_athletix/presentation/screens/core_workouts.dart';
-import 'package:fitness_aura_athletix/presentation/screens/glutes_workouts.dart';
-import 'package:fitness_aura_athletix/presentation/screens/abs_workouts.dart';
 
 class AppRoutes {
   static const String premiumFeatures = '/premium-features';
@@ -36,9 +32,6 @@ class AppRoutes {
   static const String shoulderWorkouts = '/shoulder-workouts';
   static const String legWorkouts = '/leg-workouts';
   static const String backWorkouts = '/back-workouts';
-  static const String coreWorkouts = '/core-workouts';
-  static const String glutesWorkouts = '/glutes-workouts';
-  static const String absWorkouts = '/abs-workouts';
   static const String billing = '/billing';
   static const String privacySettings = '/privacy-settings';
   static const String socialCommunity = '/community-feed';
@@ -75,12 +68,6 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LegWorkouts());
       case backWorkouts:
         return MaterialPageRoute(builder: (_) => const BackWorkouts());
-      case coreWorkouts:
-        return MaterialPageRoute(builder: (_) => const CoreWorkouts());
-      case glutesWorkouts:
-        return MaterialPageRoute(builder: (_) => const GlutesWorkouts());
-      case absWorkouts:
-        return MaterialPageRoute(builder: (_) => const AbsWorkouts());
       case premiumFeatures:
         return MaterialPageRoute(builder: (_) => const PremiumFeaturesScreen());
       case billing:

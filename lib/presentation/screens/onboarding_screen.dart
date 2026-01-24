@@ -241,12 +241,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // final prefs = await SharedPreferences.getInstance();
     // await prefs.setString('onboarding_data', jsonEncode(data));
 
-    // For now, simply show a confirmation and return the data to caller.
+    // For now, simply show a confirmation and navigate to home.
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Onboarding saved locally')));
 
-    Navigator.of(context).pop(data);
+    Navigator.of(context).pushReplacementNamed('/home');
   }
 
   Widget _buildDaysChips() {

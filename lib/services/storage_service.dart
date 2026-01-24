@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fitness_aura_athletix/core/models/exercise.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -150,6 +151,53 @@ class StorageService {
 	Future<bool> hasSecureString(String key) async {
 		final v = await loadSecureString(key);
 		return v != null && v.isNotEmpty;
+	}
+
+	// Exercise tracking methods
+	static const _kExerciseRecordsKey = 'exercise_records_v1';
+
+	Future<List<Map<String, dynamic>>> _readExerciseRecordsRaw() async {
+		final prefs = await _prefs;
+		final s = prefs.getString(_kExerciseRecordsKey);
+		if (s == null || s.isEmpty) return [];
+		final List<dynamic> list = jsonDecode(s);
+		return list.cast<Map<String, dynamic>>();
+	}
+
+	Future<void> _writeExerciseRecordsRaw(List<Map<String, dynamic>> records) async {
+		final prefs = await _prefs;
+		await prefs.setString(_kExerciseRecordsKey, jsonEncode(records));
+	}
+
+	Future<List<ExerciseRecord>> loadExerciseRecords() async {
+		final raw = await _readExerciseRecordsRaw();
+		return raw.map((m) => ExerciseRecord.fromMap(m)).toList();
+	}
+
+	Future<void> saveExerciseRecord(ExerciseRecord record) async {
+		final records = await loadExerciseRecords();
+		records.removeWhere((e) => e.id == record.id);
+		records.add(record);
+		await _writeExerciseRecordsRaw(records.map((e) => e.toMap()).toList());
+	}
+
+	Future<void> deleteExerciseRecord(String id) async {
+		final records = await loadExerciseRecords();
+		records.removeWhere((e) => e.id == id);
+		await _writeExerciseRecordsRaw(records.map((e) => e.toMap()).toList());
+	}
+
+	Future<List<ExerciseRecord>> getExerciseRecordsByBodyPart(String bodyPart) async {
+		final records = await loadExerciseRecords();
+		return records.where((r) => r.bodyPart == bodyPart).toList()..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+	}
+
+	Future<List<ExerciseRecord>> getExerciseRecordsByDate(DateTime date) async {
+		final records = await loadExerciseRecords();
+		return records.where((r) {
+			final same = r.dateRecorded.year == date.year && r.dateRecorded.month == date.month && r.dateRecorded.day == date.day;
+			return same;
+		}).toList()..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
 	}
 }
 
