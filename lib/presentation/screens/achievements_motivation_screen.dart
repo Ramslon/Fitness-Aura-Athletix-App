@@ -76,16 +76,12 @@ class _AchievementsMotivationScreenState
                     ..._prAlerts.map(
                       (p) => Card(
                         child: ListTile(
-                          leading: const Text(
-                            '🎉',
-                            style: TextStyle(fontSize: 20),
+                          leading: Text(
+                            p.emoji,
+                            style: const TextStyle(fontSize: 20),
                           ),
-                          title: Text(
-                            '${p.exerciseName} — ${p.weightKg.toStringAsFixed(1)} kg',
-                          ),
-                          subtitle: Text(
-                            '${p.bodyPart} • ${p.dateText} • +${p.deltaKg.toStringAsFixed(1)} kg PR',
-                          ),
+                          title: Text(p.titleText),
+                          subtitle: Text(p.subtitleText),
                         ),
                       ),
                     ),
@@ -159,15 +155,17 @@ class _AchievementsMotivationScreenState
 class _PrAlert {
   final String exerciseName;
   final String bodyPart;
-  final double weightKg;
-  final double deltaKg;
+  final _PrType type;
+  final double value;
+  final double delta;
   final DateTime date;
 
   _PrAlert({
     required this.exerciseName,
     required this.bodyPart,
-    required this.weightKg,
-    required this.deltaKg,
+    required this.type,
+    required this.value,
+    required this.delta,
     required this.date,
   });
 
@@ -175,7 +173,42 @@ class _PrAlert {
     final d = date;
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
+
+  String get emoji {
+    switch (type) {
+      case _PrType.weight:
+        return '🏋️';
+      case _PrType.reps:
+        return '🔁';
+      case _PrType.volume:
+        return '📊';
+    }
+  }
+
+  String get titleText {
+    switch (type) {
+      case _PrType.weight:
+        return '${exerciseName} — ${value.toStringAsFixed(1)} kg';
+      case _PrType.reps:
+        return '${exerciseName} — ${value.toStringAsFixed(0)} reps';
+      case _PrType.volume:
+        return '${exerciseName} — ${value.toStringAsFixed(0)} volume';
+    }
+  }
+
+  String get subtitleText {
+    switch (type) {
+      case _PrType.weight:
+        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(1)} kg PR';
+      case _PrType.reps:
+        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(0)} reps PR';
+      case _PrType.volume:
+        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(0)} volume PR';
+    }
+  }
 }
+
+enum _PrType { weight, reps, volume }
 
 class _Badge {
   final String label;
@@ -214,27 +247,69 @@ List<_PrAlert> _computeRecentPersonalRecords(
     ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
   final cutoff = DateTime.now().subtract(Duration(days: daysBack));
 
-  final bestBefore = <String, double>{};
+  final bestWeightBefore = <String, double>{};
+  final bestRepsBefore = <String, int>{};
+  final bestVolumeBefore = <String, double>{};
   final alerts = <_PrAlert>[];
 
   for (final r in sorted) {
     final key = r.exerciseName.toLowerCase().trim();
-    final prevBest = bestBefore[key] ?? 0;
+    final prevBestWeight = bestWeightBefore[key] ?? 0;
+    final prevBestReps = bestRepsBefore[key] ?? 0;
+    final prevBestVolume = bestVolumeBefore[key] ?? 0;
 
-    if (r.weight > prevBest) {
-      // Only alert for recent records, but keep updating best for all.
-      if (r.dateRecorded.isAfter(cutoff)) {
+    final volume = r.weight * r.sets * r.repsPerSet;
+    final isRecent = r.dateRecorded.isAfter(cutoff);
+
+    // Weight PR
+    if (r.weight > prevBestWeight) {
+      if (isRecent) {
         alerts.add(
           _PrAlert(
             exerciseName: r.exerciseName,
             bodyPart: r.bodyPart,
-            weightKg: r.weight,
-            deltaKg: (r.weight - prevBest),
+            type: _PrType.weight,
+            value: r.weight,
+            delta: (r.weight - prevBestWeight),
             date: r.dateRecorded,
           ),
         );
       }
-      bestBefore[key] = r.weight;
+      bestWeightBefore[key] = r.weight;
+    }
+
+    // Rep PR (best repsPerSet)
+    if (r.repsPerSet > prevBestReps) {
+      if (isRecent) {
+        alerts.add(
+          _PrAlert(
+            exerciseName: r.exerciseName,
+            bodyPart: r.bodyPart,
+            type: _PrType.reps,
+            value: r.repsPerSet.toDouble(),
+            delta: (r.repsPerSet - prevBestReps).toDouble(),
+            date: r.dateRecorded,
+          ),
+        );
+      }
+      bestRepsBefore[key] = r.repsPerSet;
+    }
+
+    // Volume PR (weight * sets * reps)
+    if (volume > prevBestVolume) {
+      if (isRecent) {
+        alerts.add(
+          _PrAlert(
+            exerciseName: r.exerciseName,
+            bodyPart: r.bodyPart,
+            type: _PrType.volume,
+            value: volume,
+            delta: (volume - prevBestVolume),
+            date: r.dateRecorded,
+          ),
+        );
+      }
+      bestVolumeBefore[key] = volume;
     }
   }
 
