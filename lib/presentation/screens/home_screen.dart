@@ -80,6 +80,30 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.orange.shade400,
         route: AppRoutes.shoulderWorkouts,
       ),
+      _FeatureCard(
+        title: 'Core Workouts',
+        description:
+            'Planks, crunches and rotational exercises for core strength and stability.',
+        icon: Icons.hub,
+        color: Colors.deepOrange.shade400,
+        route: AppRoutes.coreWorkouts,
+      ),
+      _FeatureCard(
+        title: 'Glutes Workouts',
+        description:
+            'Hip thrusts, squats and kickbacks for a stronger posterior chain.',
+        icon: Icons.accessibility_new,
+        color: Colors.pink.shade400,
+        route: AppRoutes.glutesWorkouts,
+      ),
+      _FeatureCard(
+        title: 'Abs Workouts',
+        description:
+            'Crunches, leg raises and core isolation moves for defined abs.',
+        icon: Icons.exposure_plus_1,
+        color: Colors.amber.shade500,
+        route: AppRoutes.absWorkouts,
+      ),
 
       // Analysis & premium
       _FeatureCard(
