@@ -342,7 +342,7 @@ class StorageService {
 				muscleGroup: muscle,
 				weeklyFrequency: frequency,
 				volumeThisWeek: volume,
-				averageVolumePerSession: avgVolume,
+				averageVolumePerSession: avgVolume.toDouble(),
 				warning: warning,
 				isUnderTrained: isUnderTrained,
 				hasImbalance: false, // Will be calculated in balance check
@@ -442,7 +442,7 @@ class StorageService {
 				warnings.add(MuscleImbalanceWarning(
 					primaryMuscle: pair.$1,
 					secondaryMuscle: pair.$2,
-					volumeRatio: ratio,
+					volumeRatio: ratio.toDouble(),
 					warning: '⚠️ ${pair.$1} volume is ${(ratio * 100 - 100).toStringAsFixed(0)}% higher than ${pair.$2} → imbalance risk',
 					suggestion: 'Increase ${pair.$2} training volume or decrease ${pair.$1}',
 					isCritical: isCritical,
@@ -549,7 +549,7 @@ class StorageService {
 		final suggestions = <AccessorySuggestion>[];
 
 		// Accessory exercise recommendations map
-		const accessoryMap = {
+		final accessoryMap = {
 			'Chest': [
 				AccessorySuggestion(
 					muscleGroup: 'Chest',

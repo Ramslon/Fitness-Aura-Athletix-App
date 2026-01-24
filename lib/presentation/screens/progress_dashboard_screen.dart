@@ -344,7 +344,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              warning.warning ?? '',
+                              warning.warning ?? 'Muscle Imbalance',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
