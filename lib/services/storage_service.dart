@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
+import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -450,6 +451,262 @@ class StorageService {
 		}
 
 		return warnings;
+	}
+
+	// Smart Coach Suggestions
+	Future<List<CoachSuggestion>> getCoachSuggestions() async {
+		final records = await loadExerciseRecords();
+		if (records.isEmpty) return [];
+
+		final suggestions = <CoachSuggestion>[];
+		final groupedByExercise = <String, List<ExerciseRecord>>{};
+
+		// Group records by exercise name
+		for (final record in records) {
+			groupedByExercise.putIfAbsent(record.exerciseName, () => []);
+			groupedByExercise[record.exerciseName]!.add(record);
+		}
+
+		// Analyze each exercise for suggestions
+		for (final exerciseName in groupedByExercise.keys) {
+			final exerciseRecords = groupedByExercise[exerciseName]!
+				..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+
+			if (exerciseRecords.isEmpty) continue;
+
+			final latest = exerciseRecords[0];
+			final previousRecords = exerciseRecords.length > 1 ? exerciseRecords.sublist(1) : [];
+
+			// Check for weight increase opportunity
+			if (previousRecords.isNotEmpty) {
+				final previous = previousRecords[0];
+				
+				// If completed all reps at same weight consistently, suggest weight increase
+				if (latest.weight == previous.weight && latest.repsPerSet == latest.sets) {
+					final completionRate = previousRecords
+						.take(3)
+						.where((r) => r.repsPerSet >= latest.repsPerSet)
+						.length / (previousRecords.length > 3 ? 3 : previousRecords.length).toDouble();
+
+					if (completionRate >= 0.66) {
+						final suggestedWeight = (latest.weight + 2.5);
+						suggestions.add(CoachSuggestion(
+							id: '${exerciseName}_weight_${DateTime.now().millisecondsSinceEpoch}',
+							exerciseName: exerciseName,
+							bodyPart: latest.bodyPart,
+							type: SuggestionType.increaseWeight,
+							suggestion: '⬆️ Increase weight to ${suggestedWeight.toStringAsFixed(1)} kg',
+							rationale: 'You\'ve been consistently hitting ${latest.repsPerSet} reps. Time to challenge yourself with more weight!',
+							priority: 0.9,
+							suggestedDate: DateTime.now(),
+							currentValue: '${latest.weight} kg',
+							recommendedValue: '${suggestedWeight.toStringAsFixed(1)} kg',
+						));
+					}
+				}
+			}
+
+			// Check for rep increase opportunity
+			if (latest.difficulty.toLowerCase() == 'easy' && previousRecords.isNotEmpty) {
+				final suggestedReps = latest.repsPerSet + 2;
+				suggestions.add(CoachSuggestion(
+					id: '${exerciseName}_reps_${DateTime.now().millisecondsSinceEpoch}',
+					exerciseName: exerciseName,
+					bodyPart: latest.bodyPart,
+					type: SuggestionType.increaseReps,
+					suggestion: '📈 Increase reps to ${suggestedReps}',
+					rationale: 'You rated this as Easy. Push for ${suggestedReps} reps to increase volume and strength endurance.',
+					priority: 0.7,
+					suggestedDate: DateTime.now(),
+					currentValue: '${latest.repsPerSet} reps',
+					recommendedValue: '${suggestedReps} reps',
+				));
+			}
+
+			// Check for set increase opportunity
+			if (latest.difficulty.toLowerCase() == 'easy' && latest.weight == (previousRecords.isNotEmpty ? previousRecords[0].weight : 0)) {
+				final suggestedSets = latest.sets + 1;
+				suggestions.add(CoachSuggestion(
+					id: '${exerciseName}_sets_${DateTime.now().millisecondsSinceEpoch}',
+					exerciseName: exerciseName,
+					bodyPart: latest.bodyPart,
+					type: SuggestionType.increaseSets,
+					suggestion: '➕ Add 1 extra set (${latest.sets} → ${suggestedSets})',
+					rationale: 'This exercise feels easy. Adding a set will increase total volume for better gains.',
+					priority: 0.6,
+					suggestedDate: DateTime.now(),
+					currentValue: '${latest.sets} sets',
+					recommendedValue: '${suggestedSets} sets',
+				));
+			}
+		}
+
+		return suggestions..sort((a, b) => b.priority.compareTo(a.priority));
+	}
+
+	Future<List<AccessorySuggestion>> getAccessorySuggestions() async {
+		final analysis = await getMuscleBalanceAnalysis();
+		final suggestions = <AccessorySuggestion>[];
+
+		// Accessory exercise recommendations map
+		const accessoryMap = {
+			'Chest': [
+				AccessorySuggestion(
+					muscleGroup: 'Chest',
+					suggestedExercise: 'Cable Flyes',
+					benefit: 'Isolates chest, improves mind-muscle connection',
+					reason: 'Complement heavy compound movements',
+					recommendedSets: 3,
+					recommendedReps: '12-15',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Chest',
+					suggestedExercise: 'Push-ups',
+					benefit: 'Functional chest development, stabilizer activation',
+					reason: 'Excellent finishing exercise',
+					recommendedSets: 3,
+					recommendedReps: 'max reps',
+				),
+			],
+			'Back': [
+				AccessorySuggestion(
+					muscleGroup: 'Back',
+					suggestedExercise: 'Face Pulls',
+					benefit: 'Rear delt and upper back strength, postural correction',
+					reason: 'Prevents shoulder impingement',
+					recommendedSets: 3,
+					recommendedReps: '12-15',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Back',
+					suggestedExercise: 'Barbell Rows',
+					benefit: 'Thickness and strength in mid-back',
+					reason: 'Compound movement for overall back mass',
+					recommendedSets: 4,
+					recommendedReps: '6-10',
+				),
+			],
+			'Shoulders': [
+				AccessorySuggestion(
+					muscleGroup: 'Shoulders',
+					suggestedExercise: 'Cable Raises',
+					benefit: 'Lateral deltoid isolation, shoulder width',
+					reason: 'Complements pressing movements',
+					recommendedSets: 3,
+					recommendedReps: '12-15',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Shoulders',
+					suggestedExercise: 'Shrugs',
+					benefit: 'Trap development, upper back strength',
+					reason: 'Simple but effective shoulder accessory',
+					recommendedSets: 3,
+					recommendedReps: '10-12',
+				),
+			],
+			'Legs': [
+				AccessorySuggestion(
+					muscleGroup: 'Legs',
+					suggestedExercise: 'Leg Extensions',
+					benefit: 'Quad isolation, knee stability',
+					reason: 'Finisher after heavy compounds',
+					recommendedSets: 3,
+					recommendedReps: '12-15',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Legs',
+					suggestedExercise: 'Walking Lunges',
+					benefit: 'Unilateral strength, stability',
+					reason: 'Great accessory for lower body',
+					recommendedSets: 3,
+					recommendedReps: '10 per leg',
+				),
+			],
+			'Arms': [
+				AccessorySuggestion(
+					muscleGroup: 'Arms',
+					suggestedExercise: 'Dumbbell Curls',
+					benefit: 'Bicep isolation and control',
+					reason: 'Classic accessory for arm development',
+					recommendedSets: 3,
+					recommendedReps: '8-12',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Arms',
+					suggestedExercise: 'Rope Extensions',
+					benefit: 'Tricep isolation, long head activation',
+					reason: 'Pairs well with pressing movements',
+					recommendedSets: 3,
+					recommendedReps: '10-12',
+				),
+			],
+			'Core': [
+				AccessorySuggestion(
+					muscleGroup: 'Core',
+					suggestedExercise: 'Ab Wheel Rollout',
+					benefit: 'Deep core strength, anti-extension',
+					reason: 'Advanced core stability exercise',
+					recommendedSets: 3,
+					recommendedReps: '8-12',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Core',
+					suggestedExercise: 'Pallof Press',
+					benefit: 'Anti-rotation strength, stability',
+					reason: 'Functional core strength',
+					recommendedSets: 3,
+					recommendedReps: '10 per side',
+				),
+			],
+			'Glutes': [
+				AccessorySuggestion(
+					muscleGroup: 'Glutes',
+					suggestedExercise: 'Glute Kickbacks',
+					benefit: 'Glute isolation and activation',
+					reason: 'Excellent glute accessory',
+					recommendedSets: 3,
+					recommendedReps: '12-15',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Glutes',
+					suggestedExercise: 'Cable Pull-throughs',
+					benefit: 'Posterior chain and glute activation',
+					reason: 'Functional glute development',
+					recommendedSets: 3,
+					recommendedReps: '10-12',
+				),
+			],
+			'Abs': [
+				AccessorySuggestion(
+					muscleGroup: 'Abs',
+					suggestedExercise: 'Hanging Knee Raises',
+					benefit: 'Lower abs and core stability',
+					reason: 'Dynamic ab development',
+					recommendedSets: 3,
+					recommendedReps: '8-12',
+				),
+				AccessorySuggestion(
+					muscleGroup: 'Abs',
+					suggestedExercise: 'Weighted Crunches',
+					benefit: 'Progressive abs training',
+					reason: 'Adds resistance for better gains',
+					recommendedSets: 3,
+					recommendedReps: '10-15',
+				),
+			],
+		};
+
+		// Add suggestions for under-trained muscles
+		for (final muscle in analysis) {
+			if (muscle.isUnderTrained && accessoryMap.containsKey(muscle.muscleGroup)) {
+				final accessorySuggestionList = accessoryMap[muscle.muscleGroup]!;
+				if (accessorySuggestionList.isNotEmpty) {
+					suggestions.add(accessorySuggestionList[0]);
+				}
+			}
+		}
+
+		return suggestions;
 	}
 }
 

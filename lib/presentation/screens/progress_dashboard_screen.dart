@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
+import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 // charts_flutter is incompatible with the current Flutter SDK; use a simple
 // built-in bar visualization instead to avoid build errors.
 import 'package:share_plus/share_plus.dart';
@@ -29,6 +30,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   List<MuscleGroupFrequency> _muscleFrequency = [];
   List<MuscleBalanceAnalysis> _muscleBalance = [];
   List<MuscleImbalanceWarning> _imbalanceWarnings = [];
+  List<CoachSuggestion> _coachSuggestions = [];
+  List<AccessorySuggestion> _accessorySuggestions = [];
 
   @override
   void initState() {
@@ -45,6 +48,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
     final muscleBalance = await StorageService().getMuscleBalanceAnalysis();
     final imbalanceWarnings = await StorageService().getMuscleImbalanceWarnings();
+    final coachSuggestions = await StorageService().getCoachSuggestions();
+    final accessorySuggestions = await StorageService().getAccessorySuggestions();
 
     final now = DateTime.now();
     final last7 = List.generate(7, (i) {
@@ -73,6 +78,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       _muscleFrequency = muscleFreq;
       _muscleBalance = muscleBalance;
       _imbalanceWarnings = imbalanceWarnings;
+      _coachSuggestions = coachSuggestions;
+      _accessorySuggestions = accessorySuggestions;
       _loading = false;
     });
   }
@@ -368,6 +375,166 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     );
   }
 
+  Widget _buildCoachSuggestionsSection() {
+    if (_coachSuggestions.isEmpty && _accessorySuggestions.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🤖 Your Personal Coach', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text('Keep logging exercises to get personalized suggestions!', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        if (_coachSuggestions.isNotEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('🤖 Your Personal Coach', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  ..._coachSuggestions.take(5).map((suggestion) {
+                    final colorScheme = {
+                      SuggestionType.increaseWeight: Colors.blue.shade50,
+                      SuggestionType.increaseReps: Colors.green.shade50,
+                      SuggestionType.increaseSets: Colors.purple.shade50,
+                      SuggestionType.accessoryExercise: Colors.orange.shade50,
+                      SuggestionType.deload: Colors.red.shade50,
+                      SuggestionType.technique: Colors.amber.shade50,
+                    };
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: colorScheme[suggestion.type],
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(suggestion.emoji, style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        suggestion.exerciseName,
+                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      ),
+                                      Text(
+                                        suggestion.suggestion,
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (suggestion.currentValue != null)
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(suggestion.currentValue!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                      if (suggestion.recommendedValue != null)
+                                        Text('→ ${suggestion.recommendedValue}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green)),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              suggestion.rationale,
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        if (_accessorySuggestions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('💪 Recommended Accessories', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  ..._accessorySuggestions.map((accessory) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          border: Border.all(color: Colors.teal.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        accessory.suggestedExercise,
+                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      ),
+                                      Text(
+                                        accessory.benefit,
+                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Chip(
+                                  label: Text('${accessory.recommendedSets}x${accessory.recommendedReps}'),
+                                  backgroundColor: Colors.teal.shade100,
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Why: ${accessory.reason}',
+                              style: const TextStyle(fontSize: 10, color: Colors.teal, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -403,6 +570,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                   _buildMuscleFrequencySection(),
                   const SizedBox(height: 12),
                   _buildMuscleBalanceSection(),
+                  const SizedBox(height: 12),
+                  _buildCoachSuggestionsSection(),
                   const SizedBox(height: 18),
                   Card(
                     child: Padding(
