@@ -6,6 +6,8 @@ import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
 import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
+import 'package:fitness_aura_athletix/core/models/volume_load.dart';
+import 'package:fitness_aura_athletix/core/models/exercise.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -451,6 +453,104 @@ class StorageService {
 		}
 
 		return warnings;
+	}
+
+	// Volume & Load Calculations
+	Future<List<VolumeLoadData>> getVolumeLoadData() async {
+		final records = await loadExerciseRecords();
+		if (records.isEmpty) return [];
+
+		final now = DateTime.now();
+		final today = DateTime(now.year, now.month, now.day);
+		final last7Start = now.subtract(const Duration(days: 6));
+		final last14Start = now.subtract(const Duration(days: 13));
+		final last30Start = now.subtract(const Duration(days: 29));
+		final last60Start = now.subtract(const Duration(days: 59));
+
+		final grouped = <String, List<ExerciseRecord>>{};
+		for (final r in records) grouped.putIfAbsent(r.exerciseName, () => []).add(r);
+
+		final result = <VolumeLoadData>[];
+
+		for (final name in grouped.keys) {
+			final list = grouped[name]!;
+
+			// Today volume
+			final todayVol = list.where((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day) == today)
+				.fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+
+			// Last session: find most recent date before today
+			final previousDates = list
+				.map((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day))
+				.toSet()
+				.where((d) => d.isBefore(today))
+				.toList();
+			previousDates.sort((a, b) => b.compareTo(a));
+			double lastSessionVol = 0;
+			if (previousDates.isNotEmpty) {
+				final lastDate = previousDates.first;
+				lastSessionVol = list.where((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day) == lastDate)
+					.fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+			}
+
+			// Week vs last week (7 day windows)
+			final weekVol = list.where((r) => r.dateRecorded.isAfter(last7Start)).fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+			final lastWeekVol = list.where((r) => r.dateRecorded.isAfter(last14Start) && r.dateRecorded.isBefore(last7Start)).fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+
+			// Month vs last month (30 day windows)
+			final monthVol = list.where((r) => r.dateRecorded.isAfter(last30Start)).fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+			final lastMonthVol = list.where((r) => r.dateRecorded.isAfter(last60Start) && r.dateRecorded.isBefore(last30Start)).fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+
+			result.add(VolumeLoadData(
+				exerciseName: name,
+				bodyPart: list.first.bodyPart,
+				todayVolume: todayVol,
+				lastSessionVolume: lastSessionVol,
+				weekVolume: weekVol,
+				lastWeekVolume: lastWeekVol,
+				monthVolume: monthVol,
+				lastMonthVolume: lastMonthVol,
+			));
+		}
+
+		return result..sort((a, b) => b.weekVolume.compareTo(a.weekVolume));
+	}
+
+	Future<BodyLoadSummary> getBodyLoadSummary() async {
+		final records = await loadExerciseRecords();
+		final now = DateTime.now();
+		final today = DateTime(now.year, now.month, now.day);
+		final yesterdayStart = today.subtract(const Duration(days: 1));
+		final weekStart = now.subtract(const Duration(days: 6));
+		final lastWeekStart = now.subtract(const Duration(days: 13));
+		final monthStart = now.subtract(const Duration(days: 29));
+		final lastMonthStart = now.subtract(const Duration(days: 59));
+
+		double totalToday = 0, totalYesterday = 0, totalWeek = 0, totalLastWeek = 0, totalMonth = 0, totalLastMonth = 0;
+		final volByMuscle = <String, double>{};
+
+		for (final r in records) {
+			final vol = r.weight * r.sets * r.repsPerSet;
+			final d = DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day);
+			if (d == today) totalToday += vol;
+			if (d == yesterdayStart) totalYesterday += vol;
+			if (r.dateRecorded.isAfter(weekStart)) totalWeek += vol;
+			if (r.dateRecorded.isAfter(lastWeekStart) && r.dateRecorded.isBefore(weekStart)) totalLastWeek += vol;
+			if (r.dateRecorded.isAfter(monthStart)) totalMonth += vol;
+			if (r.dateRecorded.isAfter(lastMonthStart) && r.dateRecorded.isBefore(monthStart)) totalLastMonth += vol;
+
+			volByMuscle.update(r.bodyPart, (v) => v + vol, ifAbsent: () => vol);
+		}
+
+		return BodyLoadSummary(
+			totalTodayVolume: totalToday,
+			totalYesterdayVolume: totalYesterday,
+			totalWeekVolume: totalWeek,
+			totalLastWeekVolume: totalLastWeek,
+			totalMonthVolume: totalMonth,
+			totalLastMonthVolume: totalLastMonth,
+			volumeByMuscle: volByMuscle,
+		);
 	}
 
 	// Smart Coach Suggestions

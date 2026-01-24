@@ -148,6 +148,13 @@ class _HomeScreenState extends State<HomeScreen> {
         route: AppRoutes.dailyWorkoutAnalysis,
       ),
       _FeatureCard(
+        title: 'Volume & Load',
+        description: 'Automatic volume calculations and comparisons (Today/Week/Month).',
+        icon: Icons.scale,
+        color: Colors.cyan.shade400,
+        route: AppRoutes.volumeLoad,
+      ),
+      _FeatureCard(
         title: 'Premium Features',
         description:
             'Unlock advanced coaching, personalized plans and wearable integrations.',
