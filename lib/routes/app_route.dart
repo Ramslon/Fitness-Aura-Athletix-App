@@ -23,6 +23,7 @@ import 'package:fitness_aura_athletix/presentation/screens/core_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/glutes_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/abs_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/volume_load_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/goal_based_tracking_screen.dart';
 
 class AppRoutes {
   static const String premiumFeatures = '/premium-features';
@@ -41,6 +42,7 @@ class AppRoutes {
   static const String glutesWorkouts = '/glutes-workouts';
   static const String absWorkouts = '/abs-workouts';
   static const String volumeLoad = '/volume-load';
+  static const String goalTracking = '/goal-tracking';
   static const String billing = '/billing';
   static const String privacySettings = '/privacy-settings';
   static const String socialCommunity = '/community-feed';
@@ -85,6 +87,10 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const AbsWorkouts());
       case volumeLoad:
         return MaterialPageRoute(builder: (_) => const VolumeLoadScreen());
+      case goalTracking:
+        return MaterialPageRoute(
+          builder: (_) => const GoalBasedTrackingScreen(),
+        );
       case premiumFeatures:
         return MaterialPageRoute(builder: (_) => const PremiumFeaturesScreen());
       case billing:

@@ -7,6 +7,7 @@ import 'package:fitness_aura_athletix/presentation/screens/auth_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/arm_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/back_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/chest_workouts.dart';
+import 'package:fitness_aura_athletix/presentation/screens/biling_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/community_feed_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/daily_workout_analysis_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/help_faq_screen.dart';

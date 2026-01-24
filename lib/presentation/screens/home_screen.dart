@@ -41,7 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (overload.isNotEmpty) {
       final sorted = overload.where((m) => m.hasVolumeIncrease).toList();
       if (sorted.isNotEmpty) {
-        sorted.sort((a, b) => b.volumeIncreasePercentage.compareTo(a.volumeIncreasePercentage));
+        sorted.sort(
+          (a, b) =>
+              b.volumeIncreasePercentage.compareTo(a.volumeIncreasePercentage),
+        );
         mostImproved = sorted[0].bodyPart;
       }
     }
@@ -50,7 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
     String weakest = 'N/A';
     if (muscleFreq.isNotEmpty) {
       final sorted = muscleFreq.toList();
-      sorted.sort((a, b) => a.workoutCountLastWeek.compareTo(b.workoutCountLastWeek));
+      sorted.sort(
+        (a, b) => a.workoutCountLastWeek.compareTo(b.workoutCountLastWeek),
+      );
       weakest = sorted[0].muscleGroup;
     }
 
@@ -60,7 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _consistencyPercent = consistency;
       _mostImprovedMuscle = mostImproved;
       _weakestMuscle = weakest;
-      _strengthTrends = overload.where((m) => m.hasWeightIncrease || m.hasRepIncrease).length;
+      _strengthTrends = overload
+          .where((m) => m.hasWeightIncrease || m.hasRepIncrease)
+          .length;
       _loading = false;
     });
   }
@@ -148,8 +155,17 @@ class _HomeScreenState extends State<HomeScreen> {
         route: AppRoutes.dailyWorkoutAnalysis,
       ),
       _FeatureCard(
+        title: 'Goal-Based Tracking',
+        description:
+            'Set a goal (e.g., bench 100kg) and get tailored suggestions.',
+        icon: Icons.flag,
+        color: Colors.lightGreen.shade400,
+        route: AppRoutes.goalTracking,
+      ),
+      _FeatureCard(
         title: 'Volume & Load',
-        description: 'Automatic volume calculations and comparisons (Today/Week/Month).',
+        description:
+            'Automatic volume calculations and comparisons (Today/Week/Month).',
         icon: Icons.scale,
         color: Colors.cyan.shade400,
         route: AppRoutes.volumeLoad,
@@ -230,10 +246,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'Current Streak 🔥',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '$_streak days', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                          Text(
+                            _loading ? '...' : '$_streak days',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -250,10 +276,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'Weekly Consistency',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '${_consistencyPercent.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                          Text(
+                            _loading
+                                ? '...'
+                                : '${_consistencyPercent.toStringAsFixed(0)}%',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -274,10 +312,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'Strength Trends 📈',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '$_strengthTrends improving', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
+                          Text(
+                            _loading ? '...' : '$_strengthTrends improving',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -294,10 +342,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'This Week',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : '$_thisWeek workouts', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            _loading ? '...' : '$_thisWeek workouts',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -318,10 +375,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'Most Improved 💪',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : _mostImprovedMuscle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.purple)),
+                          Text(
+                            _loading ? '...' : _mostImprovedMuscle,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -338,10 +405,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Text(
                             'Focus Area ⚠️',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 6),
-                          Text(_loading ? '...' : _weakestMuscle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange)),
+                          Text(
+                            _loading ? '...' : _weakestMuscle,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
                         ],
                       ),
                     ),
