@@ -116,9 +116,9 @@ class _LegWorkoutsState extends State<LegWorkouts> {
         child: GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.82,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            childAspectRatio: 0.74,
           ),
           itemCount: LegWorkouts._exercises.length,
           itemBuilder: (context, index) {

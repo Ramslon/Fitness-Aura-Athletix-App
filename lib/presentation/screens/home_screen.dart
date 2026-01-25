@@ -668,10 +668,10 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              // Slightly taller cards to avoid vertical overflow on small devices
-              childAspectRatio: 0.82,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              // Taller cards to avoid vertical overflow on small devices
+              childAspectRatio: 0.74,
             ),
             itemCount: features.length,
             itemBuilder: (context, index) {
@@ -849,7 +849,7 @@ class _FeatureCardWidget extends StatelessWidget {
         onLongPress: onLongPress,
         child: Ink(
           decoration: baseDecoration,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: content,
         ),
       ),
@@ -989,7 +989,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // Middle Section — Progress Feedback
         Row(
@@ -1020,7 +1020,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
             _TrendPill(trend: trend, accent: accent),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
@@ -1030,7 +1030,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         // Bottom Section — Action
         SizedBox(

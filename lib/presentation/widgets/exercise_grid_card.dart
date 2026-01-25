@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_insights.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 
 class ExerciseGridCard extends StatelessWidget {
   final String id;
@@ -28,7 +28,6 @@ class ExerciseGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-
     final cardBg = theme.cardTheme.color ?? theme.cardColor;
 
     return Material(
@@ -77,61 +76,9 @@ class ExerciseGridCard extends StatelessWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.05),
-                              Colors.black.withValues(alpha: 0.55),
+                              Colors.black.withValues(alpha: 0.06),
+                              Colors.black.withValues(alpha: 0.28),
                             ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 10,
-                        top: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: Colors.black.withValues(alpha: 0.35),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.flash_on,
-                                size: 14,
-                                color: accent.withValues(alpha: 0.95),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Pick',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.92),
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 11.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        bottom: 10,
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -144,6 +91,18 @@ class ExerciseGridCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface.withValues(alpha: 0.95),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     Text(
                       setsReps,
                       maxLines: 1,
