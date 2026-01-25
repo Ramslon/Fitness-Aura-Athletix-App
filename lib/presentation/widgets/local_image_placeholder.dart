@@ -107,53 +107,87 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
 
   Widget _placeholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      color: Colors.transparent,
-      height: widget.height,
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: Colors.white.withValues(alpha: 0.06),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.add_photo_alternate_outlined,
-                size: 44,
-                color: scheme.onSurface.withValues(alpha: 0.70),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = constraints.maxHeight;
+        final isTight = maxH > 0 && maxH < 170;
+        final isVeryTight = maxH > 0 && maxH < 140;
+
+        final margin = isVeryTight
+            ? const EdgeInsets.all(8)
+            : (isTight ? const EdgeInsets.all(10) : const EdgeInsets.all(12));
+        final padding = isVeryTight
+            ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10)
+            : (isTight
+                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
+                : const EdgeInsets.symmetric(horizontal: 14, vertical: 14));
+
+        final iconSize = isVeryTight ? 30.0 : (isTight ? 36.0 : 44.0);
+
+        return Container(
+          color: Colors.transparent,
+          height: widget.height,
+          child: Center(
+            child: Container(
+              margin: margin,
+              padding: padding,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: Colors.white.withValues(alpha: 0.06),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Add a photo',
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.90),
-                  fontWeight: FontWeight.w800,
+              child: SingleChildScrollView(
+                // Ensures no RenderFlex overflow even on very small grid tiles.
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: iconSize,
+                      color: scheme.onSurface.withValues(alpha: 0.70),
+                    ),
+                    SizedBox(height: isVeryTight ? 6 : 10),
+                    Text(
+                      'Add a photo',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface.withValues(alpha: 0.90),
+                        fontWeight: FontWeight.w800,
+                        fontSize: isVeryTight ? 12.5 : 13.5,
+                      ),
+                    ),
+                    if (!isVeryTight) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Make this exercise yours',
+                        textAlign: TextAlign.center,
+                        maxLines: isTight ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurface.withValues(alpha: 0.70),
+                          fontSize: isTight ? 11 : 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    if (!isTight) ...[
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Add image'),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Make this exercise yours',
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.70),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Add image'),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
