@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/screens/premium_features_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/onboarding_screen.dart'
     as lib_onboarding;
+import 'package:fitness_aura_athletix/presentation/screens/onboarding_welcome_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/home_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/auth_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/arm_workouts.dart';
@@ -31,6 +32,8 @@ class AppRoutes {
   static const String home = '/home';
   static const String auth = '/auth';
   static const String onboarding = '/onboarding';
+  static const String onboardingValue = '/onboarding-value';
+  static const String onboardingDetails = '/onboarding-details';
   static const String dailyWorkoutAnalysis = '/daily-workout-analysis';
   static const String armWorkouts = '/arm-workouts';
   static const String progressDashboard = '/progressDashboard';
@@ -58,6 +61,14 @@ class AppRoutes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case onboarding:
+        return MaterialPageRoute(
+          builder: (_) => const OnboardingWelcomeScreen(),
+        );
+      case onboardingValue:
+        return MaterialPageRoute(
+          builder: (_) => const lib_onboarding.OnboardingValuePromiseScreen(),
+        );
+      case onboardingDetails:
         return MaterialPageRoute(
           builder: (_) => const lib_onboarding.OnboardingScreen(),
         );

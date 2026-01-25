@@ -13,7 +13,9 @@ import 'package:fitness_aura_athletix/main.dart';
 void main() {
   testWidgets('App boots smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const FitnessAuraApp());
-    await tester.pumpAndSettle();
+    // The app contains looping animations (e.g. onboarding background), so
+    // using pumpAndSettle would time out.
+    await tester.pump(const Duration(milliseconds: 50));
 
     // Basic sanity check: the app builds a MaterialApp.
     expect(find.byType(MaterialApp), findsOneWidget);

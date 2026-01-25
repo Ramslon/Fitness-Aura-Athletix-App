@@ -8,7 +8,7 @@ import 'dart:convert';
 // import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  static const routeName = '/onboarding';
+  static const routeName = '/onboarding-details';
 
   const OnboardingScreen({Key? key}) : super(key: key);
 
@@ -16,48 +16,44 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-// Intro walkthrough (moved here from presentation/screens)
-class IntroOnboardingScreen extends StatefulWidget {
-  const IntroOnboardingScreen({super.key});
+// ONBOARDING SCREEN 2 — What This App Does (Value Promise)
+class OnboardingValuePromiseScreen extends StatefulWidget {
+  const OnboardingValuePromiseScreen({super.key});
 
   @override
-  State<IntroOnboardingScreen> createState() => _IntroOnboardingScreenState();
+  State<OnboardingValuePromiseScreen> createState() =>
+      _OnboardingValuePromiseScreenState();
 }
 
-class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
+class _OnboardingValuePromiseScreenState
+    extends State<OnboardingValuePromiseScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
   final List<_OnboardingPage> _pages = [
     _OnboardingPage(
-      title: 'Welcome to Fitness Aura Athletix',
+      title: 'Track every workout',
       description:
-          'Your AI-powered personal gym workout companion. Track your daily workouts and get instant assessment and recommendations.',
+          'Log sets, reps, weight, and notes so every session counts and your progress is measurable.',
       icon: Icons.fitness_center,
     ),
     _OnboardingPage(
-      title: 'Personalized Plans',
+      title: 'Smarter insights',
       description:
-          'Receive gym workout suggestions tailored to your goals, preferences, and experience level.',
-      icon: Icons.track_changes,
-    ),
-    _OnboardingPage(
-      title: 'Daily Analysis',
-      description:
-          'Get daily analysis with suggested improvements where necessary.',
+          'See what\'s improving, what\'s stalling, and where to focus next with daily analysis and trends.',
       icon: Icons.analytics,
     ),
     _OnboardingPage(
-      title: 'AI Fitness Coach',
+      title: 'History & Insights',
       description:
-          'Chat with our smart coach for personalized tips, motivation, and guidance.',
-      icon: Icons.smart_toy,
+          'Use the calendar and movement history to review your training consistency and performance.',
+      icon: Icons.calendar_month,
     ),
     _OnboardingPage(
-      title: 'Track Progress',
+      title: 'Export your data',
       description:
-          'Visualize your workout journey, monitor progress, and achieve your goals.',
-      icon: Icons.show_chart,
+          'Share CSV or a PDF report when you need it — coach check-ins, progress reviews, or backups.',
+      icon: Icons.ios_share,
     ),
   ];
 
@@ -122,10 +118,7 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                   ),
                 ),
                 onPressed: _nextPage,
-                child: Text(
-                  _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
-                  style: const TextStyle(fontSize: 18),
-                ),
+                child: Text('Continue', style: const TextStyle(fontSize: 18)),
               ),
             ),
           ],
