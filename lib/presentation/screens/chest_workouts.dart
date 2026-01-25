@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
+import 'package:fitness_aura_athletix/services/workout_session_service.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
 
 class ChestWorkouts extends StatefulWidget {
   const ChestWorkouts({Key? key}) : super(key: key);
@@ -82,11 +85,65 @@ class ChestWorkouts extends StatefulWidget {
 }
 
 class _ChestWorkoutsState extends State<ChestWorkouts> {
+  Future<void> _finishWorkout(BuildContext context) async {
+    final analysis = await WorkoutSessionService.instance.endAndAnalyze(
+      expectedBodyPart: 'Chest',
+    );
+
+    if (!mounted) return;
+    if (analysis == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No active Chest workout to finish yet.')),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: DailyWorkoutAnalysisCard(
+              analysis: analysis,
+              onTap: () => DailyWorkoutAnalysisDetailsSheet.show(
+                ctx,
+                analysis: analysis,
+              ),
+              onLongPress: () => DailyWorkoutAnalysisDetailsSheet.show(
+                ctx,
+                analysis: analysis,
+              ),
+              onViewDetails: () => DailyWorkoutAnalysisDetailsSheet.show(
+                ctx,
+                analysis: analysis,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final accent = Colors.red.shade400;
     return Scaffold(
-      appBar: AppBar(title: const Text('Chest Workouts')),
+      appBar: AppBar(
+        title: const Text('Chest Workouts'),
+        actions: [
+          IconButton(
+            tooltip: 'Finish workout',
+            onPressed: () => _finishWorkout(context),
+            icon: const Icon(Icons.flag_circle),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: GridView.builder(
@@ -111,7 +168,7 @@ class _ChestWorkoutsState extends State<ChestWorkouts> {
                 MaterialPageRoute(builder: (_) => ExerciseDetail(exercise: ex)),
               ),
               onPick: () async {
-                await showDialog(
+                final saved = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => ExerciseLogDialog(
                     exerciseName: ex.title,
@@ -119,7 +176,9 @@ class _ChestWorkoutsState extends State<ChestWorkouts> {
                   ),
                 );
                 if (!mounted) return;
-                setState(() {});
+                if (saved == true) {
+                  setState(() {});
+                }
               },
             );
           },
@@ -192,7 +251,7 @@ class ExerciseDetail extends StatelessWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await showDialog(
+                      await showDialog<bool>(
                         context: context,
                         builder: (ctx) => ExerciseLogDialog(
                           exerciseName: exercise.title,
@@ -213,37 +272,4 @@ class ExerciseDetail extends StatelessWidget {
   }
 }
 
-Widget _imageFallback(String title, {bool large = false}) {
-  final initials = _initialsFromTitle(title);
-  return Container(
-    color: Colors.transparent,
-    alignment: Alignment.center,
-    child: Container(
-      width: large ? 120 : 56,
-      height: large ? 120 : 56,
-      decoration: BoxDecoration(
-        color: const Color(0x14FFFFFF),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initials,
-        style: TextStyle(
-          fontSize: large ? 28 : 16,
-          color: Colors.white.withOpacity(0.80),
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  );
-}
 
-String _initialsFromTitle(String title) {
-  final parts = title.split(RegExp(r'\s+'))..removeWhere((s) => s.isEmpty);
-  if (parts.isEmpty) return '';
-  if (parts.length == 1)
-    return parts.first
-        .substring(0, parts.first.length >= 2 ? 2 : 1)
-        .toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}

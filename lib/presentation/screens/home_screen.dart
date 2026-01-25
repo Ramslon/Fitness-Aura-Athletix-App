@@ -3,6 +3,10 @@ import 'package:fitness_aura_athletix/services/auth_service.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
+import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
+import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -148,7 +152,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _navigateAndRefresh(String route, BuildContext context) {
+  void _navigateAndRefresh(
+    String route,
+    BuildContext context, {
+    String? bodyPart,
+  }) {
+    if (bodyPart != null) {
+      WorkoutSessionService.instance.start(bodyPart);
+    }
     Navigator.pushNamed(context, route).then((_) => _loadStats());
   }
 
@@ -283,7 +294,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.of(ctx).pop();
-                        _navigateAndRefresh(feature.route, context);
+                        _navigateAndRefresh(
+                          feature.route,
+                          context,
+                          bodyPart: feature.kind == _FeatureKind.bodyPart
+                              ? feature.bodyPart
+                              : null,
+                        );
                       },
                       child: const Text('Start Workout'),
                     ),
@@ -539,6 +556,34 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
+          const SizedBox(height: 12),
+          FutureBuilder<DailyWorkoutAnalysis?>(
+            future: DailyWorkoutAnalysisEngine.latestAnalysis(),
+            builder: (context, snap) {
+              final analysis = snap.data;
+              if (analysis == null) return const SizedBox.shrink();
+              return DailyWorkoutAnalysisCard(
+                analysis: analysis,
+                onTap: () => DailyWorkoutAnalysisDetailsSheet.show(
+                  context,
+                  analysis: analysis,
+                ),
+                onLongPress: () => DailyWorkoutAnalysisDetailsSheet.show(
+                  context,
+                  analysis: analysis,
+                ),
+                onViewDetails: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.dailyWorkoutAnalysis,
+                  arguments: {
+                    'bodyPart': analysis.bodyPart,
+                    'date': analysis.date.toIso8601String(),
+                  },
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -681,7 +726,13 @@ class _HomeScreenState extends State<HomeScreen> {
               return _FeatureCardWidget(
                 feature: feature,
                 bodyPartStats: stats,
-                onTap: () => _navigateAndRefresh(feature.route, context),
+                onTap: () => _navigateAndRefresh(
+                  feature.route,
+                  context,
+                  bodyPart: feature.kind == _FeatureKind.bodyPart
+                      ? feature.bodyPart
+                      : null,
+                ),
                 onLongPress: bodyPart == null
                     ? null
                     : () => _openBodyPartHistorySheet(context, feature, stats),
@@ -696,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _WelcomeTitle extends StatelessWidget {
-  const _WelcomeTitle({super.key});
+  const _WelcomeTitle();
 
   @override
   Widget build(BuildContext context) {
@@ -715,7 +766,7 @@ class _WelcomeTitle extends StatelessWidget {
 }
 
 class _WelcomeHeader extends StatelessWidget {
-  const _WelcomeHeader({super.key});
+  const _WelcomeHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -814,7 +865,7 @@ class _FeatureCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cardBg = theme.cardTheme.color ?? theme.cardColor;
-    final scheme = theme.colorScheme;
+    // Keep local variables minimal; scheme is accessed where needed.
 
     final baseDecoration = BoxDecoration(
       color: cardBg,

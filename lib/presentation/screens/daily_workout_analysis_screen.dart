@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
-import 'package:fitness_aura_athletix/services/ai_gym_workout_plan.dart';
+import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
 
 class DailyWorkoutAnalysisScreen extends StatefulWidget {
   const DailyWorkoutAnalysisScreen({super.key});
@@ -13,92 +15,136 @@ class DailyWorkoutAnalysisScreen extends StatefulWidget {
 class _DailyWorkoutAnalysisScreenState
     extends State<DailyWorkoutAnalysisScreen> {
   bool _loading = true;
-  List<WorkoutEntry> _todayEntries = [];
-  String _analysis = '';
-  final TextEditingController _noteController = TextEditingController();
-  DateTime? _currentDate;
+  List<DailyWorkoutAnalysis> _sessions = [];
+  int _index = 0;
+  String? _filterBodyPart;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _loadTodayEntries();
+    _loadSessions();
   }
 
-  Future<void> _loadTodayEntries() async {
+  Future<void> _loadSessions() async {
     setState(() => _loading = true);
-    final all = await StorageService().loadEntries();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final todays = all.where((e) {
-      final d = DateTime(e.date.year, e.date.month, e.date.day);
-      return d.year == today.year &&
-          d.month == today.month &&
-          d.day == today.day;
-    }).toList();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    String? bodyPartArg;
+    DateTime? dateArg;
+    if (args is Map) {
+      bodyPartArg = args['bodyPart'] as String?;
+      final dateStr = args['date'] as String?;
+      if (dateStr != null) {
+        dateArg = DateTime.tryParse(dateStr);
+      }
+    }
 
-    // load saved analysis note for today
-    final savedNote = await StorageService().loadAnalysisNoteForDate(today);
+    final records = await StorageService().loadExerciseRecords();
+    final grouped = DailyWorkoutAnalysisEngine.groupSessions(records);
 
-    // ask AI service for analysis (fallback to local heuristic if AI returns empty)
-    final ai = await AiGymWorkoutPlan().analyze(todays);
+    final sessions = <DailyWorkoutAnalysis>[];
+    for (final e in grouped.entries) {
+      final parts = e.key.split('|');
+      if (parts.length != 2) continue;
+      final day = DateTime.tryParse(parts[0]);
+      final body = parts[1];
+      if (day == null) continue;
+      final a = DailyWorkoutAnalysisEngine.analyzeFromRecords(
+        records,
+        day: day,
+        bodyPart: body,
+      );
+      if (a != null) sessions.add(a);
+    }
+
+    sessions.sort((a, b) => b.date.compareTo(a.date));
+
+    // Filter if requested
+    _filterBodyPart = bodyPartArg;
+    final filtered = bodyPartArg == null
+        ? sessions
+        : sessions.where((s) => s.bodyPart == bodyPartArg).toList();
+
+    int initial = 0;
+    if (dateArg != null) {
+      final d = DailyWorkoutAnalysisEngine.dayStart(dateArg);
+      final found = filtered.indexWhere(
+        (s) =>
+            s.bodyPart == (bodyPartArg ?? s.bodyPart) &&
+            DailyWorkoutAnalysisEngine.dayStart(s.date) == d,
+      );
+      if (found >= 0) initial = found;
+    }
 
     setState(() {
-      _todayEntries = todays;
-      _analysis = ai.isNotEmpty ? ai : _buildAnalysis(todays);
-      _noteController.text = savedNote ?? '';
-      _currentDate = today;
+      _sessions = filtered;
+      _index = initial.clamp(0, (_sessions.length - 1).clamp(0, 999999));
       _loading = false;
     });
+
+    if (_sessions.isNotEmpty) {
+      _pageController.jumpToPage(_index);
+    }
   }
 
   @override
   void dispose() {
-    _noteController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  String _buildAnalysis(List<WorkoutEntry> entries) {
-    if (entries.isEmpty)
-      return 'No workout recorded for today. Log a session to get an analysis.';
+  Future<void> _showCompare(BuildContext context) async {
+    if (_sessions.length < 2) return;
+    final current = _sessions[_index];
+    final previous = _sessions[(_index + 1).clamp(0, _sessions.length - 1)];
 
-    final totalMinutes = entries.fold<int>(0, (s, e) => s + e.durationMinutes);
-    final types = <String, int>{};
-    for (final e in entries) {
-      types[e.workoutType] = (types[e.workoutType] ?? 0) + 1;
-    }
+    final delta = current.totalVolume - previous.totalVolume;
+    final deltaPct = previous.totalVolume > 0
+        ? (delta / previous.totalVolume) * 100
+        : null;
 
-    final buffer = StringBuffer();
-    buffer.writeln(
-      'Total time: $totalMinutes minutes across ${entries.length} entries.',
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: const Text('Compare sessions'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Now: ${current.workoutName} (${current.bodyPart})'),
+              Text('Prev: ${previous.workoutName} (${previous.bodyPart})'),
+              const SizedBox(height: 12),
+              Text(
+                'Volume change: ${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(0)}'
+                '${deltaPct == null ? '' : ' (${deltaPct >= 0 ? '+' : ''}${deltaPct.toStringAsFixed(0)}%)'}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: scheme.onSurface.withValues(alpha: 0.90),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (current.overloadDetails.isNotEmpty)
+                ...current.overloadDetails.take(3).map((d) => Text('• $d'))
+              else
+                Text(
+                  'No specific overload details detected.',
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: 0.70),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
-    buffer.writeln('Workout types: ${types.keys.join(', ')}.');
-
-    if (totalMinutes < 20) {
-      buffer.writeln(
-        'Session was short — consider adding 10–20 minutes of compound lifts or mobility.',
-      );
-    } else if (totalMinutes < 45) {
-      buffer.writeln(
-        'Good session length — keep progressive overload and ensure protein intake.',
-      );
-    } else {
-      buffer.writeln(
-        'Excellent session volume today. Watch recovery and sleep quality.',
-      );
-    }
-
-    if (types.length == 1) {
-      buffer.writeln(
-        'Focus seems single-muscle — add at least one compound movement for balanced strength.',
-      );
-    }
-
-    // Lightweight actionable tip
-    buffer.writeln(
-      'Tip: hydrate, log perceived exertion, and update next session targets.',
-    );
-
-    return buffer.toString();
   }
 
   @override
@@ -108,182 +154,84 @@ class _DailyWorkoutAnalysisScreenState
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Today',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _todayEntries.isEmpty
-                                ? 'No workouts logged'
-                                : '${_todayEntries.length} entries',
-                          ),
-                        ],
+              padding: const EdgeInsets.all(16),
+              child: _sessions.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No workout data yet. Log an exercise to generate your first analysis.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.70),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: _todayEntries.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No workout data for today. Start a session from the home screen.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.70),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _filterBodyPart == null
+                                    ? 'Swipe for previous sessions'
+                                    : '$_filterBodyPart sessions',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: _todayEntries.length,
+                            IconButton(
+                              tooltip: 'Compare (long-press also works)',
+                              onPressed: () => _showCompare(context),
+                              icon: const Icon(Icons.compare_arrows),
+                            ),
+                            IconButton(
+                              tooltip: 'Refresh',
+                              onPressed: _loadSessions,
+                              icon: const Icon(Icons.refresh),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: PageView.builder(
+                            controller: _pageController,
+                            onPageChanged: (i) => setState(() => _index = i),
+                            itemCount: _sessions.length,
                             itemBuilder: (context, i) {
-                              final e = _todayEntries[i];
-                              return Card(
-                                child: ListTile(
-                                  leading: const Icon(Icons.fitness_center),
-                                  title: Text(
-                                    '${e.workoutType} — ${e.durationMinutes} min',
-                                  ),
-                                  subtitle: e.notes != null
-                                      ? Text(e.notes!)
-                                      : null,
-                                  trailing: Text(
-                                    '${e.date.hour.toString().padLeft(2, '0')}:${e.date.minute.toString().padLeft(2, '0')}',
-                                  ),
-                                ),
+                              final a = _sessions[i];
+                              return DailyWorkoutAnalysisCard(
+                                analysis: a,
+                                onTap: () =>
+                                    DailyWorkoutAnalysisDetailsSheet.show(
+                                      context,
+                                      analysis: a,
+                                    ),
+                                onLongPress: () => _showCompare(context),
+                                onViewDetails: () =>
+                                    DailyWorkoutAnalysisDetailsSheet.show(
+                                      context,
+                                      analysis: a,
+                                    ),
                               );
                             },
                           ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    color: Colors.green.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Analysis',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(_analysis),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Notes editor
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Analysis Notes',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _noteController,
-                            maxLines: 3,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Add personal notes or save AI analysis here',
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () async {
-                                    if (_currentDate == null) return;
-                                    await StorageService()
-                                        .saveAnalysisNoteForDate(
-                                          _currentDate!,
-                                          _noteController.text.trim(),
-                                        );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Saved analysis note'),
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Save Note'),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () async {
-                                    if (_currentDate == null) return;
-                                    await StorageService()
-                                        .saveAnalysisNoteForDate(
-                                          _currentDate!,
-                                          _analysis,
-                                        );
-                                    _noteController.text = _analysis;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Saved AI analysis as note',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Save AI Analysis'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _loadTodayEntries,
-                          child: const Text('Refresh'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Done'),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Done'),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
             ),
     );
   }

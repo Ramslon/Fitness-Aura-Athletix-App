@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_insights.dart';
+import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 
 class ExerciseLogDialog extends StatefulWidget {
   final String exerciseName;
@@ -68,12 +69,13 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
 
     await StorageService().saveExerciseRecord(record);
     ExerciseInsights.invalidateCache();
-    if (mounted) {
-      Navigator.pop(context, record);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${widget.exerciseName} logged successfully!')),
-      );
-    }
+    await WorkoutSessionService.instance.markExerciseLogged(record.bodyPart);
+    if (!mounted) return;
+
+    Navigator.pop(context, true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${widget.exerciseName} logged successfully!')),
+    );
   }
 
   @override
