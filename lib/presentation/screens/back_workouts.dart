@@ -118,7 +118,11 @@ class BackWorkouts extends StatelessWidget {
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(12),
                         ),
-                        child: LocalImagePlaceholder(id: ex.id, assetPath: ex.image, fit: BoxFit.cover),
+                        child: LocalImagePlaceholder(
+                          id: ex.id,
+                          assetPath: ex.image,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     Padding(
@@ -184,7 +188,12 @@ class BackExerciseDetail extends StatelessWidget {
           children: [
             SizedBox(
               height: 240,
-              child: LocalImagePlaceholder(id: exercise.id, assetPath: exercise.image, fit: BoxFit.cover, height: 240),
+              child: LocalImagePlaceholder(
+                id: exercise.id,
+                assetPath: exercise.image,
+                fit: BoxFit.cover,
+                height: 240,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -235,13 +244,13 @@ class BackExerciseDetail extends StatelessWidget {
 Widget _imageFallback(String title, {bool large = false}) {
   final initials = _initialsFromTitle(title);
   return Container(
-    color: Colors.grey.shade200,
+    color: Colors.transparent,
     alignment: Alignment.center,
     child: Container(
       width: large ? 120 : 56,
       height: large ? 120 : 56,
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade100,
+        color: const Color(0x14FFFFFF),
         borderRadius: BorderRadius.circular(8),
       ),
       alignment: Alignment.center,
@@ -249,7 +258,7 @@ Widget _imageFallback(String title, {bool large = false}) {
         initials,
         style: TextStyle(
           fontSize: large ? 28 : 16,
-          color: Colors.blueGrey.shade700,
+          color: Colors.white.withOpacity(0.80),
           fontWeight: FontWeight.bold,
         ),
       ),

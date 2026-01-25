@@ -74,8 +74,8 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -101,8 +101,8 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                     width: _currentPage == index ? 20 : 8,
                     decoration: BoxDecoration(
                       color: _currentPage == index
-                          ? Colors.green
-                          : Colors.grey.shade400,
+                          ? scheme.primary
+                          : scheme.onSurface.withValues(alpha: 0.30),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -113,7 +113,6 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -125,7 +124,7 @@ class _IntroOnboardingScreenState extends State<IntroOnboardingScreen> {
                 onPressed: _nextPage,
                 child: Text(
                   _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
-                  style: const TextStyle(fontSize: 18, color: Colors.white),
+                  style: const TextStyle(fontSize: 18),
                 ),
               ),
             ),
@@ -155,29 +154,27 @@ class _OnboardingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: Icon(page.icon, size: 120, color: Colors.green.shade400),
-          ),
+          Expanded(child: Icon(page.icon, size: 120, color: scheme.primary)),
           const SizedBox(height: 20),
           Text(
             page.title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
             page.description,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(
+              fontSize: 16,
+              color: scheme.onSurface.withValues(alpha: 0.70),
+            ),
           ),
           const SizedBox(height: 40),
         ],

@@ -9,13 +9,13 @@ import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 // built-in bar visualization instead to avoid build errors.
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:cross_file/cross_file.dart';
 
 class ProgressDashboardScreen extends StatefulWidget {
   const ProgressDashboardScreen({super.key});
 
   @override
-  State<ProgressDashboardScreen> createState() => _ProgressDashboardScreenState();
+  State<ProgressDashboardScreen> createState() =>
+      _ProgressDashboardScreenState();
 }
 
 class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
@@ -47,14 +47,17 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
     final overload = await StorageService().getProgressiveOverloadMetrics();
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
     final muscleBalance = await StorageService().getMuscleBalanceAnalysis();
-    final imbalanceWarnings = await StorageService().getMuscleImbalanceWarnings();
+    final imbalanceWarnings = await StorageService()
+        .getMuscleImbalanceWarnings();
     final coachSuggestions = await StorageService().getCoachSuggestions();
-    final accessorySuggestions = await StorageService().getAccessorySuggestions();
+    final accessorySuggestions = await StorageService()
+        .getAccessorySuggestions();
 
     final now = DateTime.now();
     final last7 = List.generate(7, (i) {
       final d = now.subtract(Duration(days: 6 - i));
-      final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final key =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       return {'date': d, 'key': key};
     });
 
@@ -63,7 +66,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
 
     for (final e in entries) {
       final d = DateTime(e.date.year, e.date.month, e.date.day);
-      final key = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final key =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
       if (counts.containsKey(key)) counts[key] = counts[key]! + 1;
     }
 
@@ -109,9 +113,15 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('📊 Progressive Overload Tracking', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                '📊 Progressive Overload Tracking',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              const Text('Log more exercises to track improvements', style: TextStyle(color: Colors.grey)),
+              const Text(
+                'Log more exercises to track improvements',
+                style: TextStyle(color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -124,7 +134,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('📊 Progressive Overload Tracking', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              '📊 Progressive Overload Tracking',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             ..._overloadMetrics.take(5).map((metric) {
               return Padding(
@@ -132,7 +145,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(metric.exerciseName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(
+                      metric.exerciseName,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     Row(
                       children: [
                         if (metric.hasWeightIncrease)
@@ -141,8 +157,12 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               padding: const EdgeInsets.only(right: 8.0),
                               child: Chip(
                                 avatar: const Text('🔼'),
-                                label: Text('${metric.weightIncreasePercentage.toStringAsFixed(1)}% weight'),
-                                backgroundColor: Colors.green.shade100,
+                                label: Text(
+                                  '${metric.weightIncreasePercentage.toStringAsFixed(1)}% weight',
+                                ),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.18),
                               ),
                             ),
                           ),
@@ -152,8 +172,12 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               padding: const EdgeInsets.only(right: 8.0),
                               child: Chip(
                                 avatar: const Text('🔁'),
-                                label: Text('+${metric.currentReps - metric.previousReps} reps'),
-                                backgroundColor: Colors.blue.shade100,
+                                label: Text(
+                                  '+${metric.currentReps - metric.previousReps} reps',
+                                ),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.secondary.withOpacity(0.18),
                               ),
                             ),
                           ),
@@ -161,8 +185,12 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                           Flexible(
                             child: Chip(
                               avatar: const Text('📈'),
-                              label: Text('${metric.volumeIncreasePercentage.toStringAsFixed(1)}% volume'),
-                              backgroundColor: Colors.orange.shade100,
+                              label: Text(
+                                '${metric.volumeIncreasePercentage.toStringAsFixed(1)}% volume',
+                              ),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.tertiary.withOpacity(0.18),
                             ),
                           ),
                       ],
@@ -185,9 +213,15 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🔁 Workout Frequency per Muscle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                '🔁 Workout Frequency per Muscle',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              const Text('Start logging exercises to track frequency', style: TextStyle(color: Colors.grey)),
+              const Text(
+                'Start logging exercises to track frequency',
+                style: TextStyle(color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -200,7 +234,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('🔁 Workout Frequency per Muscle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              '🔁 Workout Frequency per Muscle',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             ..._muscleFrequency.map((freq) {
               return Padding(
@@ -211,19 +248,32 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(freq.muscleGroup, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        Text('Avg: ${freq.averageFrequencyPerWeek.toStringAsFixed(1)}x/week', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          freq.muscleGroup,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Avg: ${freq.averageFrequencyPerWeek.toStringAsFixed(1)}x/week',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                     Row(
                       children: [
                         Chip(
-                          label: Text('${freq.workoutCountLastWeek}x this week'),
+                          label: Text(
+                            '${freq.workoutCountLastWeek}x this week',
+                          ),
                           backgroundColor: Colors.purple.shade100,
                         ),
                         const SizedBox(width: 8),
                         Chip(
-                          label: Text('${freq.workoutCountLastMonth}x this month'),
+                          label: Text(
+                            '${freq.workoutCountLastMonth}x this month',
+                          ),
                           backgroundColor: Colors.indigo.shade100,
                         ),
                       ],
@@ -246,9 +296,15 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🎯 Targeted Body Part Analysis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                '🎯 Targeted Body Part Analysis',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              const Text('Log exercises to analyze muscle balance', style: TextStyle(color: Colors.grey)),
+              const Text(
+                'Log exercises to analyze muscle balance',
+                style: TextStyle(color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -263,10 +319,14 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('🎯 Targeted Body Part Analysis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text(
+                  '🎯 Targeted Body Part Analysis',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
                 const SizedBox(height: 12),
                 ..._muscleBalance.map((muscle) {
-                  final isOptimal = muscle.weeklyFrequency >= 2 && !muscle.isUnderTrained;
+                  final isOptimal =
+                      muscle.weeklyFrequency >= 2 && !muscle.isUnderTrained;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: Column(
@@ -275,11 +335,23 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(muscle.muscleGroup, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            Text(
+                              muscle.muscleGroup,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
                             Chip(
-                              avatar: Text(muscle.weeklyFrequency >= 2 ? '✅' : '⚠️'),
-                              label: Text('${muscle.weeklyFrequency}x this week'),
-                              backgroundColor: isOptimal ? Colors.green.shade100 : Colors.orange.shade100,
+                              avatar: Text(
+                                muscle.weeklyFrequency >= 2 ? '✅' : '⚠️',
+                              ),
+                              label: Text(
+                                '${muscle.weeklyFrequency}x this week',
+                              ),
+                              backgroundColor: isOptimal
+                                  ? Colors.green.shade100
+                                  : Colors.orange.shade100,
                             ),
                           ],
                         ),
@@ -290,8 +362,17 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Volume: ${muscle.volumeThisWeek.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 12)),
-                                  Text('Per Session: ${muscle.averageVolumePerSession.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  Text(
+                                    'Volume: ${muscle.volumeThisWeek.toStringAsFixed(0)} kg',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  Text(
+                                    'Per Session: ${muscle.averageVolumePerSession.toStringAsFixed(0)} kg',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -306,10 +387,17 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               border: Border.all(color: Colors.orange.shade300),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: Text(muscle.warning!, style: const TextStyle(fontSize: 12, color: Colors.orange)),
+                            child: Text(
+                              muscle.warning!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange,
+                              ),
+                            ),
                           ),
                         ],
-                        if (muscle != _muscleBalance.last) const Divider(height: 16),
+                        if (muscle != _muscleBalance.last)
+                          const Divider(height: 16),
                       ],
                     ),
                   );
@@ -326,7 +414,14 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('⚠️ Muscle Imbalance Warnings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange)),
+                  const Text(
+                    '⚠️ Muscle Imbalance Warnings',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.orange,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   ..._imbalanceWarnings.map((warning) {
                     return Padding(
@@ -334,9 +429,13 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(10.0),
                         decoration: BoxDecoration(
-                          color: warning.isCritical ? Colors.red.shade50 : Colors.orange.shade50,
+                          color: warning.isCritical
+                              ? Colors.red.shade50
+                              : Colors.orange.shade50,
                           border: Border.all(
-                            color: warning.isCritical ? Colors.red.shade300 : Colors.orange.shade300,
+                            color: warning.isCritical
+                                ? Colors.red.shade300
+                                : Colors.orange.shade300,
                           ),
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -348,18 +447,26 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: warning.isCritical ? Colors.red : Colors.orange,
+                                color: warning.isCritical
+                                    ? Colors.red
+                                    : Colors.orange,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               warning.suggestion,
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Ratio: ${warning.volumeRatio.toStringAsFixed(2)}:1',
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -383,9 +490,15 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('🤖 Your Personal Coach', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                '🤖 Your Personal Coach',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 8),
-              const Text('Keep logging exercises to get personalized suggestions!', style: TextStyle(color: Colors.grey)),
+              const Text(
+                'Keep logging exercises to get personalized suggestions!',
+                style: TextStyle(color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -401,7 +514,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('🤖 Your Personal Coach', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    '🤖 Your Personal Coach',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   const SizedBox(height: 12),
                   ..._coachSuggestions.take(5).map((suggestion) {
                     final colorScheme = {
@@ -427,19 +543,29 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                           children: [
                             Row(
                               children: [
-                                Text(suggestion.emoji, style: const TextStyle(fontSize: 16)),
+                                Text(
+                                  suggestion.emoji,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         suggestion.exerciseName,
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                       Text(
                                         suggestion.suggestion,
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -448,9 +574,22 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Text(suggestion.currentValue!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text(
+                                        suggestion.currentValue!,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                                       if (suggestion.recommendedValue != null)
-                                        Text('→ ${suggestion.recommendedValue}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green)),
+                                        Text(
+                                          '→ ${suggestion.recommendedValue}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
                                     ],
                                   ),
                               ],
@@ -458,7 +597,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                             const SizedBox(height: 6),
                             Text(
                               suggestion.rationale,
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -477,7 +619,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('💪 Recommended Accessories', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    '💪 Recommended Accessories',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   const SizedBox(height: 12),
                   ..._accessorySuggestions.map((accessory) {
                     return Padding(
@@ -497,29 +642,42 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         accessory.suggestedExercise,
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                       Text(
                                         accessory.benefit,
-                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Chip(
-                                  label: Text('${accessory.recommendedSets}x${accessory.recommendedReps}'),
+                                  label: Text(
+                                    '${accessory.recommendedSets}x${accessory.recommendedReps}',
+                                  ),
                                   backgroundColor: Colors.teal.shade100,
-                                )
+                                ),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Why: ${accessory.reason}',
-                              style: const TextStyle(fontSize: 10, color: Colors.teal, fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.teal,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -538,10 +696,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Progress Dashboard'),
-        backgroundColor: Colors.green,
-      ),
+      appBar: AppBar(title: const Text('Progress Dashboard')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -549,103 +704,141 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                  Row(
-                    children: [
-                      Expanded(child: _metricCard('Total Workouts', '$_totalWorkouts')),
-                      const SizedBox(width: 12),
-                      Expanded(child: _metricCard('Total Minutes', '$_totalMinutes min')),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _metricCard('Current Streak', '$_streak days', color: Colors.orange.shade50)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _metricCard('This Week', '$_thisWeek workouts', color: Colors.blue.shade50)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _buildProgressiveOverloadSection(),
-                  const SizedBox(height: 12),
-                  _buildMuscleFrequencySection(),
-                  const SizedBox(height: 12),
-                  _buildMuscleBalanceSection(),
-                  const SizedBox(height: 12),
-                  _buildCoachSuggestionsSection(),
-                  const SizedBox(height: 18),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Last 7 Days', style: TextStyle(fontWeight: FontWeight.bold)),
-                              TextButton.icon(
-                                onPressed: _exportCsv,
-                                icon: const Icon(Icons.share),
-                                label: const Text('Export CSV'),
-                              )
-                            ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _metricCard(
+                            'Total Workouts',
+                            '$_totalWorkouts',
                           ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 200,
-                            child: _buildChart(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _metricCard(
+                            'Total Minutes',
+                            '$_totalMinutes min',
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Workout History', style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
-                          _entries.isEmpty
-                              ? const Center(child: Text('No workout history yet.'))
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _entries.length,
-                                  itemBuilder: (context, i) {
-                                    final e = _entries.reversed.toList()[i];
-                                    return ListTile(
-                                      leading: const Icon(Icons.fitness_center),
-                                      title: Text('${e.workoutType} — ${e.durationMinutes} min'),
-                                      subtitle: Text('${e.date.toLocal().toString().split(' ').first}'),
-                                    );
-                                  },
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _metricCard(
+                            'Current Streak',
+                            '$_streak days',
+                            color: Colors.orange.shade50,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _metricCard(
+                            'This Week',
+                            '$_thisWeek workouts',
+                            color: Colors.blue.shade50,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _buildProgressiveOverloadSection(),
+                    const SizedBox(height: 12),
+                    _buildMuscleFrequencySection(),
+                    const SizedBox(height: 12),
+                    _buildMuscleBalanceSection(),
+                    const SizedBox(height: 12),
+                    _buildCoachSuggestionsSection(),
+                    const SizedBox(height: 18),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Last 7 Days',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                        ],
+                                TextButton.icon(
+                                  onPressed: _exportCsv,
+                                  icon: const Icon(Icons.share),
+                                  label: const Text('Export CSV'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(height: 200, child: _buildChart()),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                          onPressed: _loadMetrics,
-                          child: const Text('Refresh'),
+                    const SizedBox(height: 12),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Workout History',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            _entries.isEmpty
+                                ? const Center(
+                                    child: Text('No workout history yet.'),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: _entries.length,
+                                    itemBuilder: (context, i) {
+                                      final e = _entries.reversed.toList()[i];
+                                      return ListTile(
+                                        leading: const Icon(
+                                          Icons.fitness_center,
+                                        ),
+                                        title: Text(
+                                          '${e.workoutType} — ${e.durationMinutes} min',
+                                        ),
+                                        subtitle: Text(
+                                          '${e.date.toLocal().toString().split(' ').first}',
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                            ),
+                            onPressed: _loadMetrics,
+                            child: const Text('Refresh'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Close'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -655,7 +848,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
 
   List<Widget> _buildLast7Bars() {
     final entries = _last7DaysCounts.entries.toList();
-    final maxCount = entries.map((e) => e.value).fold<int>(0, (p, c) => c > p ? c : p);
+    final maxCount = entries
+        .map((e) => e.value)
+        .fold<int>(0, (p, c) => c > p ? c : p);
     final now = DateTime.now();
     final labels = List.generate(7, (i) {
       final d = now.subtract(Duration(days: 6 - i));
@@ -674,7 +869,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
             Container(
               width: 18,
               height: height,
-              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
             const SizedBox(height: 8),
             Text(labels[i], style: const TextStyle(fontSize: 12)),
@@ -704,16 +902,24 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       final csv = rows.join('\n');
 
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/progress_${DateTime.now().toIso8601String()}.csv');
+      final file = File(
+        '${dir.path}/progress_${DateTime.now().toIso8601String()}.csv',
+      );
       await file.writeAsString(csv);
 
       // Use share_plus to share the CSV file
-      await Share.shareXFiles([XFile(file.path)], text: 'Progress data (last 7 days)');
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'Progress data (last 7 days)',
+          files: [XFile(file.path)],
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
-
 }
 
 class _DayCount {
@@ -721,4 +927,3 @@ class _DayCount {
   final int count;
   _DayCount(this.day, this.count);
 }
-

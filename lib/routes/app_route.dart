@@ -16,7 +16,7 @@ import 'package:fitness_aura_athletix/presentation/screens/notification_settings
 import 'package:fitness_aura_athletix/presentation/screens/offline_accessibility_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/privacy_settings_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
-import 'package:fitness_aura_athletix/presentation/screens/progress_dashboard_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/history_insights_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/setting_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/shoulder_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/core_workouts.dart';
@@ -34,6 +34,8 @@ class AppRoutes {
   static const String dailyWorkoutAnalysis = '/daily-workout-analysis';
   static const String armWorkouts = '/arm-workouts';
   static const String progressDashboard = '/progressDashboard';
+  // Alias for UI naming; points to the same screen.
+  static const String historyInsights = progressDashboard;
   static const String settings = '/settings';
   static const String chestWorkouts = '/chest-workouts';
   static const String shoulderWorkouts = '/shoulder-workouts';
@@ -72,9 +74,7 @@ class AppRoutes {
       case chestWorkouts:
         return MaterialPageRoute(builder: (_) => const ChestWorkouts());
       case progressDashboard:
-        return MaterialPageRoute(
-          builder: (_) => const ProgressDashboardScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const HistoryInsightsScreen());
       case shoulderWorkouts:
         return MaterialPageRoute(builder: (_) => const ShoulderWorkouts());
       case legWorkouts:

@@ -119,18 +119,28 @@ class LegWorkouts extends StatelessWidget {
             return GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => LegExerciseDetail(exercise: ex)),
+                MaterialPageRoute(
+                  builder: (_) => LegExerciseDetail(exercise: ex),
+                ),
               ),
               child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        child: LocalImagePlaceholder(id: ex.id, assetPath: ex.image, fit: BoxFit.cover),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: LocalImagePlaceholder(
+                          id: ex.id,
+                          assetPath: ex.image,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     Padding(
@@ -138,9 +148,18 @@ class LegWorkouts extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(ex.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            ex.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const SizedBox(height: 6),
-                          Text(ex.setsReps, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                          Text(
+                            ex.setsReps,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -162,7 +181,13 @@ class _Exercise {
   final String image;
   final String setsReps;
 
-  const _Exercise({required this.id, required this.title, required this.description, required this.image, required this.setsReps});
+  const _Exercise({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.image,
+    required this.setsReps,
+  });
 }
 
 class LegExerciseDetail extends StatelessWidget {
@@ -180,18 +205,35 @@ class LegExerciseDetail extends StatelessWidget {
           children: [
             SizedBox(
               height: 240,
-              child: LocalImagePlaceholder(id: exercise.id, assetPath: exercise.image, fit: BoxFit.cover, height: 240),
+              child: LocalImagePlaceholder(
+                id: exercise.id,
+                assetPath: exercise.image,
+                fit: BoxFit.cover,
+                height: 240,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(exercise.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(
+                    exercise.title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(exercise.setsReps, style: const TextStyle(color: Colors.black54)),
+                  Text(
+                    exercise.setsReps,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
                   const SizedBox(height: 12),
-                  Text(exercise.description, style: const TextStyle(fontSize: 16)),
+                  Text(
+                    exercise.description,
+                    style: const TextStyle(fontSize: 16),
+                  ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
@@ -219,17 +261,24 @@ class LegExerciseDetail extends StatelessWidget {
 Widget _imageFallback(String title, {bool large = false}) {
   final initials = _initialsFromTitle(title);
   return Container(
-    color: Colors.grey.shade200,
+    color: Colors.transparent,
     alignment: Alignment.center,
     child: Container(
       width: large ? 120 : 56,
       height: large ? 120 : 56,
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade100,
+        color: const Color(0x14FFFFFF),
         borderRadius: BorderRadius.circular(8),
       ),
       alignment: Alignment.center,
-      child: Text(initials, style: TextStyle(fontSize: large ? 28 : 16, color: Colors.blueGrey.shade700, fontWeight: FontWeight.bold)),
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: large ? 28 : 16,
+          color: Colors.white.withOpacity(0.80),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     ),
   );
 }
@@ -237,6 +286,9 @@ Widget _imageFallback(String title, {bool large = false}) {
 String _initialsFromTitle(String title) {
   final parts = title.split(RegExp(r'\s+'))..removeWhere((s) => s.isEmpty);
   if (parts.isEmpty) return '';
-  if (parts.length == 1) return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+  if (parts.length == 1)
+    return parts.first
+        .substring(0, parts.first.length >= 2 ? 2 : 1)
+        .toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
