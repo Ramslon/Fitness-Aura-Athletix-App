@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -420,6 +421,12 @@ class StorageService {
   // Exercise tracking methods
   static const _kExerciseRecordsKey = 'exercise_records_v1';
 
+  // Cache to avoid repeatedly decoding the (potentially large) JSON payload.
+  // This is important because exercise records are stored as one big JSON
+  // string in SharedPreferences.
+  String? _exerciseRecordsCacheRaw;
+  List<ExerciseRecord>? _exerciseRecordsCache;
+
   Future<List<Map<String, dynamic>>> _readExerciseRecordsRaw() async {
     final prefs = await _prefs;
     final s = prefs.getString(_kExerciseRecordsKey);
@@ -436,21 +443,60 @@ class StorageService {
   }
 
   Future<List<ExerciseRecord>> loadExerciseRecords() async {
-    final raw = await _readExerciseRecordsRaw();
-    return raw.map((m) => ExerciseRecord.fromMap(m)).toList();
+    final prefs = await _prefs;
+    final s = prefs.getString(_kExerciseRecordsKey);
+    if (s == null || s.isEmpty) {
+      _exerciseRecordsCacheRaw = s;
+      _exerciseRecordsCache = <ExerciseRecord>[];
+      return <ExerciseRecord>[];
+    }
+
+    // Fast path: cached decoded list still matches the stored string.
+    final cached = _exerciseRecordsCache;
+    if (cached != null && _exerciseRecordsCacheRaw == s) {
+      // Return a copy so callers can safely mutate.
+      return List<ExerciseRecord>.from(cached);
+    }
+
+    // Decode off the UI isolate to avoid jank on large datasets.
+    final decoded = await Isolate.run(() {
+      final dynamic parsed = jsonDecode(s);
+      if (parsed is! List) return <ExerciseRecord>[];
+      return parsed
+          .map((e) => ExerciseRecord.fromMap(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    });
+
+    _exerciseRecordsCacheRaw = s;
+    _exerciseRecordsCache = decoded;
+    return List<ExerciseRecord>.from(decoded);
   }
 
   Future<void> saveExerciseRecord(ExerciseRecord record) async {
+    final prefs = await _prefs;
     final records = await loadExerciseRecords();
     records.removeWhere((e) => e.id == record.id);
     records.add(record);
-    await _writeExerciseRecordsRaw(records.map((e) => e.toMap()).toList());
+
+    final raw = records.map((e) => e.toMap()).toList();
+    final encoded = jsonEncode(raw);
+    await prefs.setString(_kExerciseRecordsKey, encoded);
+
+    _exerciseRecordsCacheRaw = encoded;
+    _exerciseRecordsCache = List<ExerciseRecord>.from(records);
   }
 
   Future<void> deleteExerciseRecord(String id) async {
+    final prefs = await _prefs;
     final records = await loadExerciseRecords();
     records.removeWhere((e) => e.id == id);
-    await _writeExerciseRecordsRaw(records.map((e) => e.toMap()).toList());
+
+    final raw = records.map((e) => e.toMap()).toList();
+    final encoded = jsonEncode(raw);
+    await prefs.setString(_kExerciseRecordsKey, encoded);
+
+    _exerciseRecordsCacheRaw = encoded;
+    _exerciseRecordsCache = List<ExerciseRecord>.from(records);
   }
 
   Future<List<ExerciseRecord>> getExerciseRecordsByBodyPart(
