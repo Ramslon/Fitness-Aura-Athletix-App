@@ -33,7 +33,10 @@ class ExerciseGridCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Protect against RenderFlex overflow on smaller devices.
-        final isTight = constraints.maxHeight > 0 && constraints.maxHeight < 240;
+        final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+        final isTight =
+            constraints.maxHeight > 0 &&
+            (constraints.maxHeight < 280 || textScale > 1.05);
 
         final contentPadding =
             isTight
@@ -108,105 +111,114 @@ class ExerciseGridCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: contentPadding,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: titleMaxLines,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: scheme.onSurface.withValues(alpha: 0.95),
-                            fontSize: titleFontSize,
-                            fontWeight: FontWeight.w900,
-                            height: 1.05,
-                          ),
-                        ),
-                        SizedBox(height: isTight ? 4 : 6),
-                        Text(
-                          setsReps,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: scheme.onSurface.withValues(alpha: 0.72),
-                            fontSize: isTight ? 11.5 : 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: isTight ? 6 : 8),
-                        FutureBuilder<ExerciseCardStats>(
-                          future: ExerciseInsights.statsFor(
-                            exerciseName: title,
-                            bodyPart: bodyPart,
-                          ),
-                          builder: (context, snap) {
-                            final last = snap.data?.lastTrained;
-                            final trend =
-                                snap.data?.trend ?? ExerciseTrend.flat;
-
-                            final trendIcon = switch (trend) {
-                              ExerciseTrend.up => Icons.trending_up,
-                              ExerciseTrend.down => Icons.trending_down,
-                              ExerciseTrend.flat => Icons.trending_flat,
-                            };
-
-                            final trendColor = switch (trend) {
-                              ExerciseTrend.up => const Color(0xFF2EE59D),
-                              ExerciseTrend.down => const Color(0xFFFF5C5C),
-                              ExerciseTrend.flat => scheme.onSurface,
-                            };
-
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Last: ${ExerciseInsights.lastTrainedLabel(last)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: scheme.onSurface.withValues(
-                                        alpha: 0.80,
-                                      ),
-                                      fontSize: isTight ? 11 : 11.5,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                Icon(
-                                  trendIcon,
-                                  size: isTight ? 16 : 18,
-                                  color: trendColor,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        SizedBox(height: isTight ? 8 : 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: buttonStyle,
-                            onPressed: onPick,
-                            child: const Text('Pick'),
-                          ),
-                        ),
-                        if (!isTight) ...[
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Long press for history',
+                  Flexible(
+                    child: Padding(
+                      padding: contentPadding,
+                      child: SingleChildScrollView(
+                        // Prevent nested-scroll issues while still ensuring
+                        // this content never causes a RenderFlex overflow.
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: titleMaxLines,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.55),
-                                fontSize: 10.5,
+                                color: scheme.onSurface.withValues(alpha: 0.95),
+                                fontSize: titleFontSize,
+                                fontWeight: FontWeight.w900,
+                                height: 1.05,
+                              ),
+                            ),
+                            SizedBox(height: isTight ? 4 : 6),
+                            Text(
+                              setsReps,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: scheme.onSurface.withValues(alpha: 0.72),
+                                fontSize: isTight ? 11.5 : 12,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
-                        ],
-                      ],
+                            SizedBox(height: isTight ? 6 : 8),
+                            FutureBuilder<ExerciseCardStats>(
+                              future: ExerciseInsights.statsFor(
+                                exerciseName: title,
+                                bodyPart: bodyPart,
+                              ),
+                              builder: (context, snap) {
+                                final last = snap.data?.lastTrained;
+                                final trend =
+                                    snap.data?.trend ?? ExerciseTrend.flat;
+
+                                final trendIcon = switch (trend) {
+                                  ExerciseTrend.up => Icons.trending_up,
+                                  ExerciseTrend.down => Icons.trending_down,
+                                  ExerciseTrend.flat => Icons.trending_flat,
+                                };
+
+                                final trendColor = switch (trend) {
+                                  ExerciseTrend.up => const Color(0xFF2EE59D),
+                                  ExerciseTrend.down => const Color(0xFFFF5C5C),
+                                  ExerciseTrend.flat => scheme.onSurface,
+                                };
+
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Last: ${ExerciseInsights.lastTrainedLabel(last)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: scheme.onSurface.withValues(
+                                            alpha: 0.80,
+                                          ),
+                                          fontSize: isTight ? 11 : 11.5,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      trendIcon,
+                                      size: isTight ? 16 : 18,
+                                      color: trendColor,
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            SizedBox(height: isTight ? 8 : 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: buttonStyle,
+                                onPressed: onPick,
+                                child: const Text('Pick'),
+                              ),
+                            ),
+                            if (!isTight) ...[
+                              const SizedBox(height: 6),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Long press for history',
+                                  style: TextStyle(
+                                    color: scheme.onSurface.withValues(
+                                      alpha: 0.55,
+                                    ),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
