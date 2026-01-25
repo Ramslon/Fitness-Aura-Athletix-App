@@ -15,7 +15,9 @@ class DailyWorkoutAnalysisScreen extends StatefulWidget {
 class _DailyWorkoutAnalysisScreenState
     extends State<DailyWorkoutAnalysisScreen> {
   bool _loading = true;
-  List<DailyWorkoutAnalysis> _sessions = [];
+  WorkoutAnalysisIndex? _indexData;
+  List<WorkoutSessionKey> _sessionKeys = [];
+  final Map<String, DailyWorkoutAnalysis> _analysisCache = {};
   int _index = 0;
   String? _filterBodyPart;
   final PageController _pageController = PageController();
@@ -40,49 +42,31 @@ class _DailyWorkoutAnalysisScreenState
     }
 
     final records = await StorageService().loadExerciseRecords();
-    final grouped = DailyWorkoutAnalysisEngine.groupSessions(records);
-
-    final sessions = <DailyWorkoutAnalysis>[];
-    for (final e in grouped.entries) {
-      final parts = e.key.split('|');
-      if (parts.length != 2) continue;
-      final day = DateTime.tryParse(parts[0]);
-      final body = parts[1];
-      if (day == null) continue;
-      final a = DailyWorkoutAnalysisEngine.analyzeFromRecords(
-        records,
-        day: day,
-        bodyPart: body,
-      );
-      if (a != null) sessions.add(a);
-    }
-
-    sessions.sort((a, b) => b.date.compareTo(a.date));
+    final index = DailyWorkoutAnalysisEngine.buildIndex(records);
+    final keys = DailyWorkoutAnalysisEngine.sessionKeys(
+      index,
+      bodyPart: bodyPartArg,
+    );
+    _analysisCache.clear();
 
     // Filter if requested
     _filterBodyPart = bodyPartArg;
-    final filtered = bodyPartArg == null
-        ? sessions
-        : sessions.where((s) => s.bodyPart == bodyPartArg).toList();
 
     int initial = 0;
     if (dateArg != null) {
       final d = DailyWorkoutAnalysisEngine.dayStart(dateArg);
-      final found = filtered.indexWhere(
-        (s) =>
-            s.bodyPart == (bodyPartArg ?? s.bodyPart) &&
-            DailyWorkoutAnalysisEngine.dayStart(s.date) == d,
-      );
+      final found = keys.indexWhere((k) => k.day == d);
       if (found >= 0) initial = found;
     }
 
     setState(() {
-      _sessions = filtered;
-      _index = initial.clamp(0, (_sessions.length - 1).clamp(0, 999999));
+      _indexData = index;
+      _sessionKeys = keys;
+      _index = initial.clamp(0, (_sessionKeys.length - 1).clamp(0, 999999));
       _loading = false;
     });
 
-    if (_sessions.isNotEmpty) {
+    if (_sessionKeys.isNotEmpty) {
       _pageController.jumpToPage(_index);
     }
   }
@@ -93,10 +77,29 @@ class _DailyWorkoutAnalysisScreenState
     super.dispose();
   }
 
+  DailyWorkoutAnalysis? _analysisAt(int i) {
+    final index = _indexData;
+    if (index == null) return null;
+    if (i < 0 || i >= _sessionKeys.length) return null;
+    final key = _sessionKeys[i];
+    final cached = _analysisCache[key.cacheKey];
+    if (cached != null) return cached;
+    final a = DailyWorkoutAnalysisEngine.analyzeFromIndex(
+      index,
+      day: key.day,
+      bodyPart: key.bodyPart,
+    );
+    if (a != null) {
+      _analysisCache[key.cacheKey] = a;
+    }
+    return a;
+  }
+
   Future<void> _showCompare(BuildContext context) async {
-    if (_sessions.length < 2) return;
-    final current = _sessions[_index];
-    final previous = _sessions[(_index + 1).clamp(0, _sessions.length - 1)];
+    if (_sessionKeys.length < 2) return;
+    final current = _analysisAt(_index);
+    final previous = _analysisAt((_index + 1).clamp(0, _sessionKeys.length - 1));
+    if (current == null || previous == null) return;
 
     final delta = current.totalVolume - previous.totalVolume;
     final deltaPct = previous.totalVolume > 0
@@ -155,7 +158,7 @@ class _DailyWorkoutAnalysisScreenState
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),
-              child: _sessions.isEmpty
+            child: _sessionKeys.isEmpty
                   ? Center(
                       child: Text(
                         'No workout data yet. Log an exercise to generate your first analysis.',
@@ -199,9 +202,22 @@ class _DailyWorkoutAnalysisScreenState
                           child: PageView.builder(
                             controller: _pageController,
                             onPageChanged: (i) => setState(() => _index = i),
-                            itemCount: _sessions.length,
+                            itemCount: _sessionKeys.length,
                             itemBuilder: (context, i) {
-                              final a = _sessions[i];
+                              final a = _analysisAt(i);
+                              if (a == null) {
+                                return Center(
+                                  child: Text(
+                                    'Unable to load analysis for this session.',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                );
+                              }
                               return DailyWorkoutAnalysisCard(
                                 analysis: a,
                                 onTap: () =>

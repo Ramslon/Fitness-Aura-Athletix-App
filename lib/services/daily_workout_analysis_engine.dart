@@ -49,6 +49,31 @@ class DailyWorkoutAnalysis {
   });
 }
 
+class WorkoutSessionKey {
+  final DateTime day;
+  final String bodyPart;
+
+  const WorkoutSessionKey({required this.day, required this.bodyPart});
+
+  String get cacheKey => '${day.toIso8601String()}|$bodyPart';
+}
+
+class WorkoutAnalysisIndex {
+  final List<ExerciseRecord> all;
+  final Map<String, List<ExerciseRecord>> sessionsByKey;
+  final Map<String, List<DateTime>> daysByBodyPart;
+  final Map<String, Map<String, List<ExerciseRecord>>> byBodyPartByExercise;
+  final Map<String, DateTime> lastByBodyPart;
+
+  const WorkoutAnalysisIndex({
+    required this.all,
+    required this.sessionsByKey,
+    required this.daysByBodyPart,
+    required this.byBodyPartByExercise,
+    required this.lastByBodyPart,
+  });
+}
+
 class DailyWorkoutAnalysisEngine {
   static DateTime dayStart(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
@@ -72,108 +97,141 @@ class DailyWorkoutAnalysisEngine {
     return map;
   }
 
-  static Future<DailyWorkoutAnalysis?> latestAnalysis() async {
-    final all = await StorageService().loadExerciseRecords();
-    if (all.isEmpty) return null;
-    all.sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
-    final latest = all.first;
-    return analyzeForDayAndBodyPart(dayStart(latest.dateRecorded), latest.bodyPart);
+  static WorkoutAnalysisIndex buildIndex(List<ExerciseRecord> all) {
+    final sessionsByKey = groupSessions(all);
+
+    final daysByBodyPart = <String, Set<DateTime>>{};
+    final lastByBodyPart = <String, DateTime>{};
+    final byBodyPartByExercise = <String, Map<String, List<ExerciseRecord>>>{};
+
+    for (final r in all) {
+      final d = dayStart(r.dateRecorded);
+      daysByBodyPart.putIfAbsent(r.bodyPart, () => <DateTime>{});
+      daysByBodyPart[r.bodyPart]!.add(d);
+
+      final last = lastByBodyPart[r.bodyPart];
+      if (last == null || r.dateRecorded.isAfter(last)) {
+        lastByBodyPart[r.bodyPart] = r.dateRecorded;
+      }
+
+      byBodyPartByExercise.putIfAbsent(r.bodyPart, () => <String, List<ExerciseRecord>>{});
+      byBodyPartByExercise[r.bodyPart]!.putIfAbsent(r.exerciseName, () => <ExerciseRecord>[]);
+      byBodyPartByExercise[r.bodyPart]![r.exerciseName]!.add(r);
+    }
+
+    // Normalize days ordering (newest first)
+    final daysByBodyPartSorted = <String, List<DateTime>>{};
+    for (final e in daysByBodyPart.entries) {
+      final list = e.value.toList()..sort((a, b) => b.compareTo(a));
+      daysByBodyPartSorted[e.key] = list;
+    }
+
+    // Normalize exercise lists ordering (newest first)
+    for (final bp in byBodyPartByExercise.keys) {
+      for (final ex in byBodyPartByExercise[bp]!.keys) {
+        byBodyPartByExercise[bp]![ex]!
+            .sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+      }
+    }
+
+    return WorkoutAnalysisIndex(
+      all: all,
+      sessionsByKey: sessionsByKey,
+      daysByBodyPart: daysByBodyPartSorted,
+      byBodyPartByExercise: byBodyPartByExercise,
+      lastByBodyPart: lastByBodyPart,
+    );
   }
 
-  static Future<DailyWorkoutAnalysis?> analyzeForDayAndBodyPart(
-    DateTime day,
-    String bodyPart,
-  ) async {
-    final all = await StorageService().loadExerciseRecords();
-    return analyzeFromRecords(all, day: day, bodyPart: bodyPart);
+  static List<WorkoutSessionKey> sessionKeys(
+    WorkoutAnalysisIndex index, {
+    String? bodyPart,
+  }) {
+    final keys = <WorkoutSessionKey>[];
+    if (bodyPart != null) {
+      final days = index.daysByBodyPart[bodyPart] ?? const <DateTime>[];
+      for (final d in days) {
+        keys.add(WorkoutSessionKey(day: d, bodyPart: bodyPart));
+      }
+      return keys;
+    }
+
+    for (final e in index.daysByBodyPart.entries) {
+      for (final d in e.value) {
+        keys.add(WorkoutSessionKey(day: d, bodyPart: e.key));
+      }
+    }
+    keys.sort((a, b) => b.day.compareTo(a.day));
+    return keys;
   }
 
-  static DailyWorkoutAnalysis? analyzeFromRecords(
-    List<ExerciseRecord> all, {
+  static DailyWorkoutAnalysis? analyzeFromIndex(
+    WorkoutAnalysisIndex index, {
     required DateTime day,
     required String bodyPart,
   }) {
     final targetDay = dayStart(day);
-
-    final session =
-        all
-            .where(
-              (r) =>
-                  r.bodyPart == bodyPart &&
-                  dayStart(r.dateRecorded) == targetDay,
-            )
-            .toList()
-          ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
-
+    final sessionKey = WorkoutSessionKey(day: targetDay, bodyPart: bodyPart);
+    final session = (index.sessionsByKey[sessionKey.cacheKey] ?? const <ExerciseRecord>[])
+        .toList()
+      ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
     if (session.isEmpty) return null;
 
+    // Previous session day for this bodyPart
+    final days = index.daysByBodyPart[bodyPart] ?? const <DateTime>[];
+    final i = days.indexWhere((d) => d == targetDay);
+    final prevDay = (i >= 0 && i + 1 < days.length) ? days[i + 1] : null;
+
+    final prevKey = prevDay == null ? null : WorkoutSessionKey(day: prevDay, bodyPart: bodyPart);
+    final prevSession = (prevKey == null
+            ? const <ExerciseRecord>[]
+            : (index.sessionsByKey[prevKey.cacheKey] ?? const <ExerciseRecord>[]))
+        .toList()
+      ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
+
+    return _analyzeSession(
+      index: index,
+      targetDay: targetDay,
+      bodyPart: bodyPart,
+      session: session,
+      prevDay: prevDay,
+      prevSession: prevSession,
+    );
+  }
+
+  static DailyWorkoutAnalysis _analyzeSession({
+    required WorkoutAnalysisIndex index,
+    required DateTime targetDay,
+    required String bodyPart,
+    required List<ExerciseRecord> session,
+    required DateTime? prevDay,
+    required List<ExerciseRecord> prevSession,
+  }) {
     final start = session.first.dateRecorded;
     final end = session.last.dateRecorded;
-    final durationMinutes =
-        end.isAfter(start) ? end.difference(start).inMinutes : 0;
+    final durationMinutes = end.isAfter(start) ? end.difference(start).inMinutes : 0;
 
     final uniqueExercises = session.map((e) => e.exerciseName).toSet();
-
     final totalVolume = session.fold<double>(0, (s, r) => s + volumeOf(r));
-
-    // Optional calories estimate (very rough): ~6 kcal/min.
     final caloriesBurned = durationMinutes > 0 ? (durationMinutes * 6) : null;
 
-    // Previous session (same bodyPart): most recent day < target day.
-    final prevCandidates =
-        all
-            .where(
-              (r) =>
-                  r.bodyPart == bodyPart &&
-                  dayStart(r.dateRecorded).isBefore(targetDay),
-            )
-            .toList()
-          ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+    final prevTotalVolume = prevSession.fold<double>(0, (s, r) => s + volumeOf(r));
+    final volumeChangePercent = prevTotalVolume > 0
+        ? ((totalVolume - prevTotalVolume) / prevTotalVolume) * 100
+        : null;
 
-    DateTime? prevDay;
-    if (prevCandidates.isNotEmpty) {
-      prevDay = dayStart(prevCandidates.first.dateRecorded);
-    }
-
-    final prevSession =
-        prevDay == null
-            ? <ExerciseRecord>[]
-            : all
-                .where(
-                  (r) =>
-                      r.bodyPart == bodyPart &&
-                      dayStart(r.dateRecorded) == prevDay,
-                )
-                .toList();
-
-    final prevTotalVolume = prevSession.fold<double>(
-      0,
-      (s, r) => s + volumeOf(r),
-    );
-
-    final volumeChangePercent =
-        prevTotalVolume > 0
-            ? ((totalVolume - prevTotalVolume) / prevTotalVolume) * 100
-            : null;
-
-    // Progressive overload details by exercise: compare latest set vs previous.
     final overloadDetails = <String>[];
     for (final ex in uniqueExercises) {
-      final curr =
-          session.where((r) => r.exerciseName == ex).toList()
-            ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
-      final prev =
-          prevSession.where((r) => r.exerciseName == ex).toList()
-            ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
-
+      final curr = session.where((r) => r.exerciseName == ex).toList()
+        ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+      final prev = prevSession.where((r) => r.exerciseName == ex).toList()
+        ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
       if (curr.isEmpty || prev.isEmpty) continue;
       final c = curr.first;
       final p = prev.first;
 
       if (c.weight > p.weight + 0.01) {
-        overloadDetails.add(
-          '+${(c.weight - p.weight).toStringAsFixed(1)}kg on $ex',
-        );
+        overloadDetails.add('+${(c.weight - p.weight).toStringAsFixed(1)}kg on $ex');
       } else if (c.repsPerSet > p.repsPerSet) {
         overloadDetails.add('+${c.repsPerSet - p.repsPerSet} reps on $ex');
       } else if (volumeOf(c) > volumeOf(p) + 0.01) {
@@ -192,36 +250,23 @@ class DailyWorkoutAnalysisEngine {
       trend = OverloadTrend.maintained;
     }
 
-    // Muscle group impact: MVP uses bodyPart as primary group.
     final volumeByMuscle = <String, double>{bodyPart: totalVolume};
-
-    // Undertrained warning: any bodyPart not trained in >= 5 days.
-    final lastByPart = <String, DateTime>{};
-    for (final r in all) {
-      final existing = lastByPart[r.bodyPart];
-      if (existing == null || r.dateRecorded.isAfter(existing)) {
-        lastByPart[r.bodyPart] = r.dateRecorded;
-      }
-    }
 
     final now = DateTime.now();
     final undertrained = <String>[];
-    for (final entry in lastByPart.entries) {
-      final days = now.difference(entry.value).inDays;
-      if (days >= 5) {
-        undertrained.add('${entry.key} hasn\'t been trained in ${days} days');
+    for (final entry in index.lastByBodyPart.entries) {
+      final daysAgo = now.difference(entry.value).inDays;
+      if (daysAgo >= 5) {
+        undertrained.add('${entry.key} hasn\'t been trained in $daysAgo days');
       }
     }
 
-    // Fatigue: rule-based score.
     int fatigueScore = 0;
     final latestDifficulty = session.last.difficulty.toLowerCase();
     if (latestDifficulty.contains('hard')) fatigueScore += 1;
     if ((volumeChangePercent ?? 0) > 20) fatigueScore += 1;
 
-    final daysSincePrev = prevDay == null
-        ? 99
-        : targetDay.difference(prevDay).inDays;
+    final daysSincePrev = prevDay == null ? 99 : targetDay.difference(prevDay).inDays;
     if (daysSincePrev <= 1) fatigueScore += 1;
 
     final fatigue = switch (fatigueScore) {
@@ -230,40 +275,32 @@ class DailyWorkoutAnalysisEngine {
       _ => FatigueSignal.high,
     };
 
-    // PRs & milestones
     final prs = <String>[];
     for (final ex in uniqueExercises) {
       final currMaxWeight = session
           .where((r) => r.exerciseName == ex)
           .fold<double>(0, (m, r) => r.weight > m ? r.weight : m);
 
-      final prevMaxWeight = all
-          .where(
-            (r) =>
-                r.exerciseName == ex &&
-                (dayStart(r.dateRecorded).isBefore(targetDay)),
-          )
-          .fold<double>(0, (m, r) => r.weight > m ? r.weight : m);
+      // Use pre-indexed per-exercise list (newest first) to find historical max before today.
+      final list = index.byBodyPartByExercise[bodyPart]?[ex] ?? const <ExerciseRecord>[];
+      double prevMaxWeight = 0;
+      for (final r in list) {
+        if (dayStart(r.dateRecorded).isBefore(targetDay) && r.weight > prevMaxWeight) {
+          prevMaxWeight = r.weight;
+        }
+      }
 
       if (currMaxWeight > prevMaxWeight + 0.01 && prevMaxWeight > 0) {
         prs.add('New PR: $ex ${currMaxWeight.toStringAsFixed(1)}kg');
       }
     }
 
-    // Streak
-    // (This depends on WorkoutEntry in the old flow, but we can still show it
-    // using existing method. If no entries exist, the streak will be 0.)
-    // Note: We keep it async outside; callers can inject.
-
-    // AI suggestions (rule-based MVP)
-    final suggestions = _buildSuggestions(
+    final suggestions = _buildSuggestionsIndexed(
+      index: index,
       bodyPart: bodyPart,
-      session: session,
-      prevSession: prevSession,
       volumeChangePercent: volumeChangePercent,
       fatigue: fatigue,
       undertrained: undertrained,
-      all: all,
     );
 
     return DailyWorkoutAnalysis(
@@ -286,30 +323,19 @@ class DailyWorkoutAnalysisEngine {
     );
   }
 
-  static String _workoutTitle(String bodyPart) {
-    // Display-friendly naming.
-    return '${bodyPart.toUpperCase()} DAY';
-  }
-
-  static List<String> _buildSuggestions({
+  static List<String> _buildSuggestionsIndexed({
+    required WorkoutAnalysisIndex index,
     required String bodyPart,
-    required List<ExerciseRecord> session,
-    required List<ExerciseRecord> prevSession,
     required double? volumeChangePercent,
     required FatigueSignal fatigue,
     required List<String> undertrained,
-    required List<ExerciseRecord> all,
   }) {
     final suggestions = <String>[];
 
-    // 1) Load progression / plateau detection (same weight & reps for 3 sessions)
-    final byExercise = <String, List<ExerciseRecord>>{};
-    for (final r in all.where((r) => r.bodyPart == bodyPart)) {
-      byExercise.putIfAbsent(r.exerciseName, () => <ExerciseRecord>[]);
-      byExercise[r.exerciseName]!.add(r);
-    }
+    // Plateau detection using indexed per-exercise lists.
+    final byExercise = index.byBodyPartByExercise[bodyPart] ?? const <String, List<ExerciseRecord>>{};
     for (final e in byExercise.entries) {
-      final list = e.value..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+      final list = e.value;
       if (list.length < 3) continue;
       final a = list[0];
       final b = list[1];
@@ -326,7 +352,6 @@ class DailyWorkoutAnalysisEngine {
       }
     }
 
-    // 2) Volume adjustment
     final v = volumeChangePercent ?? 0;
     if (v >= 15) {
       suggestions.add(
@@ -334,7 +359,6 @@ class DailyWorkoutAnalysisEngine {
       );
     }
 
-    // 3) Exercise selection advice (simple complement mapping)
     final complement = switch (bodyPart.toLowerCase()) {
       'legs' => 'Add hamstring isolation next leg day (e.g., RDL/leg curl).',
       'glutes' => 'Add a hamstring or quad accessory to balance the posterior chain.',
@@ -348,21 +372,82 @@ class DailyWorkoutAnalysisEngine {
     };
     suggestions.add(complement);
 
-    // 4) Recovery advice
     if (fatigue == FatigueSignal.high) {
-      suggestions.add(
-        'High fatigue detected. Reduce intensity tomorrow or take a rest day.',
-      );
+      suggestions.add('High fatigue detected. Reduce intensity tomorrow or take a rest day.');
     }
 
-    // 5) Consistency feedback
     if (undertrained.isNotEmpty) {
       suggestions.add(undertrained.first);
     }
 
-    // Keep 1–3, short.
     return suggestions;
   }
+
+  static Future<WorkoutAnalysisIndex> loadIndex() async {
+    final records = await StorageService().loadExerciseRecords();
+    return buildIndex(records);
+  }
+
+  static Future<DailyWorkoutAnalysis?> latestAnalysisCached() async {
+    if (_latestFuture != null) return _latestFuture!;
+    _latestFuture = _computeLatest();
+    return _latestFuture!;
+  }
+
+  static Future<DailyWorkoutAnalysis?> _computeLatest() async {
+    final records = await StorageService().loadExerciseRecords();
+    if (records.isEmpty) return null;
+    // Find latest without sorting
+    ExerciseRecord latest = records.first;
+    for (final r in records.skip(1)) {
+      if (r.dateRecorded.isAfter(latest.dateRecorded)) {
+        latest = r;
+      }
+    }
+    final index = buildIndex(records);
+    return analyzeFromIndex(
+      index,
+      day: dayStart(latest.dateRecorded),
+      bodyPart: latest.bodyPart,
+    );
+  }
+
+  static void invalidateCache() {
+    _latestFuture = null;
+  }
+
+  static Future<DailyWorkoutAnalysis?>? _latestFuture;
+
+  static Future<DailyWorkoutAnalysis?> latestAnalysis() async {
+    // Back-compat: use cached latest.
+    final f = await latestAnalysisCached();
+    return f;
+  }
+
+  static Future<DailyWorkoutAnalysis?> analyzeForDayAndBodyPart(
+    DateTime day,
+    String bodyPart,
+  ) async {
+    final records = await StorageService().loadExerciseRecords();
+    final index = buildIndex(records);
+    return analyzeFromIndex(index, day: day, bodyPart: bodyPart);
+  }
+
+  static DailyWorkoutAnalysis? analyzeFromRecords(
+    List<ExerciseRecord> all, {
+    required DateTime day,
+    required String bodyPart,
+  }) {
+    final index = buildIndex(all);
+    return analyzeFromIndex(index, day: day, bodyPart: bodyPart);
+  }
+
+  static String _workoutTitle(String bodyPart) {
+    // Display-friendly naming.
+    return '${bodyPart.toUpperCase()} DAY';
+  }
+
+  // Note: _buildSuggestions moved to indexed version for performance.
 
   static Color trendColor(OverloadTrend trend, ColorScheme scheme) {
     return switch (trend) {
