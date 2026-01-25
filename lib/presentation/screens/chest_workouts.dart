@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
 
-class ChestWorkouts extends StatelessWidget {
+class ChestWorkouts extends StatefulWidget {
   const ChestWorkouts({Key? key}) : super(key: key);
+
+  @override
+  State<ChestWorkouts> createState() => _ChestWorkoutsState();
 
   static final List<_Exercise> _exercises = [
     _Exercise(
@@ -75,9 +79,12 @@ class ChestWorkouts extends StatelessWidget {
       setsReps: '3 sets x 8-12 reps',
     ),
   ];
+}
 
+class _ChestWorkoutsState extends State<ChestWorkouts> {
   @override
   Widget build(BuildContext context) {
+    final accent = Colors.red.shade400;
     return Scaffold(
       appBar: AppBar(title: const Text('Chest Workouts')),
       body: Padding(
@@ -89,57 +96,31 @@ class ChestWorkouts extends StatelessWidget {
             crossAxisSpacing: 12,
             childAspectRatio: 0.82,
           ),
-          itemCount: _exercises.length,
+          itemCount: ChestWorkouts._exercises.length,
           itemBuilder: (context, index) {
-            final ex = _exercises[index];
-            return GestureDetector(
+            final ex = ChestWorkouts._exercises[index];
+            return ExerciseGridCard(
+              id: ex.id,
+              title: ex.title,
+              setsReps: ex.setsReps,
+              bodyPart: 'Chest',
+              assetPath: ex.image,
+              accent: accent,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => ExerciseDetail(exercise: ex)),
               ),
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12),
-                        ),
-                        child: LocalImagePlaceholder(
-                          id: ex.id,
-                          assetPath: ex.image,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ex.title,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            ex.setsReps,
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              onPick: () async {
+                await showDialog(
+                  context: context,
+                  builder: (ctx) => ExerciseLogDialog(
+                    exerciseName: ex.title,
+                    bodyPart: 'Chest',
+                  ),
+                );
+                if (!mounted) return;
+                setState(() {});
+              },
             );
           },
         ),

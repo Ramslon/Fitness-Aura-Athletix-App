@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/exercise_insights.dart';
 
 class ExerciseLogDialog extends StatefulWidget {
   final String exerciseName;
@@ -66,6 +67,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     );
 
     await StorageService().saveExerciseRecord(record);
+    ExerciseInsights.invalidateCache();
     if (mounted) {
       Navigator.pop(context, record);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,7 +86,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
           children: [
             TextField(
               controller: _weightController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Weight (kg)',
                 border: OutlineInputBorder(),
@@ -120,9 +124,11 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _difficulty,
-              items: ['Easy', 'Moderate', 'Hard']
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                  .toList(),
+              items: [
+                'Easy',
+                'Moderate',
+                'Hard',
+              ].map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
               onChanged: (value) {
                 setState(() => _difficulty = value ?? 'Moderate');
               },
@@ -148,10 +154,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _saveExercise,
-          child: const Text('Save'),
-        ),
+        ElevatedButton(onPressed: _saveExercise, child: const Text('Save')),
       ],
     );
   }

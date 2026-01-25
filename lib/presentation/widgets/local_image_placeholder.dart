@@ -13,7 +13,13 @@ class LocalImagePlaceholder extends StatefulWidget {
   final BoxFit fit;
   final double? height;
 
-  const LocalImagePlaceholder({required this.id, this.assetPath, this.fit = BoxFit.cover, this.height, super.key});
+  const LocalImagePlaceholder({
+    required this.id,
+    this.assetPath,
+    this.fit = BoxFit.cover,
+    this.height,
+    super.key,
+  });
 
   @override
   State<LocalImagePlaceholder> createState() => _LocalImagePlaceholderState();
@@ -46,13 +52,18 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
   }
 
   Future<void> _pickImage() async {
-    final res = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
     if (res == null || res.files.isEmpty) return;
     final picked = res.files.first;
     final dir = await _appDir();
     final ext = picked.extension ?? 'png';
     final target = File('${dir.path}/${widget.id}.$ext');
-    final data = picked.path != null ? File(picked.path!).readAsBytesSync() : picked.bytes;
+    final data = picked.path != null
+        ? File(picked.path!).readAsBytesSync()
+        : picked.bytes;
     if (data == null) return;
     await target.writeAsBytes(data);
     setState(() => _file = target);
@@ -60,49 +71,119 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget image;
     if (_file != null) {
-      return Image.file(_file!, height: widget.height, fit: widget.fit);
-    }
-
-    if (widget.assetPath != null) {
-      // If asset exists, show it as a fallback but still allow picking a local image.
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(widget.assetPath!, height: widget.height, fit: widget.fit, errorBuilder: (c, e, s) => _placeholder(context)),
-          Positioned(
-            right: 8,
-            bottom: 8,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black54),
-              onPressed: _pickImage,
-              child: const Text('Pick'),
-            ),
-          ),
-        ],
+      image = Image.file(_file!, height: widget.height, fit: widget.fit);
+    } else if (widget.assetPath != null) {
+      image = Image.asset(
+        widget.assetPath!,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (c, e, s) => _placeholder(context),
       );
+    } else {
+      image = _placeholder(context);
     }
 
-    return _placeholder(context);
+    // Always render as a stack so "Customize" is consistently available.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        image,
+        Positioned(
+          right: 10,
+          top: 10,
+          child: _CustomizePill(
+            label: _file == null ? 'Customize' : 'Change',
+            onPressed: _pickImage,
+            accent: scheme.primary,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _placeholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.grey.shade200,
+      color: Colors.transparent,
       height: widget.height,
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.image, size: 48, color: Colors.grey),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Add image'),
-            ),
-          ],
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Colors.white.withValues(alpha: 0.06),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 44,
+                color: scheme.onSurface.withValues(alpha: 0.70),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Add a photo',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.90),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Make this exercise yours',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.70),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Add image'),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _CustomizePill extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final Color accent;
+
+  const _CustomizePill({
+    required this.label,
+    required this.onPressed,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black.withValues(alpha: 0.45),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        elevation: 0,
+      ),
+      onPressed: onPressed,
+      icon: Icon(Icons.tune, size: 16, color: accent.withValues(alpha: 0.95)),
+      label: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
       ),
     );
   }
