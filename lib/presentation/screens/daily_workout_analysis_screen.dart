@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
@@ -41,8 +40,8 @@ class _DailyWorkoutAnalysisScreenState
       }
     }
 
-    final records = await StorageService().loadExerciseRecords();
-    final index = DailyWorkoutAnalysisEngine.buildIndex(records);
+    // Reuse the cached index to avoid rebuilding on every open.
+    final index = await DailyWorkoutAnalysisEngine.loadIndexCached();
     final keys = DailyWorkoutAnalysisEngine.sessionKeys(
       index,
       bodyPart: bodyPartArg,

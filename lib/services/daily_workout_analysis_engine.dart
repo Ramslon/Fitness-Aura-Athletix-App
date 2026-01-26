@@ -172,9 +172,9 @@ class DailyWorkoutAnalysisEngine {
   }) {
     final targetDay = dayStart(day);
     final sessionKey = WorkoutSessionKey(day: targetDay, bodyPart: bodyPart);
-    final session = (index.sessionsByKey[sessionKey.cacheKey] ?? const <ExerciseRecord>[])
-        .toList()
-      ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
+    // Sessions are already sorted (ascending) by `groupSessions`.
+    final session =
+        (index.sessionsByKey[sessionKey.cacheKey] ?? const <ExerciseRecord>[]);
     if (session.isEmpty) return null;
 
     // Previous session day for this bodyPart
@@ -184,10 +184,8 @@ class DailyWorkoutAnalysisEngine {
 
     final prevKey = prevDay == null ? null : WorkoutSessionKey(day: prevDay, bodyPart: bodyPart);
     final prevSession = (prevKey == null
-            ? const <ExerciseRecord>[]
-            : (index.sessionsByKey[prevKey.cacheKey] ?? const <ExerciseRecord>[]))
-        .toList()
-      ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
+      ? const <ExerciseRecord>[]
+      : (index.sessionsByKey[prevKey.cacheKey] ?? const <ExerciseRecord>[]));
 
     return _analyzeSession(
       index: index,
@@ -384,8 +382,39 @@ class DailyWorkoutAnalysisEngine {
   }
 
   static Future<WorkoutAnalysisIndex> loadIndex() async {
+    // Back-compat: use cached index.
+    return loadIndexCached();
+  }
+
+  static WorkoutAnalysisIndex? _indexCache;
+  static Future<WorkoutAnalysisIndex>? _indexFuture;
+
+  /// Loads and builds the analysis index once per app session.
+  ///
+  /// Call [invalidateCache] when exercise records change.
+  static Future<WorkoutAnalysisIndex> loadIndexCached() async {
+    final cached = _indexCache;
+    if (cached != null) return cached;
+    final inflight = _indexFuture;
+    if (inflight != null) return inflight;
+
+    final f = _computeIndex();
+    _indexFuture = f;
+    final built = await f;
+    _indexCache = built;
+    return built;
+  }
+
+  static Future<WorkoutAnalysisIndex> _computeIndex() async {
     final records = await StorageService().loadExerciseRecords();
     return buildIndex(records);
+  }
+
+  /// Best-effort warmup to reduce perceived load time.
+  static void prewarm() {
+    // Fire-and-forget.
+    loadIndexCached();
+    latestAnalysisCached();
   }
 
   static Future<DailyWorkoutAnalysis?> latestAnalysisCached() async {
@@ -395,16 +424,17 @@ class DailyWorkoutAnalysisEngine {
   }
 
   static Future<DailyWorkoutAnalysis?> _computeLatest() async {
-    final records = await StorageService().loadExerciseRecords();
+    final index = await loadIndexCached();
+    final records = index.all;
     if (records.isEmpty) return null;
-    // Find latest without sorting
+
+    // Find latest without sorting.
     ExerciseRecord latest = records.first;
     for (final r in records.skip(1)) {
       if (r.dateRecorded.isAfter(latest.dateRecorded)) {
         latest = r;
       }
     }
-    final index = buildIndex(records);
     return analyzeFromIndex(
       index,
       day: dayStart(latest.dateRecorded),
@@ -414,6 +444,8 @@ class DailyWorkoutAnalysisEngine {
 
   static void invalidateCache() {
     _latestFuture = null;
+    _indexCache = null;
+    _indexFuture = null;
   }
 
   static Future<DailyWorkoutAnalysis?>? _latestFuture;
@@ -428,8 +460,7 @@ class DailyWorkoutAnalysisEngine {
     DateTime day,
     String bodyPart,
   ) async {
-    final records = await StorageService().loadExerciseRecords();
-    final index = buildIndex(records);
+    final index = await loadIndexCached();
     return analyzeFromIndex(index, day: day, bodyPart: bodyPart);
   }
 

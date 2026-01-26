@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
+import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const FitnessAuraApp());
+
+  // Pre-warm heavy analysis work off the critical first frame.
+  Future.microtask(DailyWorkoutAnalysisEngine.prewarm);
 }
 
 class FitnessAuraApp extends StatelessWidget {
