@@ -3,6 +3,7 @@ import 'package:fitness_aura_athletix/services/auth_service.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
+import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -147,6 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ..addAll(normalized);
       _loading = false;
     });
+
+    // Pre-warm the daily analysis index in the background after Home finishes
+    // its initial load, so opening the analysis screen feels instant.
+    Future.microtask(DailyWorkoutAnalysisEngine.prewarm);
   }
 
   void _navigateAndRefresh(
