@@ -3,9 +3,6 @@ import 'package:fitness_aura_athletix/services/auth_service.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
-import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
-import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
-import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -558,31 +555,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           const SizedBox(height: 12),
-          FutureBuilder<DailyWorkoutAnalysis?>(
-            future: DailyWorkoutAnalysisEngine.latestAnalysis(),
-            builder: (context, snap) {
-              final analysis = snap.data;
-              if (analysis == null) return const SizedBox.shrink();
-              return DailyWorkoutAnalysisCard(
-                analysis: analysis,
-                onTap: () => DailyWorkoutAnalysisDetailsSheet.show(
-                  context,
-                  analysis: analysis,
+          // Keep Home fast: don't compute & render the latest analysis preview here.
+          // Provide a lightweight entry card instead.
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.analytics_outlined),
+              title: const Text(
+                'Daily Workout Analysis',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Open your latest insights and trends',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.70),
                 ),
-                onLongPress: () => DailyWorkoutAnalysisDetailsSheet.show(
-                  context,
-                  analysis: analysis,
-                ),
-                onViewDetails: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.dailyWorkoutAnalysis,
-                  arguments: {
-                    'bodyPart': analysis.bodyPart,
-                    'date': analysis.date.toIso8601String(),
-                  },
-                ),
-              );
-            },
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.dailyWorkoutAnalysis,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           Row(

@@ -24,6 +24,8 @@ class _DailyWorkoutAnalysisScreenState
   @override
   void initState() {
     super.initState();
+    // Warm the analysis cache only when this feature is opened.
+    Future.microtask(DailyWorkoutAnalysisEngine.prewarm);
     _loadSessions();
   }
 
