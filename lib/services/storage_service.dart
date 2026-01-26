@@ -9,6 +9,7 @@ import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
 import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 import 'package:fitness_aura_athletix/core/models/volume_load.dart';
 import 'package:fitness_aura_athletix/core/models/goal.dart';
+import 'package:fitness_aura_athletix/services/exercise_records_store.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -419,55 +420,15 @@ class StorageService {
   }
 
   // Exercise tracking methods
-  static const _kExerciseRecordsKey = 'exercise_records_v1';
-
-  // Cache to avoid repeatedly decoding the (potentially large) JSON payload.
-  // This is important because exercise records are stored as one big JSON
-  // string in SharedPreferences.
-  String? _exerciseRecordsCacheRaw;
+  // Cache to avoid repeatedly loading/parsing records.
   List<ExerciseRecord>? _exerciseRecordsCache;
-
-  Future<List<Map<String, dynamic>>> _readExerciseRecordsRaw() async {
-    final prefs = await _prefs;
-    final s = prefs.getString(_kExerciseRecordsKey);
-    if (s == null || s.isEmpty) return [];
-    final List<dynamic> list = jsonDecode(s);
-    return list.cast<Map<String, dynamic>>();
-  }
-
-  Future<void> _writeExerciseRecordsRaw(
-    List<Map<String, dynamic>> records,
-  ) async {
-    final prefs = await _prefs;
-    await prefs.setString(_kExerciseRecordsKey, jsonEncode(records));
-  }
 
   Future<List<ExerciseRecord>> loadExerciseRecords() async {
     final prefs = await _prefs;
-    final s = prefs.getString(_kExerciseRecordsKey);
-    if (s == null || s.isEmpty) {
-      _exerciseRecordsCacheRaw = s;
-      _exerciseRecordsCache = <ExerciseRecord>[];
-      return <ExerciseRecord>[];
-    }
-
-    // Fast path: cached decoded list still matches the stored string.
     final cached = _exerciseRecordsCache;
-    if (cached != null && _exerciseRecordsCacheRaw == s) {
-      // Return a copy so callers can safely mutate.
-      return List<ExerciseRecord>.from(cached);
-    }
+    if (cached != null) return List<ExerciseRecord>.from(cached);
 
-    // Decode off the UI isolate to avoid jank on large datasets.
-    final decoded = await Isolate.run(() {
-      final dynamic parsed = jsonDecode(s);
-      if (parsed is! List) return <ExerciseRecord>[];
-      return parsed
-          .map((e) => ExerciseRecord.fromMap(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    });
-
-    _exerciseRecordsCacheRaw = s;
+    final decoded = await loadExerciseRecordsV2(prefs);
     _exerciseRecordsCache = decoded;
     return List<ExerciseRecord>.from(decoded);
   }
@@ -478,11 +439,7 @@ class StorageService {
     records.removeWhere((e) => e.id == record.id);
     records.add(record);
 
-    final raw = records.map((e) => e.toMap()).toList();
-    final encoded = jsonEncode(raw);
-    await prefs.setString(_kExerciseRecordsKey, encoded);
-
-    _exerciseRecordsCacheRaw = encoded;
+    await writeExerciseRecordsV2(prefs, records);
     _exerciseRecordsCache = List<ExerciseRecord>.from(records);
   }
 
@@ -491,11 +448,7 @@ class StorageService {
     final records = await loadExerciseRecords();
     records.removeWhere((e) => e.id == id);
 
-    final raw = records.map((e) => e.toMap()).toList();
-    final encoded = jsonEncode(raw);
-    await prefs.setString(_kExerciseRecordsKey, encoded);
-
-    _exerciseRecordsCacheRaw = encoded;
+    await writeExerciseRecordsV2(prefs, records);
     _exerciseRecordsCache = List<ExerciseRecord>.from(records);
   }
 
