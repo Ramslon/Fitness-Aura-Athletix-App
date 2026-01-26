@@ -24,8 +24,6 @@ class _DailyWorkoutAnalysisScreenState
   @override
   void initState() {
     super.initState();
-    // Warm the analysis cache only when this feature is opened.
-    Future.microtask(DailyWorkoutAnalysisEngine.prewarm);
     _loadSessions();
   }
 
@@ -205,6 +203,23 @@ class _DailyWorkoutAnalysisScreenState
                             onPageChanged: (i) => setState(() => _index = i),
                             itemCount: _sessionKeys.length,
                             itemBuilder: (context, i) {
+                              // PageView builds adjacent pages; keep open fast by only
+                              // computing the analysis for the visible page.
+                              final isActive = i == _index;
+                              if (!isActive) {
+                                return Center(
+                                  child: Text(
+                                    'Swipe to view this session',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                );
+                              }
+
                               final a = _analysisAt(i);
                               if (a == null) {
                                 return Center(

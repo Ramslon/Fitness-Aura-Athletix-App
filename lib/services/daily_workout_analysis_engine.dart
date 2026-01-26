@@ -62,7 +62,11 @@ class WorkoutAnalysisIndex {
   final List<ExerciseRecord> all;
   final Map<String, List<ExerciseRecord>> sessionsByKey;
   final Map<String, List<DateTime>> daysByBodyPart;
-  final Map<String, Map<String, List<ExerciseRecord>>> byBodyPartByExercise;
+  /// Optional heavy index: bodyPart -> exerciseName -> records (newest first).
+  ///
+  /// This is intentionally nullable so we can keep initial loading fast by
+  /// building a lite index and computing exercise history lazily when needed.
+  final Map<String, Map<String, List<ExerciseRecord>>>? byBodyPartByExercise;
   final Map<String, DateTime> lastByBodyPart;
 
   const WorkoutAnalysisIndex({
@@ -141,6 +145,70 @@ class DailyWorkoutAnalysisEngine {
       byBodyPartByExercise: byBodyPartByExercise,
       lastByBodyPart: lastByBodyPart,
     );
+  }
+
+  /// Faster index build for initial UI: skips building the heavy per-exercise
+  /// history map.
+  static WorkoutAnalysisIndex buildLiteIndex(List<ExerciseRecord> all) {
+    final sessionsByKey = groupSessions(all);
+
+    final daysByBodyPart = <String, Set<DateTime>>{};
+    final lastByBodyPart = <String, DateTime>{};
+
+    for (final r in all) {
+      final d = dayStart(r.dateRecorded);
+      daysByBodyPart.putIfAbsent(r.bodyPart, () => <DateTime>{});
+      daysByBodyPart[r.bodyPart]!.add(d);
+
+      final last = lastByBodyPart[r.bodyPart];
+      if (last == null || r.dateRecorded.isAfter(last)) {
+        lastByBodyPart[r.bodyPart] = r.dateRecorded;
+      }
+    }
+
+    final daysByBodyPartSorted = <String, List<DateTime>>{};
+    for (final e in daysByBodyPart.entries) {
+      final list = e.value.toList()..sort((a, b) => b.compareTo(a));
+      daysByBodyPartSorted[e.key] = list;
+    }
+
+    return WorkoutAnalysisIndex(
+      all: all,
+      sessionsByKey: sessionsByKey,
+      daysByBodyPart: daysByBodyPartSorted,
+      byBodyPartByExercise: null,
+      lastByBodyPart: lastByBodyPart,
+    );
+  }
+
+  static final Map<String, Map<String, List<ExerciseRecord>>>
+      _lazyByExerciseCache = {};
+
+  static Map<String, List<ExerciseRecord>> _byExerciseForBodyPart(
+    WorkoutAnalysisIndex index,
+    String bodyPart,
+  ) {
+    final cached = _lazyByExerciseCache[bodyPart];
+    if (cached != null) return cached;
+
+    // If the full index exists, prefer it.
+    final full = index.byBodyPartByExercise?[bodyPart];
+    if (full != null) {
+      _lazyByExerciseCache[bodyPart] = full;
+      return full;
+    }
+
+    final map = <String, List<ExerciseRecord>>{};
+    for (final r in index.all) {
+      if (r.bodyPart != bodyPart) continue;
+      map.putIfAbsent(r.exerciseName, () => <ExerciseRecord>[]);
+      map[r.exerciseName]!.add(r);
+    }
+    for (final ex in map.keys) {
+      map[ex]!.sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+    }
+    _lazyByExerciseCache[bodyPart] = map;
+    return map;
   }
 
   static List<WorkoutSessionKey> sessionKeys(
@@ -280,7 +348,8 @@ class DailyWorkoutAnalysisEngine {
           .fold<double>(0, (m, r) => r.weight > m ? r.weight : m);
 
       // Use pre-indexed per-exercise list (newest first) to find historical max before today.
-      final list = index.byBodyPartByExercise[bodyPart]?[ex] ?? const <ExerciseRecord>[];
+      final list =
+          _byExerciseForBodyPart(index, bodyPart)[ex] ?? const <ExerciseRecord>[];
       double prevMaxWeight = 0;
       for (final r in list) {
         if (dayStart(r.dateRecorded).isBefore(targetDay) && r.weight > prevMaxWeight) {
@@ -331,7 +400,7 @@ class DailyWorkoutAnalysisEngine {
     final suggestions = <String>[];
 
     // Plateau detection using indexed per-exercise lists.
-    final byExercise = index.byBodyPartByExercise[bodyPart] ?? const <String, List<ExerciseRecord>>{};
+    final byExercise = _byExerciseForBodyPart(index, bodyPart);
     for (final e in byExercise.entries) {
       final list = e.value;
       if (list.length < 3) continue;
@@ -407,14 +476,15 @@ class DailyWorkoutAnalysisEngine {
 
   static Future<WorkoutAnalysisIndex> _computeIndex() async {
     final records = await StorageService().loadExerciseRecords();
-    return buildIndex(records);
+    // Build a lite index for faster initial load; exercise history is computed lazily.
+    return buildLiteIndex(records);
   }
 
   /// Best-effort warmup to reduce perceived load time.
   static void prewarm() {
-    // Fire-and-forget.
+    // Fire-and-forget. Keep this lightweight; avoid doing extra work (like
+    // computing the latest analysis) that could compete with UI.
     loadIndexCached();
-    latestAnalysisCached();
   }
 
   static Future<DailyWorkoutAnalysis?> latestAnalysisCached() async {
@@ -446,6 +516,7 @@ class DailyWorkoutAnalysisEngine {
     _latestFuture = null;
     _indexCache = null;
     _indexFuture = null;
+    _lazyByExerciseCache.clear();
   }
 
   static Future<DailyWorkoutAnalysis?>? _latestFuture;
