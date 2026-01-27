@@ -4,7 +4,10 @@ import 'package:fitness_aura_athletix/core/models/volume_load.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_bar_chart.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_line_chart.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/premium_gate.dart';
 import 'package:intl/intl.dart';
+
+import 'package:fitness_aura_athletix/services/premium_access_service.dart';
 
 enum _VolumeView { weekly, monthly, byExercise, byMuscleGroup }
 
@@ -19,6 +22,7 @@ class VolumeLoadScreen extends StatefulWidget {
 
 class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
   bool _loading = true;
+  bool _isPremium = false;
   List<VolumeLoadData> _data = [];
   BodyLoadSummary? _summary;
 
@@ -51,11 +55,38 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     final data = await StorageService().getVolumeLoadData();
     final summary = await StorageService().getBodyLoadSummary();
     final records = await StorageService().loadExerciseRecords();
+    final premium = await PremiumAccessService().isPremiumActive();
     setState(() {
       _data = data;
       _summary = summary;
       _records = records;
+      _isPremium = premium;
       _loading = false;
+    });
+  }
+
+  void _goToPremium() {
+    Navigator.of(context).pushNamed('/premium-features');
+  }
+
+  bool _isViewLocked(_VolumeView v) {
+    if (_isPremium) return false;
+    // Keep beginners on Weekly. Premium unlocks the deeper views.
+    return v != _VolumeView.weekly;
+  }
+
+  void _selectView(_VolumeView v) {
+    if (_isViewLocked(v)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unlock advanced analytics 🔒')),
+      );
+      _goToPremium();
+      return;
+    }
+    setState(() {
+      _view = v;
+      _selectedVolumePoint = null;
+      _selectedMuscleBar = null;
     });
   }
 
@@ -306,7 +337,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     return (_OverloadSignal.maintain, 'Maintain — steady output.');
   }
 
-  List<String> _aiInsightsForWeek() {
+  List<String> _aiInsightsForWeek({required bool premium}) {
     // Max 2, actionable, trend-based.
     if (_records.isEmpty) return const [];
 
@@ -342,6 +373,14 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
       }
     }
     if (spike != null && insights.length < 2) insights.add(spike);
+
+    // Premium: add an extra layer of deload-style guidance (still actionable).
+    if (premium && insights.length < 2) {
+      final plateaued = _exerciseStats(days: 30).where((e) => e.signal == _OverloadSignal.plateau).toList();
+      if (plateaued.isNotEmpty) {
+        insights.add('${plateaued.first.exerciseName} is plateauing — reduce volume ~20% for 1 week, then rebuild.');
+      }
+    }
 
     if (insights.length >= 2) return insights.take(2).toList();
 
@@ -397,7 +436,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                   ),
                 ),
                 const Spacer(),
-                _CompareToggle(value: _compareMode, onChanged: (v) => setState(() => _compareMode = v)),
+                _CompareToggle(
+                  value: _compareMode,
+                  onChanged: (v) => setState(() => _compareMode = v),
+                  isPremium: _isPremium,
+                  onUpgrade: _goToPremium,
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -473,7 +517,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                   ),
                 ),
                 const Spacer(),
-                _CompareToggle(value: _compareMode, onChanged: (v) => setState(() => _compareMode = v)),
+                _CompareToggle(
+                  value: _compareMode,
+                  onChanged: (v) => setState(() => _compareMode = v),
+                  isPremium: _isPremium,
+                  onUpgrade: _goToPremium,
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -594,7 +643,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
   }
 
   Widget _aiInsightCard() {
-    final insights = _aiInsightsForWeek();
+    final insights = _aiInsightsForWeek(premium: _isPremium);
     if (insights.isEmpty) return const SizedBox.shrink();
 
     return Card(
@@ -868,11 +917,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                     ],
                     selected: {_view},
                     onSelectionChanged: (v) {
-                      setState(() {
-                        _view = v.first;
-                        _selectedVolumePoint = null;
-                        _selectedMuscleBar = null;
-                      });
+                      _selectView(v.first);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -882,7 +927,13 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                     const SizedBox(height: 10),
                     _safetyCardIfNeeded(),
                     const SizedBox(height: 10),
-                    _aiInsightCard(),
+                    PremiumGate(
+                      isPremium: _isPremium,
+                      title: 'AI Insights',
+                      previewText: 'Unlock insights 🔒 (plateaus, deloads, trends).',
+                      onUpgrade: _goToPremium,
+                      child: _aiInsightCard(),
+                    ),
                     const SizedBox(height: 14),
                     Text('Total volume (line)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
                     const SizedBox(height: 8),
@@ -894,41 +945,70 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                     const SizedBox(height: 14),
                     Text('Muscle groups (bar)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
                     const SizedBox(height: 8),
-                    SimpleBarChart(
-                      bars: weekMuscleBars,
-                      selectedIndex: _selectedMuscleBar,
-                      onSelected: (i) => setState(() => _selectedMuscleBar = i),
+                    PremiumGate(
+                      isPremium: _isPremium,
+                      title: 'Muscle breakdown',
+                      previewText: 'Unlock muscle group load + balance view 🔒',
+                      onUpgrade: _goToPremium,
+                      child: Column(
+                        children: [
+                          SimpleBarChart(
+                            bars: weekMuscleBars,
+                            selectedIndex: _selectedMuscleBar,
+                            onSelected: (i) => setState(() => _selectedMuscleBar = i),
+                          ),
+                          const SizedBox(height: 14),
+                          _muscleBreakdownList(7),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
-                    _muscleBreakdownList(7),
-                    const SizedBox(height: 14),
-                    const Text('Exercise-level tracking', style: TextStyle(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    _filtersRow(),
-                    const SizedBox(height: 10),
-                    _exerciseTracking(),
+                    PremiumGate(
+                      isPremium: _isPremium,
+                      title: 'Exercise-level tracking',
+                      previewText: 'Unlock last/best/avg + overload signals 🔒',
+                      onUpgrade: _goToPremium,
+                      child: Column(
+                        children: [
+                          _filtersRow(),
+                          const SizedBox(height: 10),
+                          _exerciseTracking(),
+                        ],
+                      ),
+                    ),
                   ],
 
                   if (_view == _VolumeView.monthly) ...[
-                    _topMonthlySummary(),
-                    const SizedBox(height: 14),
-                    Text('Total volume (line)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
-                    const SizedBox(height: 8),
-                    SimpleLineChart(
-                      points: monthlyPoints,
-                      selectedIndex: _selectedVolumePoint,
-                      onSelected: (i) => setState(() => _selectedVolumePoint = i),
+                    // Monthly is premium (selection is gated), keep a safety fallback.
+                    PremiumGate(
+                      isPremium: _isPremium,
+                      title: 'Monthly analytics',
+                      previewText: 'Unlock long-term trends (months) 🔒',
+                      onUpgrade: _goToPremium,
+                      child: Column(
+                        children: [
+                          _topMonthlySummary(),
+                          const SizedBox(height: 14),
+                          Text('Total volume (line)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
+                          const SizedBox(height: 8),
+                          SimpleLineChart(
+                            points: monthlyPoints,
+                            selectedIndex: _selectedVolumePoint,
+                            onSelected: (i) => setState(() => _selectedVolumePoint = i),
+                          ),
+                          const SizedBox(height: 14),
+                          Text('Muscle groups (bar)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
+                          const SizedBox(height: 8),
+                          SimpleBarChart(
+                            bars: monthMuscleBars,
+                            selectedIndex: _selectedMuscleBar,
+                            onSelected: (i) => setState(() => _selectedMuscleBar = i),
+                          ),
+                          const SizedBox(height: 14),
+                          _muscleBreakdownList(30),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 14),
-                    Text('Muscle groups (bar)', style: TextStyle(fontWeight: FontWeight.w800, color: scheme.onSurface.withValues(alpha: 0.85))),
-                    const SizedBox(height: 8),
-                    SimpleBarChart(
-                      bars: monthMuscleBars,
-                      selectedIndex: _selectedMuscleBar,
-                      onSelected: (i) => setState(() => _selectedMuscleBar = i),
-                    ),
-                    const SizedBox(height: 14),
-                    _muscleBreakdownList(30),
                   ],
 
                   if (_view == _VolumeView.byExercise) ...[
@@ -962,17 +1042,40 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
 class _CompareToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool isPremium;
+  final VoidCallback onUpgrade;
 
-  const _CompareToggle({required this.value, required this.onChanged});
+  const _CompareToggle({
+    required this.value,
+    required this.onChanged,
+    required this.isPremium,
+    required this.onUpgrade,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Compare', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            const Text('Compare', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            if (!isPremium) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.lock_outline, size: 16, color: scheme.onSurface.withValues(alpha: 0.55)),
+            ],
+          ],
+        ),
         const SizedBox(width: 8),
-        Switch.adaptive(value: value, onChanged: onChanged),
+        Switch.adaptive(
+          value: value,
+          onChanged: isPremium
+              ? onChanged
+              : (_) {
+                  onUpgrade();
+                },
+        ),
       ],
     );
   }
