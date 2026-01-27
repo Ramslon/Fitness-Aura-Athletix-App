@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:fitness_aura_athletix/core/models/achievement.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/achievement_badge_tile.dart';
+import 'package:fitness_aura_athletix/services/achievement_service.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 class AchievementsMotivationScreen extends StatefulWidget {
@@ -18,13 +21,22 @@ class _AchievementsMotivationScreenState
   List<_PrAlert> _prAlerts = const [];
   int _currentStreakDays = 0;
   int _workoutsThisWeek = 0;
-  List<_Badge> _badges = const [];
+  List<AchievementProgress> _achievements = const [];
   List<_OverloadStreak> _overloadStreaks = const [];
+
+  final _bodyWeightController = TextEditingController();
+  bool _savingBodyWeight = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _bodyWeightController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -36,24 +48,93 @@ class _AchievementsMotivationScreenState
     final week = await storage.workoutsThisWeek();
     final overloadMetrics = await storage.getProgressiveOverloadMetrics();
 
+    final achievements = await AchievementService().computeAll();
+    final bodyWeight = await AchievementService().loadBodyWeightKg();
+    if (bodyWeight != null) {
+      _bodyWeightController.text = bodyWeight.toStringAsFixed(1);
+    }
+
     final prAlerts = _computeRecentPersonalRecords(records, daysBack: 14);
-    final badges = _computeBadges(streakDays: streak, workoutsThisWeek: week);
     final overloadStreaks = _computeOverloadStreaks(records, overloadMetrics);
 
     setState(() {
       _prAlerts = prAlerts;
       _currentStreakDays = streak;
       _workoutsThisWeek = week;
-      _badges = badges;
+      _achievements = achievements;
       _overloadStreaks = overloadStreaks;
       _loading = false;
     });
   }
 
+  Future<void> _saveBodyWeight() async {
+    final raw = _bodyWeightController.text.trim();
+    final v = double.tryParse(raw);
+    if (v == null || v <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid bodyweight in kg.')),
+      );
+      return;
+    }
+
+    setState(() => _savingBodyWeight = true);
+    await AchievementService().saveBodyWeightKg(v);
+    await _load();
+    if (!mounted) return;
+    setState(() => _savingBodyWeight = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bodyweight saved.')),
+    );
+  }
+
+  Future<void> _markDeloadCompleted() async {
+    await AchievementService().markDeloadCompleted();
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Deload marked completed.')),
+    );
+  }
+
+  Map<AchievementCategory, List<AchievementProgress>> _groupedAchievements() {
+    final map = <AchievementCategory, List<AchievementProgress>>{};
+    for (final a in _achievements) {
+      map.putIfAbsent(a.definition.category, () => []).add(a);
+    }
+    for (final e in map.entries) {
+      e.value.sort((a, b) {
+        if (a.isEarned != b.isEarned) return a.isEarned ? 1 : -1;
+        return b.fraction.compareTo(a.fraction);
+      });
+    }
+    return map;
+  }
+
+  AchievementProgress? _nextAchievement() {
+    final pending = _achievements.where((a) => !a.isEarned).toList();
+    if (pending.isEmpty) return null;
+    pending.sort((a, b) => b.fraction.compareTo(a.fraction));
+    return pending.first;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final grouped = _groupedAchievements();
+    final next = _nextAchievement();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('PRs, Achievements & Motivation')),
+      appBar: AppBar(
+        title: const Text('PRs, Achievements & Motivation'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _loading ? null : _load,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -76,10 +157,7 @@ class _AchievementsMotivationScreenState
                     ..._prAlerts.map(
                       (p) => Card(
                         child: ListTile(
-                          leading: Text(
-                            p.emoji,
-                            style: const TextStyle(fontSize: 20),
-                          ),
+                          leading: Icon(p.icon, color: scheme.primary),
                           title: Text(p.titleText),
                           subtitle: Text(p.subtitleText),
                         ),
@@ -87,31 +165,140 @@ class _AchievementsMotivationScreenState
                     ),
                   const SizedBox(height: 18),
 
-                  _sectionHeader('Consistency'),
+                  _sectionHeader('Achievements'),
                   const SizedBox(height: 8),
                   Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.local_fire_department),
-                      title: Text('Current streak: $_currentStreakDays days'),
-                      subtitle: Text('Workouts this week: $_workoutsThisWeek'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Achievement settings',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _bodyWeightController,
+                                  keyboardType: const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Bodyweight (kg)',
+                                    hintText: 'e.g. 75.0',
+                                  ),
+                                  onSubmitted: (_) => _saveBodyWeight(),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                tooltip: 'Save bodyweight',
+                                onPressed: _savingBodyWeight ? null : _saveBodyWeight,
+                                icon: _savingBodyWeight
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.save_outlined),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _markDeloadCompleted,
+                              icon: const Icon(Icons.restart_alt_outlined),
+                              label: const Text('Mark deload completed'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+
+                  for (final category in AchievementCategory.values) ...[
+                    if (grouped[category]?.isNotEmpty == true) ...[
+                      Row(
+                        children: [
+                          Icon(category.icon, size: 18, color: scheme.onSurface.withValues(alpha: 0.80)),
+                          const SizedBox(width: 8),
+                          Text(
+                            category.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ...grouped[category]!.map((a) => AchievementBadgeTile(progress: a)),
+                      const SizedBox(height: 14),
+                    ],
+                  ],
+
+                  _sectionHeader('Motivation'),
                   const SizedBox(height: 8),
-                  if (_badges.isEmpty)
-                    const SizedBox.shrink()
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _badges
-                          .map(
-                            (b) => Chip(
-                              label: Text(b.label),
-                              avatar: Text(b.emoji),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.bolt_outlined),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Next badge',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'Streak: $_currentStreakDays d',
+                                style: TextStyle(
+                                  color: scheme.onSurface.withValues(alpha: 0.70),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          if (next == null)
+                            const Text('All achievements earned. Keep pushing your training quality.')
+                          else ...[
+                            Text(
+                              next.definition.title,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
                             ),
-                          )
-                          .toList(),
+                            const SizedBox(height: 6),
+                            LinearProgressIndicator(
+                              value: next.fraction,
+                              minHeight: 8,
+                              backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              next.progressText,
+                              style: TextStyle(
+                                color: scheme.onSurface.withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Text(
+                            'This week: $_workoutsThisWeek sessions. Consistency beats intensity spikes.',
+                            style: TextStyle(
+                              color: scheme.onSurface.withValues(alpha: 0.72),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  ),
                   const SizedBox(height: 18),
 
                   _sectionHeader('Progressive Overload Streaks'),
@@ -174,14 +361,14 @@ class _PrAlert {
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  String get emoji {
+  IconData get icon {
     switch (type) {
       case _PrType.weight:
-        return '🏋️';
+        return Icons.fitness_center_outlined;
       case _PrType.reps:
-        return '🔁';
+        return Icons.repeat;
       case _PrType.volume:
-        return '📊';
+        return Icons.stacked_bar_chart_outlined;
     }
   }
 
@@ -209,13 +396,6 @@ class _PrAlert {
 }
 
 enum _PrType { weight, reps, volume }
-
-class _Badge {
-  final String label;
-  final String emoji;
-
-  const _Badge({required this.label, required this.emoji});
-}
 
 class _OverloadStreak {
   final String exerciseName;
@@ -315,29 +495,6 @@ List<_PrAlert> _computeRecentPersonalRecords(
 
   alerts.sort((a, b) => b.date.compareTo(a.date));
   return alerts.take(10).toList();
-}
-
-List<_Badge> _computeBadges({
-  required int streakDays,
-  required int workoutsThisWeek,
-}) {
-  final badges = <_Badge>[];
-
-  if (streakDays >= 3)
-    badges.add(const _Badge(label: '3-day streak', emoji: '🔥'));
-  if (streakDays >= 7)
-    badges.add(const _Badge(label: '7-day streak', emoji: '🏅'));
-  if (streakDays >= 14)
-    badges.add(const _Badge(label: '14-day streak', emoji: '💎'));
-  if (streakDays >= 30)
-    badges.add(const _Badge(label: '30-day streak', emoji: '👑'));
-
-  if (workoutsThisWeek >= 3)
-    badges.add(const _Badge(label: '3 workouts this week', emoji: '✅'));
-  if (workoutsThisWeek >= 5)
-    badges.add(const _Badge(label: '5 workouts this week', emoji: '💪'));
-
-  return badges;
 }
 
 List<_OverloadStreak> _computeOverloadStreaks(

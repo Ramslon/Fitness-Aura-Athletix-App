@@ -310,6 +310,17 @@ class StorageService {
   /// Returns number of workouts in the last 7 days (including today)
   Future<int> workoutsThisWeek() async {
     final entries = await loadEntries();
+    if (entries.isEmpty) {
+      // Fallback: derive workout days from exercise logs.
+      final records = await loadExerciseRecords();
+      final now = DateTime.now();
+      final weekAgo = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 6));
+      final days = records
+          .map((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day))
+          .toSet();
+      return days.where((d) => !d.isBefore(weekAgo)).length;
+    }
     final now = DateTime.now();
     final weekAgo = now.subtract(const Duration(days: 6));
     final count = entries
@@ -321,7 +332,32 @@ class StorageService {
   /// Returns current streak (consecutive days with at least one entry)
   Future<int> currentStreak() async {
     final entries = await loadEntries();
-    if (entries.isEmpty) return 0;
+    if (entries.isEmpty) {
+      // Fallback: derive streak from exercise logs.
+      final records = await loadExerciseRecords();
+      if (records.isEmpty) return 0;
+      final dates = records
+          .map((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day))
+          .toSet()
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      int streak = 0;
+      DateTime cursor = DateTime.now();
+      while (true) {
+        final day = DateTime(cursor.year, cursor.month, cursor.day);
+        final found = dates.any(
+          (d) => d.year == day.year && d.month == day.month && d.day == day.day,
+        );
+        if (found) {
+          streak++;
+          cursor = cursor.subtract(const Duration(days: 1));
+        } else {
+          break;
+        }
+      }
+      return streak;
+    }
     final dates =
         entries
             .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
