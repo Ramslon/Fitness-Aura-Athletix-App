@@ -4,6 +4,7 @@ import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/achievement_badge_tile.dart';
 import 'package:fitness_aura_athletix/services/achievement_service.dart';
+import 'package:fitness_aura_athletix/services/motivation_engine.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 class AchievementsMotivationScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _AchievementsMotivationScreenState
   int _workoutsThisWeek = 0;
   List<AchievementProgress> _achievements = const [];
   List<_OverloadStreak> _overloadStreaks = const [];
+  MotivationResult? _motivation;
 
   final _bodyWeightController = TextEditingController();
   bool _savingBodyWeight = false;
@@ -56,6 +58,11 @@ class _AchievementsMotivationScreenState
 
     final prAlerts = _computeRecentPersonalRecords(records, daysBack: 14);
     final overloadStreaks = _computeOverloadStreaks(records, overloadMetrics);
+    final motivation = MotivationEngine().generate(
+      records: records,
+      currentStreakDays: streak,
+      workoutsThisWeek: week,
+    );
 
     setState(() {
       _prAlerts = prAlerts;
@@ -63,6 +70,7 @@ class _AchievementsMotivationScreenState
       _workoutsThisWeek = week;
       _achievements = achievements;
       _overloadStreaks = overloadStreaks;
+      _motivation = motivation;
       _loading = false;
     });
   }
@@ -242,6 +250,12 @@ class _AchievementsMotivationScreenState
 
                   _sectionHeader('Motivation'),
                   const SizedBox(height: 8),
+
+                  if (_motivation != null) ...[
+                    _MotivationEngineCard(result: _motivation!),
+                    const SizedBox(height: 10),
+                  ],
+
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -414,6 +428,122 @@ class _OverloadStreak {
     if (lastImprovementDate == null) return 'No recent improvement recorded';
     final d = lastImprovementDate!;
     return 'Last improvement: ${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MotivationEngineCard extends StatelessWidget {
+  final MotivationResult result;
+
+  const _MotivationEngineCard({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final type = result.type;
+    final tone = result.tone;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(_typeIcon(type), color: scheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'Motivation Engine',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                _Chip(text: _typeLabel(type)),
+                const SizedBox(width: 8),
+                _Chip(text: _toneLabel(tone)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              result.message,
+              style: const TextStyle(fontSize: 14, height: 1.35),
+            ),
+            if (result.insight != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                result.insight!,
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.65),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static IconData _typeIcon(MotivationType type) {
+    switch (type) {
+      case MotivationType.performanceBased:
+        return Icons.insights_outlined;
+      case MotivationType.effortBased:
+        return Icons.fitness_center_outlined;
+      case MotivationType.comebackBased:
+        return Icons.restart_alt_outlined;
+      case MotivationType.nearGoal:
+        return Icons.flag_outlined;
+    }
+  }
+
+  static String _typeLabel(MotivationType type) {
+    switch (type) {
+      case MotivationType.performanceBased:
+        return 'Performance';
+      case MotivationType.effortBased:
+        return 'Effort';
+      case MotivationType.comebackBased:
+        return 'Comeback';
+      case MotivationType.nearGoal:
+        return 'Near-goal';
+    }
+  }
+
+  static String _toneLabel(MotivationTone tone) {
+    switch (tone) {
+      case MotivationTone.encouraging:
+        return 'Encouraging';
+      case MotivationTone.neutral:
+        return 'Neutral';
+      case MotivationTone.challenging:
+        return 'Challenging';
+    }
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String text;
+
+  const _Chip({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          color: scheme.onSurface.withValues(alpha: 0.80),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }
 
