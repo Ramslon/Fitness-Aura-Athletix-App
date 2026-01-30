@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitness_aura_athletix/routes/app_route.dart';
 import 'dart:convert';
 
 // NOTE: This file uses `shared_preferences` for local persistence. Add
@@ -236,7 +237,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context,
     ).showSnackBar(const SnackBar(content: Text('Onboarding saved locally')));
 
-    Navigator.of(context).pushReplacementNamed('/home');
+    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
   }
 
   Widget _buildDaysChips() {

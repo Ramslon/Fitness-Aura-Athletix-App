@@ -28,6 +28,7 @@ import 'package:fitness_aura_athletix/presentation/screens/goal_based_tracking_s
 import 'package:fitness_aura_athletix/presentation/screens/achievements_motivation_screen.dart';
 
 class AppRoutes {
+  static const String root = '/';
   static const String premiumFeatures = '/premium-features';
   static const String home = '/home';
   static const String auth = '/auth';
@@ -59,7 +60,15 @@ class AppRoutes {
   static const String helpFaq = '/help-faq';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    final name = settings.name;
+    // Flutter inserts an implicit '/' route beneath any non-'/' initialRoute.
+    // If it's not handled, users can end up on a not-found page after
+    // lifecycle/back-stack edge cases (e.g., force-close during onboarding).
+    if (name == null || name.isEmpty || name == root) {
+      return MaterialPageRoute(builder: (_) => const OnboardingWelcomeScreen());
+    }
+
+    switch (name) {
       case onboarding:
         return MaterialPageRoute(
           builder: (_) => const OnboardingWelcomeScreen(),
@@ -131,10 +140,8 @@ class AppRoutes {
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
       default:
-        return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Page not found'))),
-        );
+        // Safe fallback: keep users inside a valid flow instead of a dead-end.
+        return MaterialPageRoute(builder: (_) => const OnboardingWelcomeScreen());
     }
   }
 }
