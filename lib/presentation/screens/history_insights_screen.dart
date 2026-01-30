@@ -944,7 +944,8 @@ class _MovementHistorySheet extends StatelessWidget {
 
     double bestWeight = 0;
     for (final r in records) {
-      if (r.weight > bestWeight) bestWeight = r.weight;
+      final w = r.effectiveWeightKg;
+      if (w > bestWeight) bestWeight = w;
     }
 
     final latest = records.isNotEmpty ? records.first : null;
@@ -967,7 +968,7 @@ class _MovementHistorySheet extends StatelessWidget {
             if (latest != null)
               Chip(
                 label: Text(
-                  'Latest: ${latest.weight.toStringAsFixed(1)} kg • ${latest.sets}x${latest.repsPerSet}',
+                  'Latest: ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
                 ),
               ),
           ],
@@ -990,7 +991,7 @@ class _MovementHistorySheet extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.bolt),
                   title: Text(
-                    '${r.weight.toStringAsFixed(1)} kg • ${r.sets} x ${r.repsPerSet}',
+                    '${r.weightLabel} • ${r.sets} x ${r.repsPerSet}',
                   ),
                   subtitle: Text(
                     '${dateFmt.format(r.dateRecorded)} • ${r.bodyPart} • ${r.difficulty}',

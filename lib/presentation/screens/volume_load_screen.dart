@@ -121,7 +121,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     final cutoff = DateTime.now().subtract(Duration(days: days - 1));
     return _records
         .where((r) => !r.dateRecorded.isBefore(cutoff))
-        .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+      .fold<double>(0, (s, r) => s + r.volumeLoadKg);
   }
 
   double _totalVolumeForWindow({required int startDaysAgo, required int lengthDays}) {
@@ -129,7 +129,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     final start = end.subtract(Duration(days: lengthDays - 1));
     return _records
         .where((r) => !r.dateRecorded.isBefore(start) && !r.dateRecorded.isAfter(end))
-        .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+      .fold<double>(0, (s, r) => s + r.volumeLoadKg);
   }
 
   int _trainingDaysInLastDays(int days) {
@@ -147,7 +147,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     final m = <String, double>{};
     for (final r in _records) {
       if (r.dateRecorded.isBefore(cutoff)) continue;
-      final vol = r.weight * r.sets * r.repsPerSet;
+      final vol = r.volumeLoadKg;
       m.update(r.bodyPart, (v) => v + vol, ifAbsent: () => vol);
     }
     return m;
@@ -170,7 +170,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
       double vol = 0;
       for (final r in _records) {
         final rd = DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day);
-        if (rd == d) vol += r.weight * r.sets * r.repsPerSet;
+        if (rd == d) vol += r.volumeLoadKg;
       }
       points.add(
         LineChartPoint(
@@ -198,7 +198,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
       for (final r in _records) {
         final d = DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day);
         if (!d.isBefore(start) && !d.isAfter(end)) {
-          vol += r.weight * r.sets * r.repsPerSet;
+          vol += r.volumeLoadKg;
         }
       }
 
@@ -284,8 +284,9 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
       double sum = 0;
       int n = 0;
       for (final r in rs) {
-        best = best < r.weight ? r.weight : best;
-        sum += r.weight;
+        final w = r.effectiveWeightKg;
+        best = best < w ? w : best;
+        sum += w;
         n++;
       }
 
@@ -296,12 +297,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
         _ExerciseStats(
           exerciseName: e.key,
           bodyPart: last.bodyPart,
-          lastLoadKg: last.weight,
+          lastLoadKg: last.effectiveWeightKg,
           bestLoadKg: best,
           avgLoadKg: avg,
           signal: signal,
           signalReason: reason,
-          weekVolumeKg: rs.fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet),
+          weekVolumeKg: rs.fold<double>(0, (s, r) => s + r.volumeLoadKg),
         ),
       );
     }
@@ -318,13 +319,15 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     final last = sortedAsc[sortedAsc.length - 1];
     final prev = sortedAsc[sortedAsc.length - 2];
 
-    final lastVol = last.weight * last.sets * last.repsPerSet;
-    final prevVol = prev.weight * prev.sets * prev.repsPerSet;
+    final lastVol = last.volumeLoadKg;
+    final prevVol = prev.volumeLoadKg;
 
     final changePct = prevVol > 0 ? ((lastVol - prevVol) / prevVol) * 100 : 0.0;
 
     if (changePct >= 5) {
-      if (last.weight > prev.weight) return (_OverloadSignal.overload, 'Volume increased by weight.');
+      if (last.effectiveWeightKg > prev.effectiveWeightKg) {
+        return (_OverloadSignal.overload, 'Volume increased by weight.');
+      }
       if (last.repsPerSet > prev.repsPerSet) return (_OverloadSignal.overload, 'Volume increased by reps.');
       if (last.sets > prev.sets) return (_OverloadSignal.overload, 'Volume increased by sets.');
       return (_OverloadSignal.overload, 'Volume increased.');

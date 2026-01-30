@@ -81,7 +81,7 @@ class WorkoutAnalysisIndex {
 class DailyWorkoutAnalysisEngine {
   static DateTime dayStart(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
-  static double volumeOf(ExerciseRecord r) => r.weight * r.sets * r.repsPerSet;
+  static double volumeOf(ExerciseRecord r) => r.volumeLoadKg;
 
   /// Groups records into (day + bodyPart) sessions. MVP grouping: one session per
   /// day/bodyPart.
@@ -296,8 +296,11 @@ class DailyWorkoutAnalysisEngine {
       final c = curr.first;
       final p = prev.first;
 
-      if (c.weight > p.weight + 0.01) {
-        overloadDetails.add('+${(c.weight - p.weight).toStringAsFixed(1)}kg on $ex');
+      final cw = c.effectiveWeightKg;
+      final pw = p.effectiveWeightKg;
+
+      if (cw > pw + 0.01) {
+        overloadDetails.add('+${(cw - pw).toStringAsFixed(1)}kg on $ex');
       } else if (c.repsPerSet > p.repsPerSet) {
         overloadDetails.add('+${c.repsPerSet - p.repsPerSet} reps on $ex');
       } else if (volumeOf(c) > volumeOf(p) + 0.01) {
@@ -345,15 +348,16 @@ class DailyWorkoutAnalysisEngine {
     for (final ex in uniqueExercises) {
       final currMaxWeight = session
           .where((r) => r.exerciseName == ex)
-          .fold<double>(0, (m, r) => r.weight > m ? r.weight : m);
+          .fold<double>(0, (m, r) => r.effectiveWeightKg > m ? r.effectiveWeightKg : m);
 
       // Use pre-indexed per-exercise list (newest first) to find historical max before today.
       final list =
           _byExerciseForBodyPart(index, bodyPart)[ex] ?? const <ExerciseRecord>[];
       double prevMaxWeight = 0;
       for (final r in list) {
-        if (dayStart(r.dateRecorded).isBefore(targetDay) && r.weight > prevMaxWeight) {
-          prevMaxWeight = r.weight;
+        final w = r.effectiveWeightKg;
+        if (dayStart(r.dateRecorded).isBefore(targetDay) && w > prevMaxWeight) {
+          prevMaxWeight = w;
         }
       }
 
@@ -407,9 +411,9 @@ class DailyWorkoutAnalysisEngine {
       final a = list[0];
       final b = list[1];
       final c = list[2];
-      final same = a.weight == b.weight &&
+      final same = a.effectiveWeightKg == b.effectiveWeightKg &&
           a.repsPerSet == b.repsPerSet &&
-          b.weight == c.weight &&
+          b.effectiveWeightKg == c.effectiveWeightKg &&
           b.repsPerSet == c.repsPerSet;
       if (same) {
         suggestions.add(

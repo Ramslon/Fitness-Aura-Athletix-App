@@ -126,7 +126,8 @@ class StorageService {
       ExerciseRecord? latest;
       for (final r in relevant) {
         latest ??= r;
-        if (r.weight > currentBest) currentBest = r.weight;
+        final w = r.effectiveWeightKg;
+        if (w > currentBest) currentBest = w;
       }
 
       final remaining = (target - currentBest).clamp(0, target);
@@ -531,17 +532,15 @@ class StorageService {
         final latest = exerciseRecords[0];
         final previous = exerciseRecords[1];
 
-        final latestVolume = (latest.weight * latest.sets * latest.repsPerSet)
-            .toInt();
-        final previousVolume =
-            (previous.weight * previous.sets * previous.repsPerSet).toInt();
+        final latestVolume = latest.volumeLoadKg.toInt();
+        final previousVolume = previous.volumeLoadKg.toInt();
 
         metrics.add(
           ProgressiveOverloadMetrics(
             exerciseName: exerciseName,
             bodyPart: latest.bodyPart,
-            previousWeight: previous.weight,
-            currentWeight: latest.weight,
+            previousWeight: previous.effectiveWeightKg,
+            currentWeight: latest.effectiveWeightKg,
             previousReps: previous.repsPerSet,
             currentReps: latest.repsPerSet,
             previousSets: previous.sets,
@@ -638,7 +637,7 @@ class StorageService {
     final totalVolume = muscleData.entries.fold<double>(0, (sum, entry) {
       final volume = entry.value.fold<double>(
         0,
-        (s, r) => s + (r.weight * r.sets * r.repsPerSet),
+        (s, r) => s + r.volumeLoadKg,
       );
       return sum + volume;
     });
@@ -648,7 +647,7 @@ class StorageService {
       final frequency = records.length;
       final volume = records.fold<double>(
         0,
-        (s, r) => s + (r.weight * r.sets * r.repsPerSet),
+        (s, r) => s + r.volumeLoadKg,
       );
       final recommendedFreq = recommendedFrequencies[muscle] ?? 2;
       final avgVolume = frequency > 0 ? volume / frequency : 0;
@@ -832,7 +831,7 @@ class StorageService {
                 ) ==
                 today,
           )
-          .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+          .fold<double>(0, (s, r) => s + r.volumeLoadKg);
 
       // Last session: find most recent date before today
       final previousDates = list
@@ -860,32 +859,32 @@ class StorageService {
                   ) ==
                   lastDate,
             )
-            .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+            .fold<double>(0, (s, r) => s + r.volumeLoadKg);
       }
 
       // Week vs last week (7 day windows)
       final weekVol = list
           .where((r) => r.dateRecorded.isAfter(last7Start))
-          .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+          .fold<double>(0, (s, r) => s + r.volumeLoadKg);
       final lastWeekVol = list
           .where(
             (r) =>
                 r.dateRecorded.isAfter(last14Start) &&
                 r.dateRecorded.isBefore(last7Start),
           )
-          .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+          .fold<double>(0, (s, r) => s + r.volumeLoadKg);
 
       // Month vs last month (30 day windows)
       final monthVol = list
           .where((r) => r.dateRecorded.isAfter(last30Start))
-          .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+          .fold<double>(0, (s, r) => s + r.volumeLoadKg);
       final lastMonthVol = list
           .where(
             (r) =>
                 r.dateRecorded.isAfter(last60Start) &&
                 r.dateRecorded.isBefore(last30Start),
           )
-          .fold<double>(0, (s, r) => s + r.weight * r.sets * r.repsPerSet);
+          .fold<double>(0, (s, r) => s + r.volumeLoadKg);
 
       result.add(
         VolumeLoadData(
@@ -923,7 +922,7 @@ class StorageService {
     final volByMuscle = <String, double>{};
 
     for (final r in records) {
-      final vol = r.weight * r.sets * r.repsPerSet;
+      final vol = r.volumeLoadKg;
       final d = DateTime(
         r.dateRecorded.year,
         r.dateRecorded.month,

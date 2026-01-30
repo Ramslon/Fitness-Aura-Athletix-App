@@ -304,17 +304,19 @@ class AchievementService {
     for (final r in sorted) {
       final key = r.exerciseName.toLowerCase().trim();
 
+      final w = r.effectiveWeightKg;
+
       final prevW = bestWeight[key] ?? 0;
       final prevR = bestReps[key] ?? 0;
       final prevV = bestVolume[key] ?? 0;
-      final v = r.weight * r.sets * r.repsPerSet;
+      final v = r.volumeLoadKg;
 
       // Only count a PR if there was a previous baseline.
-      if (prevW > 0 && r.weight > prevW) prs++;
+      if (prevW > 0 && w > prevW) prs++;
       if (prevR > 0 && r.repsPerSet > prevR) prs++;
       if (prevV > 0 && v > prevV) prs++;
 
-      if (r.weight > prevW) bestWeight[key] = r.weight;
+      if (w > prevW) bestWeight[key] = w;
       if (r.repsPerSet > prevR) bestReps[key] = r.repsPerSet;
       if (v > prevV) bestVolume[key] = v;
     }
@@ -343,10 +345,12 @@ class AchievementService {
 
       for (final r in list) {
         if (r.dateRecorded.isAfter(prevStart) && r.dateRecorded.isBefore(recentStart)) {
-          if (r.weight > prevBest) prevBest = r.weight;
+          final w = r.effectiveWeightKg;
+          if (w > prevBest) prevBest = w;
         }
         if (r.dateRecorded.isAfter(recentStart)) {
-          if (r.weight > recentBest) recentBest = r.weight;
+          final w = r.effectiveWeightKg;
+          if (w > recentBest) recentBest = w;
         }
       }
 
@@ -363,7 +367,8 @@ class AchievementService {
     double best = 0;
     for (final r in records) {
       final name = r.exerciseName.toLowerCase();
-      if (name.contains('squat') && r.weight > best) best = r.weight;
+      final w = r.effectiveWeightKg;
+      if (name.contains('squat') && w > best) best = w;
     }
     return best;
   }

@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
           r.dateRecorded.month,
           r.dateRecorded.day,
         );
-        final load = r.weight * r.sets * r.repsPerSet;
+        final load = r.volumeLoadKg;
 
         final inThisWeek =
             d.isAfter(startThisWeek) || _isSameDay(d, startThisWeek);
@@ -262,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           final dateLabel =
                               '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-                          final load = r.weight * r.sets * r.repsPerSet;
+                            final load = r.volumeLoadKg;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              '$dateLabel • ${r.sets}x${r.repsPerSet} @ ${r.weight.toStringAsFixed(1)}kg',
+                              '$dateLabel • ${r.sets}x${r.repsPerSet} @ ${r.weightLabel}',
                               style: TextStyle(
                                 color: scheme.onSurface.withValues(alpha: 0.70),
                               ),

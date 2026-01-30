@@ -568,24 +568,25 @@ List<_PrAlert> _computeRecentPersonalRecords(
     final prevBestReps = bestRepsBefore[key] ?? 0;
     final prevBestVolume = bestVolumeBefore[key] ?? 0;
 
-    final volume = r.weight * r.sets * r.repsPerSet;
+    final w = r.effectiveWeightKg;
+    final volume = r.volumeLoadKg;
     final isRecent = r.dateRecorded.isAfter(cutoff);
 
     // Weight PR
-    if (r.weight > prevBestWeight) {
+    if (w > prevBestWeight) {
       if (isRecent) {
         alerts.add(
           _PrAlert(
             exerciseName: r.exerciseName,
             bodyPart: r.bodyPart,
             type: _PrType.weight,
-            value: r.weight,
-            delta: (r.weight - prevBestWeight),
+            value: w,
+            delta: (w - prevBestWeight),
             date: r.dateRecorded,
           ),
         );
       }
-      bestWeightBefore[key] = r.weight;
+      bestWeightBefore[key] = w;
     }
 
     // Rep PR (best repsPerSet)
@@ -651,8 +652,8 @@ List<_OverloadStreak> _computeOverloadStreaks(
     for (int i = 0; i < sorted.length - 1; i++) {
       final cur = sorted[i];
       final prev = sorted[i + 1];
-      final curVol = cur.weight * cur.sets * cur.repsPerSet;
-      final prevVol = prev.weight * prev.sets * prev.repsPerSet;
+      final curVol = cur.volumeLoadKg;
+      final prevVol = prev.volumeLoadKg;
       if (curVol > prevVol) {
         streak++;
       } else {

@@ -92,7 +92,7 @@ class ExerciseInsights {
         r.dateRecorded.month,
         r.dateRecorded.day,
       );
-      final load = r.weight * r.sets * r.repsPerSet;
+      final load = r.volumeLoadKg;
 
       final inThisWeek =
           d.isAfter(startThisWeek) || _isSameDay(d, startThisWeek);
@@ -211,7 +211,7 @@ class ExerciseInsights {
                           );
                           final dateLabel =
                               '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-                          final load = r.weight * r.sets * r.repsPerSet;
+                          final load = r.volumeLoadKg;
 
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -222,7 +222,7 @@ class ExerciseInsights {
                               ),
                             ),
                             subtitle: Text(
-                              '${r.sets}x${r.repsPerSet} @ ${r.weight.toStringAsFixed(1)}kg • ${r.difficulty}',
+                              '${r.sets}x${r.repsPerSet} @ ${r.weightLabel} • ${r.difficulty}',
                               style: TextStyle(
                                 color: scheme.onSurface.withValues(alpha: 0.70),
                               ),
