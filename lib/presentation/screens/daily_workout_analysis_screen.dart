@@ -20,10 +20,18 @@ class _DailyWorkoutAnalysisScreenState
   int _index = 0;
   String? _filterBodyPart;
   final PageController _pageController = PageController();
+  bool _didLoad = false;
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoad) return;
+    _didLoad = true;
     _loadSessions();
   }
 

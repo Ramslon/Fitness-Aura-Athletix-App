@@ -79,16 +79,15 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Spacer(),
+                  const SizedBox(height: 16),
                   
                   // App Logo
                   Icon(
@@ -206,7 +205,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                     ),
                   ),
                   
-                  const Spacer(),
+                  const SizedBox(height: 24),
                   
                   // Already have account
                   Row(
@@ -243,6 +242,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       padding: EdgeInsets.only(top: 20),
                       child: Center(child: CircularProgressIndicator()),
                     ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

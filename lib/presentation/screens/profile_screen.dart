@@ -65,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(title: const Text('Profile')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

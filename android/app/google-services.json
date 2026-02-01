@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "974351015159",
+    "project_id": "fitness-aura-athletix",
+    "storage_bucket": "fitness-aura-athletix.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974351015159:android:82a078c5008adee72507f2",
+        "android_client_info": {
+          "package_name": "com.ramslon.fitness_aura_athletix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwXMWZYgNgZ5yq1GzfIDdYIw6wbMU1Esk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

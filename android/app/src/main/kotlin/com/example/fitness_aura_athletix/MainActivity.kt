@@ -1,5 +1,1 @@
-package com.example.fitness_aura_athletix
-
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()
+// Deprecated: MainActivity moved to com.ramslon.fitness_aura_athletix
