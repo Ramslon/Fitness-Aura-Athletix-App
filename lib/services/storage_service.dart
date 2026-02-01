@@ -10,6 +10,7 @@ import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 import 'package:fitness_aura_athletix/core/models/volume_load.dart';
 import 'package:fitness_aura_athletix/core/models/goal.dart';
 import 'package:fitness_aura_athletix/services/exercise_records_store.dart';
+import 'package:fitness_aura_athletix/services/auth_service.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -31,10 +32,19 @@ class StorageService {
       await SharedPreferences.getInstance();
 
   final FlutterSecureStorage _secure = const FlutterSecureStorage();
+  final AuthService _authService = AuthService();
+
+  Future<String> _scopedKey(String baseKey) async {
+    final isGuest = await _authService.isGuestMode();
+    final uid = _authService.currentUser?.uid;
+    final scope = isGuest ? 'guest' : (uid ?? 'anonymous');
+    return '${baseKey}_$scope';
+  }
 
   Future<List<Map<String, dynamic>>> _readEntriesRaw() async {
     final prefs = await _prefs;
-    final s = prefs.getString(_kEntriesKey);
+    final key = await _scopedKey(_kEntriesKey);
+    final s = prefs.getString(key);
     if (s == null || s.isEmpty) return [];
     final List<dynamic> list = jsonDecode(s);
     return list.cast<Map<String, dynamic>>();
@@ -42,7 +52,8 @@ class StorageService {
 
   Future<void> _writeEntriesRaw(List<Map<String, dynamic>> entries) async {
     final prefs = await _prefs;
-    await prefs.setString(_kEntriesKey, jsonEncode(entries));
+    final key = await _scopedKey(_kEntriesKey);
+    await prefs.setString(key, jsonEncode(entries));
   }
 
   Future<List<WorkoutEntry>> loadEntries() async {
@@ -53,7 +64,8 @@ class StorageService {
   // Goal tracking
   Future<List<Goal>> loadGoals() async {
     final prefs = await _prefs;
-    final s = prefs.getString(_kGoalsKey);
+    final key = await _scopedKey(_kGoalsKey);
+    final s = prefs.getString(key);
     if (s == null || s.isEmpty) return [];
     final List<dynamic> list = jsonDecode(s);
     return list
@@ -67,8 +79,9 @@ class StorageService {
     final goals = await loadGoals();
     goals.removeWhere((g) => g.id == goal.id);
     goals.add(goal);
+    final key = await _scopedKey(_kGoalsKey);
     await prefs.setString(
-      _kGoalsKey,
+      key,
       jsonEncode(goals.map((g) => g.toMap()).toList()),
     );
   }
@@ -77,24 +90,28 @@ class StorageService {
     final prefs = await _prefs;
     final goals = await loadGoals();
     goals.removeWhere((g) => g.id == id);
+    final goalsKey = await _scopedKey(_kGoalsKey);
     await prefs.setString(
-      _kGoalsKey,
+      goalsKey,
       jsonEncode(goals.map((g) => g.toMap()).toList()),
     );
-    final active = prefs.getString(_kActiveGoalIdKey);
+    final activeKey = await _scopedKey(_kActiveGoalIdKey);
+    final active = prefs.getString(activeKey);
     if (active == id) {
-      await prefs.remove(_kActiveGoalIdKey);
+      await prefs.remove(activeKey);
     }
   }
 
   Future<void> setActiveGoal(String goalId) async {
     final prefs = await _prefs;
-    await prefs.setString(_kActiveGoalIdKey, goalId);
+    final key = await _scopedKey(_kActiveGoalIdKey);
+    await prefs.setString(key, goalId);
   }
 
   Future<Goal?> getActiveGoal() async {
     final prefs = await _prefs;
-    final id = prefs.getString(_kActiveGoalIdKey);
+    final key = await _scopedKey(_kActiveGoalIdKey);
+    final id = prefs.getString(key);
     if (id == null || id.isEmpty) return null;
     final goals = await loadGoals();
     try {

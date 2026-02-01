@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:fitness_aura_athletix/services/ai_integration_service.dart';
+import 'package:fitness_aura_athletix/services/local_cache_service.dart';
 
 /// Enhanced AuthService with Firebase integration
 class AuthService {
@@ -17,6 +18,7 @@ class AuthService {
   final LocalAuthentication _localAuth = LocalAuthentication();
   Future<void>? _googleSignInInit;
   final AiIntegrationService _aiIntegration = AiIntegrationService();
+  final LocalCacheService _localCache = LocalCacheService();
 
   // Keys for SharedPreferences
   static const String _keyRememberMe = 'remember_me';
@@ -24,7 +26,8 @@ class AuthService {
   static const String _keyIsGuest = 'is_guest';
 
   User? get currentUser => _auth.currentUser;
-  String? get currentDisplayName => _auth.currentUser?.displayName ?? _auth.currentUser?.email;
+  String? get currentDisplayName =>
+      _auth.currentUser?.displayName ?? _auth.currentUser?.email;
   bool get isLoggedIn => _auth.currentUser != null;
 
   // Check if user is in guest mode
@@ -51,6 +54,7 @@ class AuthService {
       if (user != null) {
         await _aiIntegration.onFirstLogin(user);
       }
+      await _localCache.clearTransientCaches();
       return userCredential;
     } catch (e) {
       rethrow;
@@ -58,21 +62,26 @@ class AuthService {
   }
 
   // Sign in with email and password
-  Future<UserCredential> signInWithEmail(String email, String password, {bool rememberMe = false}) async {
+  Future<UserCredential> signInWithEmail(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     try {
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       await setGuestMode(false);
-      
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyRememberMe, rememberMe);
-      
+
       final user = userCredential.user;
       if (user != null) {
         await _aiIntegration.onFirstLogin(user);
       }
+      await _localCache.clearTransientCaches();
       return userCredential;
     } catch (e) {
       rethrow;
@@ -100,6 +109,7 @@ class AuthService {
       if (user != null) {
         await _aiIntegration.onFirstLogin(user);
       }
+      await _localCache.clearTransientCaches();
       return userCredential;
     } catch (e) {
       rethrow;
@@ -127,6 +137,7 @@ class AuthService {
       if (user != null) {
         await _aiIntegration.onFirstLogin(user);
       }
+      await _localCache.clearTransientCaches();
       return userCredential;
     } catch (e) {
       rethrow;
@@ -137,6 +148,7 @@ class AuthService {
   Future<void> continueAsGuest() async {
     await setGuestMode(true);
     await _aiIntegration.onGuestModeEnabled();
+    await _localCache.clearTransientCaches();
   }
 
   /// Delete the current user account and reset AI learning state.
@@ -146,6 +158,7 @@ class AuthService {
     await user.delete();
     await _aiIntegration.onUserDeleted();
     await setGuestMode(false);
+    await _localCache.clearTransientCaches();
   }
 
   // Send password reset email
@@ -162,7 +175,8 @@ class AuthService {
     await _auth.signOut();
     await _googleSignIn.signOut();
     await setGuestMode(false);
-    
+    await _localCache.clearTransientCaches();
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyRememberMe);
   }
@@ -182,7 +196,6 @@ class AuthService {
       return await _localAuth.authenticate(
         localizedReason: 'Authenticate to access your account',
         biometricOnly: true,
-        stickyAuth: true,
       );
     } on PlatformException catch (e) {
       print('Biometric authentication error: $e');
