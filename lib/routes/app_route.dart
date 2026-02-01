@@ -5,6 +5,10 @@ import 'package:fitness_aura_athletix/presentation/screens/onboarding_screen.dar
 import 'package:fitness_aura_athletix/presentation/screens/onboarding_welcome_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/home_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/auth_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/auth_entry_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/login_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/signup_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/forgot_password_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/arm_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/back_workouts.dart';
 import 'package:fitness_aura_athletix/presentation/screens/chest_workouts.dart';
@@ -32,6 +36,10 @@ class AppRoutes {
   static const String premiumFeatures = '/premium-features';
   static const String home = '/home';
   static const String auth = '/auth';
+  static const String authEntry = '/auth-entry';
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String forgotPassword = '/forgot-password';
   static const String onboarding = '/onboarding';
   static const String onboardingValue = '/onboarding-value';
   static const String onboardingDetails = '/onboarding-details';
@@ -83,6 +91,14 @@ class AppRoutes {
         );
       case auth:
         return MaterialPageRoute(builder: (_) => const AuthScreen());
+      case authEntry:
+        return MaterialPageRoute(builder: (_) => const AuthEntryScreen());
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
+      case signup:
+        return MaterialPageRoute(builder: (_) => const SignUpScreen());
+      case forgotPassword:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
       case armWorkouts:
