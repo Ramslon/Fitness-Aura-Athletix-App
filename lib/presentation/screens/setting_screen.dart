@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/services/ai_gym_workout_plan.dart';
+import 'package:fitness_aura_athletix/services/theme_settings_service.dart';
 import 'package:fitness_aura_athletix/presentation/screens/privacy_settings_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
@@ -45,12 +46,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final notifications = await StorageService().loadBoolSetting(
       'notifications_enabled',
     );
-    final theme = await StorageService().loadStringSetting('theme_mode');
+    final themeMode = ThemeSettingsService().themeMode;
     setState(() {
       _apiController.text = api ?? '';
       _endpointController.text = endpoint ?? '';
       _notifications = notifications ?? true;
-      _theme = theme ?? 'system';
+      _theme = _themeLabel(themeMode);
       _loading = false;
     });
   }
@@ -80,8 +81,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveTheme(String mode) async {
-    await StorageService().saveStringSetting('theme_mode', mode);
+    final themeService = ThemeSettingsService();
+    final themeMode = _parseThemeMode(mode);
+    await themeService.setThemeMode(themeMode);
     setState(() => _theme = mode);
+  }
+
+  ThemeMode _parseThemeMode(String value) {
+    switch (value) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  String _themeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.system:
+      default:
+        return 'system';
+    }
   }
 
   Future<List<FileSystemEntity>> _listSavedImages() async {
