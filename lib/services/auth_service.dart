@@ -4,6 +4,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:fitness_aura_athletix/services/ai_integration_service.dart';
 
 /// Enhanced AuthService with Firebase integration
 class AuthService {
@@ -15,6 +16,7 @@ class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   final LocalAuthentication _localAuth = LocalAuthentication();
   Future<void>? _googleSignInInit;
+  final AiIntegrationService _aiIntegration = AiIntegrationService();
 
   // Keys for SharedPreferences
   static const String _keyRememberMe = 'remember_me';
@@ -45,6 +47,10 @@ class AuthService {
         password: password,
       );
       await setGuestMode(false);
+      final user = userCredential.user;
+      if (user != null) {
+        await _aiIntegration.onFirstLogin(user);
+      }
       return userCredential;
     } catch (e) {
       rethrow;
@@ -63,6 +69,10 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyRememberMe, rememberMe);
       
+      final user = userCredential.user;
+      if (user != null) {
+        await _aiIntegration.onFirstLogin(user);
+      }
       return userCredential;
     } catch (e) {
       rethrow;
@@ -86,6 +96,10 @@ class AuthService {
 
       final userCredential = await _auth.signInWithCredential(credential);
       await setGuestMode(false);
+      final user = userCredential.user;
+      if (user != null) {
+        await _aiIntegration.onFirstLogin(user);
+      }
       return userCredential;
     } catch (e) {
       rethrow;
@@ -109,6 +123,10 @@ class AuthService {
 
       final userCredential = await _auth.signInWithCredential(oauthCredential);
       await setGuestMode(false);
+      final user = userCredential.user;
+      if (user != null) {
+        await _aiIntegration.onFirstLogin(user);
+      }
       return userCredential;
     } catch (e) {
       rethrow;
@@ -118,6 +136,16 @@ class AuthService {
   // Continue as guest
   Future<void> continueAsGuest() async {
     await setGuestMode(true);
+    await _aiIntegration.onGuestModeEnabled();
+  }
+
+  /// Delete the current user account and reset AI learning state.
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.delete();
+    await _aiIntegration.onUserDeleted();
+    await setGuestMode(false);
   }
 
   // Send password reset email

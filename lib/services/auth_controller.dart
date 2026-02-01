@@ -89,6 +89,16 @@ class AuthController with ChangeNotifier {
     }
   }
 
+  Future<void> deleteAccount() async {
+    try {
+      await _authService.deleteAccount();
+      _isGuest = false;
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<bool> canUseBiometric() async {
     return await _authService.canUseBiometric();
   }
