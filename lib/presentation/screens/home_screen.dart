@@ -744,14 +744,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _WelcomeTitle extends StatelessWidget {
+class _WelcomeTitle extends StatefulWidget {
   const _WelcomeTitle();
 
   @override
+  State<_WelcomeTitle> createState() => _WelcomeTitleState();
+}
+
+class _WelcomeTitleState extends State<_WelcomeTitle> {
+  String _displayName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadName();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload name when returning to this screen
+    _loadName();
+  }
+
+  Future<void> _loadName() async {
+    // First try to load from StorageService (user's saved preference)
+    final savedName = await StorageService().loadStringSetting('display_name');
+    final name = savedName ?? (AuthService().currentDisplayName ?? '');
+    if (mounted) {
+      setState(() {
+        _displayName = name.trim();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Pull a friendly name; falls back to generic greeting.
-    final name = (AuthService().currentDisplayName ?? '').trim();
-    final text = name.isNotEmpty ? 'Welcome back, $name 👋' : 'Welcome Back 👋';
+    final text = _displayName.isNotEmpty
+        ? 'Welcome back, $_displayName 👋'
+        : 'Welcome Back 👋';
     return Text(
       text,
       maxLines: 1,
