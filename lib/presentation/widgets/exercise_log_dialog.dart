@@ -29,15 +29,20 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   late List<TextEditingController> _setWeightControllers;
   late List<TextEditingController> _setRepsControllers;
 
+  static const int _maxSetInputs = 20;
+
   bool _usesWeight = true;
   bool _useProgressiveSetWeights = false;
   bool _useVariableReps = false;
+
+  late DateTime _performedOn;
 
   String _difficulty = 'Moderate';
 
   @override
   void initState() {
     super.initState();
+    _performedOn = DateTime.now();
     _weightController = TextEditingController(text: '0');
     _setsController = TextEditingController(text: '3');
     _repsController = TextEditingController(text: '10');
@@ -50,7 +55,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     );
 
     _setRepsControllers = List<TextEditingController>.generate(
-      4,
+      _maxSetInputs,
       (_) => TextEditingController(text: '10'),
     );
 
@@ -106,7 +111,31 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   int _parsedSetsClamped() {
     final sets = int.tryParse(_setsController.text) ?? 3;
     if (_useProgressiveSetWeights) return sets.clamp(1, 4);
+    if (_useVariableReps) return sets.clamp(1, _maxSetInputs);
     return sets.clamp(1, 99);
+  }
+
+  Future<void> _pickPerformedOnDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initial = DateTime(
+      _performedOn.year,
+      _performedOn.month,
+      _performedOn.day,
+    );
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isAfter(today) ? today : initial,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: today,
+    );
+
+    if (picked == null) return;
+    if (!mounted) return;
+    setState(() {
+      _performedOn = picked;
+    });
   }
 
   void _applyProgressiveDefaultsIfNeeded() {
@@ -162,6 +191,18 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       setReps = null;
     }
 
+    final now = DateTime.now();
+    final performedAt = DateTime(
+      _performedOn.year,
+      _performedOn.month,
+      _performedOn.day,
+      now.hour,
+      now.minute,
+      now.second,
+      now.millisecond,
+      now.microsecond,
+    );
+
     final record = ExerciseRecord(
       id: '${widget.exerciseName}_${DateTime.now().millisecondsSinceEpoch}',
       exerciseName: widget.exerciseName,
@@ -174,7 +215,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       restTime: restTime,
       difficulty: _difficulty,
       notes: notes.isEmpty ? null : notes,
-      dateRecorded: DateTime.now(),
+      dateRecorded: performedAt,
     );
 
     await StorageService().saveExerciseRecord(record);
@@ -192,6 +233,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   @override
   Widget build(BuildContext context) {
     final sets = _parsedSetsClamped();
+    final dateLabel = MaterialLocalizations.of(context).formatMediumDate(
+      _performedOn,
+    );
 
     return AlertDialog(
       title: Text('Log ${widget.exerciseName}'),
@@ -199,6 +243,13 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            OutlinedButton.icon(
+              onPressed: _pickPerformedOnDate,
+              icon: const Icon(Icons.calendar_today),
+              label: Text('Workout date: $dateLabel'),
+            ),
+            const SizedBox(height: 12),
+
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Track weight'),
@@ -274,10 +325,23 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                 }),
               ),
 
-            if (_usesWeight) const SizedBox(height: 12),
+            const SizedBox(height: 12),
             TextField(
               controller: _setsController,
               keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Sets',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) {
+                if (_useProgressiveSetWeights || _useVariableReps) {
+                  setState(() {
+                    _applyProgressiveDefaultsIfNeeded();
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 12),
             if (!_useVariableReps)
               TextField(
                 controller: _repsController,
@@ -302,20 +366,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                     ),
                   );
                 }),
-                      _applyProgressiveDefaultsIfNeeded();
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _repsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Reps per set',
-                border: OutlineInputBorder(),
               ),
-            ),
             const SizedBox(height: 12),
             TextField(
               controller: _restTimeController,
