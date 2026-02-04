@@ -27,9 +27,11 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   late TextEditingController _notesController;
 
   late List<TextEditingController> _setWeightControllers;
+  late List<TextEditingController> _setRepsControllers;
 
   bool _usesWeight = true;
   bool _useProgressiveSetWeights = false;
+  bool _useVariableReps = false;
 
   String _difficulty = 'Moderate';
 
@@ -47,6 +49,11 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       (_) => TextEditingController(text: '0'),
     );
 
+    _setRepsControllers = List<TextEditingController>.generate(
+      4,
+      (_) => TextEditingController(text: '10'),
+    );
+
     // Heuristic: auto-disable weight input for likely bodyweight movements.
     if (_isLikelyBodyweight(widget.exerciseName)) {
       _usesWeight = false;
@@ -62,6 +69,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     _restTimeController.dispose();
     _notesController.dispose();
     for (final c in _setWeightControllers) {
+      c.dispose();
+    }
+    for (final c in _setRepsControllers) {
       c.dispose();
     }
     super.dispose();
@@ -140,12 +150,25 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       setWeightsKg = null;
     }
 
+    final List<int>? setReps;
+    if (_useVariableReps) {
+      final repsPerSet = <int>[];
+      for (var i = 0; i < sets; i++) {
+        final r = int.tryParse(_setRepsControllers[i].text) ?? 10;
+        repsPerSet.add(r);
+      }
+      setReps = repsPerSet;
+    } else {
+      setReps = null;
+    }
+
     final record = ExerciseRecord(
       id: '${widget.exerciseName}_${DateTime.now().millisecondsSinceEpoch}',
       exerciseName: widget.exerciseName,
       bodyPart: widget.bodyPart,
       weight: weight,
       setWeightsKg: setWeightsKg,
+      setReps: setReps,
       sets: sets,
       repsPerSet: reps,
       restTime: restTime,
@@ -208,6 +231,19 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
               ),
             if (_usesWeight) const SizedBox(height: 8),
 
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Variable reps per set'),
+              subtitle: const Text('Set different reps for each set.'),
+              value: _useVariableReps,
+              onChanged: (v) {
+                setState(() {
+                  _useVariableReps = v;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+
             if (_usesWeight && !_useProgressiveSetWeights)
               TextField(
                 controller: _weightController,
@@ -242,14 +278,31 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             TextField(
               controller: _setsController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Sets',
-                border: OutlineInputBorder(),
+            if (!_useVariableReps)
+              TextField(
+                controller: _repsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Reps per set',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              onChanged: (_) {
-                if (_useProgressiveSetWeights) {
-                  setState(() {
-                    _applyProgressiveDefaultsIfNeeded();
+            if (_useVariableReps)
+              Column(
+                children: List<Widget>.generate(sets, (i) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: i == sets - 1 ? 0 : 10),
+                    child: TextField(
+                      controller: _setRepsControllers[i],
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Set ${i + 1} reps',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  );
+                }),
+                      _applyProgressiveDefaultsIfNeeded();
                   });
                 }
               },

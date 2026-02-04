@@ -15,6 +15,10 @@ class ExerciseRecord {
   ///
   /// If present, [sets] should usually match this list length.
   final List<double>? setWeightsKg;
+  /// Optional per-set reps, used when reps vary between sets.
+  ///
+  /// If present, [sets] should usually match this list length.
+  final List<int>? setReps;
   final int sets;
   final int repsPerSet;
   final int restTime; // in seconds
@@ -28,6 +32,7 @@ class ExerciseRecord {
     required this.bodyPart,
     required this.weight,
     this.setWeightsKg,
+    this.setReps,
     required this.sets,
     required this.repsPerSet,
     required this.restTime,
@@ -37,6 +42,7 @@ class ExerciseRecord {
   });
 
   bool get hasSetWeights => (setWeightsKg != null && setWeightsKg!.isNotEmpty);
+  bool get hasSetReps => (setReps != null && setReps!.isNotEmpty);
 
   double get effectiveWeightKg {
     if (!hasSetWeights) return weight;
@@ -48,10 +54,13 @@ class ExerciseRecord {
   }
 
   double get volumeLoadKg {
-    if (!hasSetWeights) return weight * sets * repsPerSet;
+    if (!hasSetWeights && !hasSetReps) return weight * sets * repsPerSet;
+    
     var total = 0.0;
-    for (final w in setWeightsKg!) {
-      total += w * repsPerSet;
+    for (var i = 0; i < sets; i++) {
+      final w = hasSetWeights ? setWeightsKg![i] : weight;
+      final r = hasSetReps ? setReps![i] : repsPerSet;
+      total += w * r;
     }
     return total;
   }
@@ -75,6 +84,7 @@ class ExerciseRecord {
     'bodyPart': bodyPart,
     'weight': weight,
     if (hasSetWeights) 'setWeightsKg': setWeightsKg,
+    if (hasSetReps) 'setReps': setReps,
     'sets': sets,
     'repsPerSet': repsPerSet,
     'restTime': restTime,
@@ -92,7 +102,12 @@ class ExerciseRecord {
         ? (m['setWeightsKg'] as List)
             .map((e) => (e as num).toDouble())
             .toList(growable: false)
+       Reps: (m['setReps'] is List)
+        ? (m['setReps'] as List)
+            .map((e) => (e as num).toInt())
+            .toList(growable: false)
         : null,
+    set : null,
     sets: (m['sets'] as num).toInt(),
     repsPerSet: (m['repsPerSet'] as num).toInt(),
     restTime: (m['restTime'] as num).toInt(),
