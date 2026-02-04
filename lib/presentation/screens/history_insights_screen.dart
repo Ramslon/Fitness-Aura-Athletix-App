@@ -745,7 +745,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                           '${r.exerciseName} — ${r.weight.toStringAsFixed(1)} kg',
                         ),
                         subtitle: Text(
-                          '${r.sets} x ${r.repsPerSet} • ${r.bodyPart} • ${r.difficulty}',
+                          '${DateFormat('yyyy-MM-dd').format(r.dateRecorded)} • ${r.sets} x ${r.repsPerSet} • ${r.bodyPart} • ${r.difficulty}',
                         ),
                       );
                     }),
@@ -968,7 +968,7 @@ class _MovementHistorySheet extends StatelessWidget {
             if (latest != null)
               Chip(
                 label: Text(
-                  'Latest: ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
+                  'Latest: ${dateFmt.format(latest.dateRecorded)} • ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
                 ),
               ),
           ],

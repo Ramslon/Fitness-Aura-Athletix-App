@@ -102,12 +102,12 @@ class ExerciseRecord {
         ? (m['setWeightsKg'] as List)
             .map((e) => (e as num).toDouble())
             .toList(growable: false)
-       Reps: (m['setReps'] is List)
+        : null,
+    setReps: (m['setReps'] is List)
         ? (m['setReps'] as List)
             .map((e) => (e as num).toInt())
             .toList(growable: false)
         : null,
-    set : null,
     sets: (m['sets'] as num).toInt(),
     repsPerSet: (m['repsPerSet'] as num).toInt(),
     restTime: (m['restTime'] as num).toInt(),
