@@ -21,7 +21,6 @@ class ExerciseLogDialog extends StatefulWidget {
 
 class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   late TextEditingController _weightController;
-  late TextEditingController _repsController;
   late TextEditingController _timeUnderTensionController;
   late TextEditingController _tempoController;
   late TextEditingController _difficultyVariationController;
@@ -34,10 +33,10 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   static const int _maxSets = 5;
 
   bool _usesWeight = true;
-  bool _useProgressiveSetWeights = false;
-  bool _useVariableReps = false;
-
   int _sets = 3;
+
+  bool _didPrefill = false;
+  int? _suggestedSetIndex;
 
   late DateTime _performedOn;
 
@@ -48,7 +47,6 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     super.initState();
     _performedOn = DateTime.now();
     _weightController = TextEditingController(text: '0');
-    _repsController = TextEditingController(text: '10');
     _timeUnderTensionController = TextEditingController(text: '');
     _tempoController = TextEditingController(text: '');
     _difficultyVariationController = TextEditingController(text: '');
@@ -70,12 +68,14 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       _usesWeight = false;
       _weightController.text = '0';
     }
+
+    // Smart auto-fill from last time.
+    _prefillFromLastRecord();
   }
 
   @override
   void dispose() {
     _weightController.dispose();
-    _repsController.dispose();
     _timeUnderTensionController.dispose();
     _tempoController.dispose();
     _difficultyVariationController.dispose();
@@ -118,6 +118,88 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
 
   int _parsedSetsClamped() => _sets.clamp(1, _maxSets);
 
+  Future<void> _prefillFromLastRecord() async {
+    try {
+      final records = await StorageService().loadExerciseRecords();
+      final matching = records
+          .where((r) => r.exerciseName == widget.exerciseName)
+          .toList()
+        ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+      if (matching.isEmpty) return;
+      if (!mounted) return;
+
+      final last = matching.first;
+      if (_didPrefill) return;
+
+      setState(() {
+        _didPrefill = true;
+
+        _difficulty = last.difficulty;
+        _restTimeController.text = last.restTime.toString();
+
+        final usesWeight = last.effectiveWeightKg > 0;
+        _usesWeight = usesWeight;
+        if (!usesWeight) {
+          _weightController.text = '0';
+        } else {
+          _weightController.text = last.effectiveWeightKg.toStringAsFixed(1);
+        }
+
+        final sets = last.sets.clamp(1, _maxSets);
+        _sets = sets;
+
+        final repsBySet = last.setReps;
+        for (var i = 0; i < sets; i++) {
+          final reps = repsBySet != null && i < repsBySet.length
+              ? repsBySet[i]
+              : last.repsPerSet;
+          _setRepsControllers[i].text = reps.toString();
+        }
+
+        if (usesWeight) {
+          final weightsBySet = last.setWeightsKg;
+          for (var i = 0; i < sets; i++) {
+            final w = weightsBySet != null && i < weightsBySet.length
+                ? weightsBySet[i]
+                : last.effectiveWeightKg;
+            _setWeightControllers[i].text = w.toStringAsFixed(1);
+          }
+        }
+
+        if (!usesWeight) {
+          if (last.timeUnderTensionSeconds != null) {
+            _timeUnderTensionController.text =
+                last.timeUnderTensionSeconds.toString();
+          }
+          _tempoController.text = last.tempo ?? '';
+          _difficultyVariationController.text = last.difficultyVariation ?? '';
+        }
+
+        // Simple suggestion: if last time was easy, bump last set.
+        _suggestedSetIndex = null;
+        if (last.difficulty.toLowerCase() == 'easy') {
+          final idx = sets - 1;
+          if (idx >= 0) {
+            if (usesWeight) {
+              final current =
+                  double.tryParse(_setWeightControllers[idx].text) ??
+                      last.effectiveWeightKg;
+              _setWeightControllers[idx].text =
+                  (current + 2.5).toStringAsFixed(1);
+            } else {
+              final current = int.tryParse(_setRepsControllers[idx].text) ??
+                  last.repsPerSet;
+              _setRepsControllers[idx].text = (current + 1).toString();
+            }
+            _suggestedSetIndex = idx;
+          }
+        }
+      });
+    } catch (_) {
+      // Best-effort only.
+    }
+  }
+
   Future<void> _pickPerformedOnDate() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -143,7 +225,6 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
 
   Future<void> _saveExercise() async {
     final sets = _parsedSetsClamped();
-    final reps = int.tryParse(_repsController.text) ?? 10;
     final restTime = int.tryParse(_restTimeController.text) ?? 60;
     final notes = _notesController.text.trim();
 
@@ -153,40 +234,32 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     final tempo = _tempoController.text.trim();
     final difficultyVariation = _difficultyVariationController.text.trim();
 
+    final setReps = <int>[];
+    for (var i = 0; i < sets; i++) {
+      final r = int.tryParse(_setRepsControllers[i].text) ?? 10;
+      setReps.add(r);
+    }
+    final repsPerSet = setReps.isNotEmpty ? setReps.first : 10;
+
     final List<double>? setWeightsKg;
     final double weight;
 
     if (!_usesWeight) {
       weight = 0.0;
       setWeightsKg = null;
-    } else if (_useProgressiveSetWeights) {
+    } else {
       final weights = <double>[];
       for (var i = 0; i < sets; i++) {
-        final w = double.tryParse(_setWeightControllers[i].text) ?? 0.0;
+        final w = double.tryParse(_setWeightControllers[i].text) ??
+            (double.tryParse(_weightController.text) ?? 0.0);
         weights.add(w);
       }
       setWeightsKg = weights;
-      // Keep the top weight as the summary for back-compat.
       var maxW = 0.0;
       for (final w in weights) {
         if (w > maxW) maxW = w;
       }
       weight = maxW;
-    } else {
-      weight = double.tryParse(_weightController.text) ?? 0.0;
-      setWeightsKg = null;
-    }
-
-    final List<int>? setReps;
-    if (_useVariableReps) {
-      final repsPerSet = <int>[];
-      for (var i = 0; i < sets; i++) {
-        final r = int.tryParse(_setRepsControllers[i].text) ?? 10;
-        repsPerSet.add(r);
-      }
-      setReps = repsPerSet;
-    } else {
-      setReps = null;
     }
 
     final now = DateTime.now();
@@ -209,7 +282,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       setWeightsKg: setWeightsKg,
       setReps: setReps,
       sets: sets,
-      repsPerSet: reps,
+      repsPerSet: repsPerSet,
       timeUnderTensionSeconds: _usesWeight
           ? null
           : (timeUnderTensionSeconds != null && timeUnderTensionSeconds > 0
@@ -230,10 +303,63 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     await WorkoutSessionService.instance.markExerciseLogged(record.bodyPart);
     if (!mounted) return;
 
-    Navigator.pop(context, true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.exerciseName} logged successfully!')),
-    );
+    Navigator.pop<int>(context, restTime);
+  }
+
+  void _onDeleteSet(int index) {
+    final sets = _parsedSetsClamped();
+    if (sets <= 1) return;
+
+    setState(() {
+      for (var i = index; i < sets - 1; i++) {
+        _setRepsControllers[i].text = _setRepsControllers[i + 1].text;
+        _setWeightControllers[i].text = _setWeightControllers[i + 1].text;
+      }
+      _setRepsControllers[sets - 1].text = '10';
+      _setWeightControllers[sets - 1].text = _usesWeight ? '0' : '0';
+      _sets = (sets - 1).clamp(1, _maxSets);
+      if (_suggestedSetIndex != null && _suggestedSetIndex! >= _sets) {
+        _suggestedSetIndex = null;
+      }
+    });
+  }
+
+  void _onDuplicateSet(int index) {
+    final sets = _parsedSetsClamped();
+    if (sets >= _maxSets) return;
+
+    setState(() {
+      for (var i = sets; i > index + 1; i--) {
+        _setRepsControllers[i].text = _setRepsControllers[i - 1].text;
+        _setWeightControllers[i].text = _setWeightControllers[i - 1].text;
+      }
+      _setRepsControllers[index + 1].text = _setRepsControllers[index].text;
+      _setWeightControllers[index + 1].text =
+          _setWeightControllers[index].text;
+      _sets = (sets + 1).clamp(1, _maxSets);
+      if (_suggestedSetIndex != null && _suggestedSetIndex! >= index + 1) {
+        _suggestedSetIndex = _suggestedSetIndex! + 1;
+      }
+    });
+  }
+
+  void _copyLastSet() {
+    final sets = _parsedSetsClamped();
+    if (sets >= _maxSets) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum is 5 sets.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _setRepsControllers[sets].text = _setRepsControllers[sets - 1].text;
+      _setWeightControllers[sets].text = _setWeightControllers[sets - 1].text;
+      _sets = (sets + 1).clamp(1, _maxSets);
+      if (_suggestedSetIndex != null && _suggestedSetIndex! >= sets) {
+        _suggestedSetIndex = _suggestedSetIndex! + 1;
+      }
+    });
   }
 
   @override
@@ -265,7 +391,6 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                 setState(() {
                   _usesWeight = v;
                   if (!v) {
-                    _useProgressiveSetWeights = false;
                     _weightController.text = '0';
                   }
                 });
@@ -273,64 +398,6 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             ),
             const SizedBox(height: 12),
 
-            if (_usesWeight)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Progressive weight (1–5 sets)'),
-                subtitle: const Text('Increase weight each set (up to set 5).'),
-                value: _useProgressiveSetWeights,
-                onChanged: (v) {
-                  setState(() {
-                    _useProgressiveSetWeights = v;
-                  });
-                },
-              ),
-            if (_usesWeight) const SizedBox(height: 8),
-
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Variable reps per set'),
-              subtitle: const Text('Set different reps for each set.'),
-              value: _useVariableReps,
-              onChanged: (v) {
-                setState(() {
-                  _useVariableReps = v;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-
-            if (_usesWeight && !_useProgressiveSetWeights)
-              TextField(
-                controller: _weightController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Weight (kg)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            if (_usesWeight && _useProgressiveSetWeights)
-              Column(
-                children: List<Widget>.generate(sets, (i) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: i == sets - 1 ? 0 : 10),
-                    child: TextField(
-                      controller: _setWeightControllers[i],
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Set ${i + 1} weight (kg)',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-
-            const SizedBox(height: 12),
             DropdownButtonFormField<int>(
               value: sets,
               decoration: const InputDecoration(
@@ -351,31 +418,93 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
               },
             ),
             const SizedBox(height: 12),
-            if (!_useVariableReps)
-              TextField(
-                controller: _repsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Reps per set',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            if (_useVariableReps)
-              Column(
-                children: List<Widget>.generate(sets, (i) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: i == sets - 1 ? 0 : 10),
-                    child: TextField(
-                      controller: _setRepsControllers[i],
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Set ${i + 1} reps',
-                        border: const OutlineInputBorder(),
+
+            Column(
+              children: List<Widget>.generate(sets, (i) {
+                final suggested = _suggestedSetIndex == i;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: i == sets - 1 ? 0 : 10),
+                  child: Dismissible(
+                    key: ValueKey('set_$i'),
+                    direction: DismissDirection.horizontal,
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.endToStart) {
+                        _onDeleteSet(i);
+                      } else {
+                        _onDuplicateSet(i);
+                      }
+                      return false;
+                    },
+                    background: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.copy),
+                          SizedBox(width: 8),
+                          Text('Duplicate'),
+                        ],
                       ),
                     ),
-                  );
-                }),
+                    secondaryBackground: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text('Delete'),
+                          SizedBox(width: 8),
+                          Icon(Icons.delete),
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _setRepsControllers[i],
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: suggested
+                                  ? 'Set ${i + 1} reps (suggested)'
+                                  : 'Set ${i + 1} reps',
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        if (_usesWeight) const SizedBox(width: 10),
+                        if (_usesWeight)
+                          Expanded(
+                            child: TextField(
+                              controller: _setWeightControllers[i],
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: suggested
+                                    ? 'Set ${i + 1} kg (suggested)'
+                                    : 'Set ${i + 1} kg',
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                onPressed: _copyLastSet,
+                child: const Text('Copy Last Set'),
               ),
+            ),
             const SizedBox(height: 12),
             if (!_usesWeight)
               TextField(

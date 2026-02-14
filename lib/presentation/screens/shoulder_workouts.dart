@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/rest_timer_bottom_sheet.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
@@ -160,7 +161,7 @@ class _ShoulderWorkoutsState extends State<ShoulderWorkouts> {
                 ),
               ),
               onPick: () async {
-                final saved = await showDialog<bool>(
+                final restSeconds = await showDialog<int>(
                   context: context,
                   builder: (ctx) => ExerciseLogDialog(
                     exerciseName: ex.title,
@@ -168,7 +169,18 @@ class _ShoulderWorkoutsState extends State<ShoulderWorkouts> {
                   ),
                 );
                 if (!mounted) return;
-                if (saved == true) setState(() {});
+                if (restSeconds != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${ex.title} logged successfully!'),
+                    ),
+                  );
+                  await showRestTimerBottomSheet(
+                    context,
+                    seconds: restSeconds,
+                  );
+                  setState(() {});
+                }
               },
             );
           },
@@ -242,13 +254,27 @@ class ShoulderExerciseDetail extends StatelessWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await showDialog(
+                      final restSeconds = await showDialog<int>(
                         context: context,
                         builder: (ctx) => ExerciseLogDialog(
                           exerciseName: exercise.title,
                           bodyPart: 'Shoulders',
                         ),
                       );
+                      if (!context.mounted) return;
+                      if (restSeconds != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${exercise.title} logged successfully!',
+                            ),
+                          ),
+                        );
+                        await showRestTimerBottomSheet(
+                          context,
+                          seconds: restSeconds,
+                        );
+                      }
                     },
                     icon: const Icon(Icons.check),
                     label: const Text('Log Exercise'),
