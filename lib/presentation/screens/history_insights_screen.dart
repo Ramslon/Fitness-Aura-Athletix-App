@@ -38,6 +38,14 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
 
   // Movements
   String _movementQuery = '';
+  final Set<String> _selectedExerciseTags = <String>{};
+  static const List<String> _tagOptions = <String>[
+    'Strength',
+    'Hypertrophy',
+    'Warm-up',
+    'Heavy power',
+    'Volume detail',
+  ];
 
   // Summary
   Map<String, int> _last7DaysWorkoutCounts = {};
@@ -131,13 +139,24 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     final d = _normalizeDay(day);
     return _exerciseRecords
         .where((r) => _normalizeDay(r.dateRecorded) == d)
+        .where(_matchesSelectedTags)
         .toList()
       ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+  }
+
+  bool _matchesSelectedTags(ExerciseRecord r) {
+    if (_selectedExerciseTags.isEmpty) return true;
+    final tags = r.tags ?? const <String>[];
+    for (final t in tags) {
+      if (_selectedExerciseTags.contains(t)) return true;
+    }
+    return false;
   }
 
   List<String> _movementNames() {
     final set = <String>{};
     for (final r in _exerciseRecords) {
+      if (!_matchesSelectedTags(r)) continue;
       final name = r.exerciseName.trim();
       if (name.isNotEmpty) set.add(name);
     }
@@ -148,6 +167,29 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     if (_movementQuery.trim().isEmpty) return list;
     final q = _movementQuery.trim().toLowerCase();
     return list.where((n) => n.toLowerCase().contains(q)).toList();
+  }
+
+  Widget _buildTagFilters() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _tagOptions.map((tag) {
+        final selected = _selectedExerciseTags.contains(tag);
+        return FilterChip(
+          label: Text(tag),
+          selected: selected,
+          onSelected: (v) {
+            setState(() {
+              if (v) {
+                _selectedExerciseTags.add(tag);
+              } else {
+                _selectedExerciseTags.remove(tag);
+              }
+            });
+          },
+        );
+      }).toList(growable: false),
+    );
   }
 
   Future<void> _showExportSheet() async {
@@ -767,6 +809,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                   r.exerciseName.trim().toLowerCase() ==
                   movementName.toLowerCase(),
             )
+            .where(_matchesSelectedTags)
             .toList()
           ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
 
@@ -795,10 +838,20 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
 
   Widget _buildMovementsTab() {
     final movements = _movementNames();
+    final filteredExerciseCount = _exerciseRecords
+        .where(_matchesSelectedTags)
+        .length;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const Text(
+          'Filter by tags',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        _buildTagFilters(),
+        const SizedBox(height: 12),
         TextField(
           decoration: const InputDecoration(
             labelText: 'Search movement',
@@ -808,12 +861,12 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
           onChanged: (v) => setState(() => _movementQuery = v),
         ),
         const SizedBox(height: 12),
-        if (_exerciseRecords.isEmpty)
+        if (filteredExerciseCount == 0)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'No exercise records yet. Log sets/reps/weight to see movement history.',
+                'No exercise records match selected tags yet.',
               ),
             ),
           )
@@ -832,6 +885,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                           r.exerciseName.trim().toLowerCase() ==
                           name.toLowerCase(),
                     )
+                    .where(_matchesSelectedTags)
                     .length;
                 return ListTile(
                   leading: const Icon(Icons.sports_gymnastics),
@@ -972,6 +1026,13 @@ class _MovementHistorySheet extends StatelessWidget {
                 ),
               ),
           ],
+                      const Text(
+                        'Exercise tag filters',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTagFilters(),
+                      const SizedBox(height: 12),
         ),
         const SizedBox(height: 12),
         if (records.isEmpty)
