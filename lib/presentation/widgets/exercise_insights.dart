@@ -222,6 +222,9 @@ class ExerciseInsights {
                             final v = r.difficultyVariation?.trim() ?? '';
                             if (v.isNotEmpty) extras.add(v);
                           }
+                          if (r.hasTags) {
+                            extras.add('Tags ${r.tags!.join(', ')}');
+                          }
 
                           return ListTile(
                             contentPadding: EdgeInsets.zero,

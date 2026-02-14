@@ -3,6 +3,8 @@ import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.d
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/rest_timer_bottom_sheet.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/muscle_fatigue_indicator.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/simple_progress_summary_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/warmup_recommendations_card.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
@@ -124,6 +126,9 @@ class _LegWorkoutsState extends State<LegWorkouts> {
       return;
     }
 
+    await showSimpleProgressSummaryDialog(context, analysis: analysis);
+    if (!mounted) return;
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -174,6 +179,8 @@ class _LegWorkoutsState extends State<LegWorkouts> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
+            const MuscleFatigueIndicator(bodyPart: 'Legs'),
+            const SizedBox(height: 10),
             const WarmupRecommendationsCard(bodyPart: 'Legs'),
             const SizedBox(height: 10),
             Expanded(

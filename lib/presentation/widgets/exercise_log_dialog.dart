@@ -20,6 +20,14 @@ class ExerciseLogDialog extends StatefulWidget {
 }
 
 class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
+  static const List<String> _tagOptions = <String>[
+    'Strength',
+    'Hypertrophy',
+    'Warm-up',
+    'Heavy power',
+    'Volume detail',
+  ];
+
   late TextEditingController _weightController;
   late TextEditingController _timeUnderTensionController;
   late TextEditingController _tempoController;
@@ -41,6 +49,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   late DateTime _performedOn;
 
   String _difficulty = 'Moderate';
+  final Set<String> _selectedTags = <String>{};
 
   @override
   void initState() {
@@ -175,6 +184,10 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
           _difficultyVariationController.text = last.difficultyVariation ?? '';
         }
 
+        _selectedTags
+          ..clear()
+          ..addAll(last.tags ?? const <String>[]);
+
         // Simple suggestion: if last time was easy, bump last set.
         _suggestedSetIndex = null;
         if (last.difficulty.toLowerCase() == 'easy') {
@@ -291,6 +304,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       tempo: _usesWeight ? null : (tempo.isEmpty ? null : tempo),
       difficultyVariation:
           _usesWeight ? null : (difficultyVariation.isEmpty ? null : difficultyVariation),
+      tags: _selectedTags.isEmpty ? null : _selectedTags.toList(growable: false),
       restTime: restTime,
       difficulty: _difficulty,
       notes: notes.isEmpty ? null : notes,
@@ -427,6 +441,35 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
               ),
             ),
             const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Tags',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tagOptions.map((tag) {
+                final selected = _selectedTags.contains(tag);
+                return FilterChip(
+                  label: Text(tag),
+                  selected: selected,
+                  onSelected: (v) {
+                    setState(() {
+                      if (v) {
+                        _selectedTags.add(tag);
+                      } else {
+                        _selectedTags.remove(tag);
+                      }
+                    });
+                  },
+                );
+              }).toList(growable: false),
+            ),
+            const SizedBox(height: 12),
 
             Column(
               children: List<Widget>.generate(sets, (i) {

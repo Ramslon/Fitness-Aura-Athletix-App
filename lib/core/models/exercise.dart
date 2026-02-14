@@ -31,6 +31,8 @@ class ExerciseRecord {
   final String? tempo;
   /// Optional difficulty variation note (e.g., incline/decline, added pause).
   final String? difficultyVariation;
+  /// Optional training tags selected by user.
+  final List<String>? tags;
   final int restTime; // in seconds
   final String difficulty; // Easy, Moderate, Hard
   final String? notes;
@@ -48,6 +50,7 @@ class ExerciseRecord {
     this.timeUnderTensionSeconds,
     this.tempo,
     this.difficultyVariation,
+    this.tags,
     required this.restTime,
     required this.difficulty,
     this.notes,
@@ -56,6 +59,7 @@ class ExerciseRecord {
 
   bool get hasSetWeights => (setWeightsKg != null && setWeightsKg!.isNotEmpty);
   bool get hasSetReps => (setReps != null && setReps!.isNotEmpty);
+  bool get hasTags => (tags != null && tags!.isNotEmpty);
 
   bool get isBodyweight => effectiveWeightKg <= 0.0;
 
@@ -135,6 +139,7 @@ class ExerciseRecord {
     if (tempo != null && tempo!.trim().isNotEmpty) 'tempo': tempo,
     if (difficultyVariation != null && difficultyVariation!.trim().isNotEmpty)
       'difficultyVariation': difficultyVariation,
+    if (hasTags) 'tags': tags,
     'restTime': restTime,
     'difficulty': difficulty,
     'notes': notes,
@@ -161,6 +166,12 @@ class ExerciseRecord {
     timeUnderTensionSeconds: (m['timeUnderTensionSeconds'] as num?)?.toInt(),
     tempo: m['tempo'] as String?,
     difficultyVariation: m['difficultyVariation'] as String?,
+    tags: (m['tags'] is List)
+      ? (m['tags'] as List)
+        .map((e) => e.toString())
+        .where((e) => e.trim().isNotEmpty)
+        .toList(growable: false)
+      : null,
     restTime: (m['restTime'] as num).toInt(),
     difficulty: m['difficulty'] as String,
     notes: m['notes'] as String?,
