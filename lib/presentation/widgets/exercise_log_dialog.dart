@@ -419,6 +419,15 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             ),
             const SizedBox(height: 12),
 
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Swipe set row: right to duplicate • left to delete',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            const SizedBox(height: 8),
+
             Column(
               children: List<Widget>.generate(sets, (i) {
                 final suggested = _suggestedSetIndex == i;
