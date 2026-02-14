@@ -21,6 +21,16 @@ class ExerciseRecord {
   final List<int>? setReps;
   final int sets;
   final int repsPerSet;
+  /// Optional time under tension in seconds.
+  ///
+  /// For non-weight/bodyweight exercises, this can be used as a primary
+  /// progress signal. Interpreted as total seconds for the whole exercise
+  /// (across all sets) when logged.
+  final int? timeUnderTensionSeconds;
+  /// Optional tempo notation (e.g., 3-1-1).
+  final String? tempo;
+  /// Optional difficulty variation note (e.g., incline/decline, added pause).
+  final String? difficultyVariation;
   final int restTime; // in seconds
   final String difficulty; // Easy, Moderate, Hard
   final String? notes;
@@ -35,6 +45,9 @@ class ExerciseRecord {
     this.setReps,
     required this.sets,
     required this.repsPerSet,
+    this.timeUnderTensionSeconds,
+    this.tempo,
+    this.difficultyVariation,
     required this.restTime,
     required this.difficulty,
     this.notes,
@@ -43,6 +56,36 @@ class ExerciseRecord {
 
   bool get hasSetWeights => (setWeightsKg != null && setWeightsKg!.isNotEmpty);
   bool get hasSetReps => (setReps != null && setReps!.isNotEmpty);
+
+  bool get isBodyweight => effectiveWeightKg <= 0.0;
+
+  int get totalReps {
+    if (!hasSetReps) return sets * repsPerSet;
+    var total = 0;
+    for (var i = 0; i < sets; i++) {
+      total += setReps![i];
+    }
+    return total;
+  }
+
+  /// A unified progress score used for analytics/summaries.
+  ///
+  /// - Weighted exercises: kg*reps across sets.
+  /// - Bodyweight exercises: prefers time under tension (seconds) if provided,
+  ///   otherwise uses total reps.
+  double get progressScore {
+    if (!isBodyweight) return volumeLoadKg;
+    final tut = timeUnderTensionSeconds ?? 0;
+    if (tut > 0) return tut.toDouble();
+    return totalReps.toDouble();
+  }
+
+  String get progressScoreLabel {
+    if (!isBodyweight) return volumeLoadKg.toStringAsFixed(0);
+    final tut = timeUnderTensionSeconds ?? 0;
+    if (tut > 0) return '${tut}s';
+    return '${totalReps} reps';
+  }
 
   double get effectiveWeightKg {
     if (!hasSetWeights) return weight;
@@ -87,6 +130,11 @@ class ExerciseRecord {
     if (hasSetReps) 'setReps': setReps,
     'sets': sets,
     'repsPerSet': repsPerSet,
+    if (timeUnderTensionSeconds != null)
+      'timeUnderTensionSeconds': timeUnderTensionSeconds,
+    if (tempo != null && tempo!.trim().isNotEmpty) 'tempo': tempo,
+    if (difficultyVariation != null && difficultyVariation!.trim().isNotEmpty)
+      'difficultyVariation': difficultyVariation,
     'restTime': restTime,
     'difficulty': difficulty,
     'notes': notes,
@@ -110,6 +158,9 @@ class ExerciseRecord {
         : null,
     sets: (m['sets'] as num).toInt(),
     repsPerSet: (m['repsPerSet'] as num).toInt(),
+    timeUnderTensionSeconds: (m['timeUnderTensionSeconds'] as num?)?.toInt(),
+    tempo: m['tempo'] as String?,
+    difficultyVariation: m['difficultyVariation'] as String?,
     restTime: (m['restTime'] as num).toInt(),
     difficulty: m['difficulty'] as String,
     notes: m['notes'] as String?,

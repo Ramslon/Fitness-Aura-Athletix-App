@@ -19,7 +19,7 @@ class BackWorkouts extends StatefulWidget {
       description:
           'Barbell bent-over rows build thickness across the middle back.',
       image: 'assets/images/back_bend_over_rows.png',
-      setsReps: '4 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'dumbbell_rows',
@@ -27,7 +27,7 @@ class BackWorkouts extends StatefulWidget {
       description:
           'Single-arm dumbbell rows for unilateral strength and balance.',
       image: 'assets/images/back_dumbbell_rows.png',
-      setsReps: '4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'deadlift',
@@ -35,28 +35,28 @@ class BackWorkouts extends StatefulWidget {
       description:
           'Deadlifts load the entire posterior chain and build overall strength.',
       image: 'assets/images/back_deadlift.png',
-      setsReps: '3-4 sets x 3-6 reps',
+      setsReps: '1–5 sets x 3-6 reps',
     ),
     _Exercise(
       id: 'pull_ups',
       title: 'Pull-ups / Chin-ups',
       description: 'Bodyweight pulling movement to develop lats and grip.',
       image: 'assets/images/back_pullups.png',
-      setsReps: '3 sets x max reps',
+      setsReps: '1–5 sets x max reps',
     ),
     _Exercise(
       id: 'tbar_row',
       title: 'T-Bar Row',
       description: 'T-bar rows target thickness in the mid-back and lats.',
       image: 'assets/images/back_tbar_row.png',
-      setsReps: '4 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'lat_pull_down',
       title: 'Lat Pulldowns',
       description: 'Lat pulldowns for wide upper-back development.',
       image: 'assets/images/back_lat_pull_down.png',
-      setsReps: '4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'seated_row',
@@ -64,28 +64,28 @@ class BackWorkouts extends StatefulWidget {
       description:
           'Seated rows emphasize the mid-back and scapular retraction.',
       image: 'assets/images/back_seated_row.png',
-      setsReps: '4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'single_arm_rows',
       title: 'Dumbbell Single-Arm Rows',
       description: 'Single-arm rows for stability and unilateral strength.',
       image: 'assets/images/back_single_arm_rows.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'reverse_flys',
       title: 'Reverse Flys',
       description: 'Reverse flys target rear delts and upper back posture.',
       image: 'assets/images/back_reverse_flys.png',
-      setsReps: '3 sets x 12-15 reps',
+      setsReps: '1–5 sets x 12-15 reps',
     ),
     _Exercise(
       id: 'bent_arm_pullovers',
       title: 'Bent-Arm Dumbbell Pullovers',
       description: 'Pullovers hit the lats and chest depending on arm path.',
       image: 'assets/images/back_bent_arm_pullovers.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
   ];
 }

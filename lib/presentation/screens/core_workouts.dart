@@ -19,7 +19,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Front plank is a fundamental isometric core exercise for building stability and strength.',
       image: 'assets/images/core_plank.png',
-      setsReps: '3 sets x 30-60 seconds',
+      setsReps: '1–5 sets x 30-60 seconds',
     ),
     _Exercise(
       id: 'dead_bug',
@@ -27,7 +27,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Dead bug targets deep core stabilizers and improves coordination.',
       image: 'assets/images/core_dead_bug.png',
-      setsReps: '3 sets x 10 reps',
+      setsReps: '1–5 sets x 10 reps',
     ),
     _Exercise(
       id: 'bird_dog',
@@ -35,7 +35,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Bird dog strengthens core and improves stability through opposite limb extension.',
       image: 'assets/images/core_bird_dog.png',
-      setsReps: '3 sets x 10 reps per side',
+      setsReps: '1–5 sets x 10 reps per side',
     ),
     _Exercise(
       id: 'pallof_press',
@@ -43,7 +43,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Cable or band Pallof press resists rotational force for anti-rotation strength.',
       image: 'assets/images/core_pallof_press.png',
-      setsReps: '3 sets x 10 reps per side',
+      setsReps: '1–5 sets x 10 reps per side',
     ),
     _Exercise(
       id: 'ab_wheel_rollout',
@@ -51,7 +51,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Ab wheel rollout is an advanced core exercise targeting rectus abdominis.',
       image: 'assets/images/core_ab_wheel.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'cable_wood_chop',
@@ -59,14 +59,14 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Rotational movement that strengthens obliques and transverse abdominis.',
       image: 'assets/images/core_wood_chop.png',
-      setsReps: '3 sets x 10 reps per side',
+      setsReps: '1–5 sets x 10 reps per side',
     ),
     _Exercise(
       id: 'side_plank',
       title: 'Side Plank',
       description: 'Side plank targets obliques and lateral core muscles.',
       image: 'assets/images/core_side_plank.png',
-      setsReps: '3 sets x 30-45 seconds per side',
+      setsReps: '1–5 sets x 30-45 seconds per side',
     ),
     _Exercise(
       id: 'hanging_leg_raise',
@@ -74,7 +74,7 @@ class CoreWorkouts extends StatefulWidget {
       description:
           'Hanging leg raise is excellent for lower abs and hip flexors.',
       image: 'assets/images/core_hanging_leg_raise.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
   ];
 }

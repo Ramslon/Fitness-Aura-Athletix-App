@@ -18,28 +18,28 @@ class LegWorkouts extends StatefulWidget {
       title: 'Barbell Back Squat',
       description: 'Classic compound squat for overall leg strength.',
       image: 'assets/images/leg_back_squat.png',
-      setsReps: '4 sets x 5-8 reps',
+      setsReps: '1–5 sets x 5-8 reps',
     ),
     _Exercise(
       id: 'goblet_squat',
       title: 'Goblet Squat',
       description: 'Goblet squat for squat pattern and quad development.',
       image: 'assets/images/leg_goblet_squat.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'front_squat',
       title: 'Front Squat',
       description: 'Front-loaded squat emphasizing quads and upright torso.',
       image: 'assets/images/leg_front_squat.png',
-      setsReps: '3-4 sets x 5-8 reps',
+      setsReps: '1–5 sets x 5-8 reps',
     ),
     _Exercise(
       id: 'sumo_squat',
       title: 'Sumo Squat',
       description: 'Wider stance squat targeting inner quads and glutes.',
       image: 'assets/images/leg_sumo_squat.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
 
     // Deadlift variations
@@ -48,14 +48,14 @@ class LegWorkouts extends StatefulWidget {
       title: 'Romanian Deadlift',
       description: 'RDL focuses hamstrings and glute-hamstring tie-in.',
       image: 'assets/images/leg_romanian_deadlift.png',
-      setsReps: '3 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'conventional_deadlift',
       title: 'Conventional Deadlift',
       description: 'Heavy posterior chain builder for overall strength.',
       image: 'assets/images/leg_conventional_deadlift.png',
-      setsReps: '3-4 sets x 3-6 reps',
+      setsReps: '1–5 sets x 3-6 reps',
     ),
 
     // Lunges
@@ -64,21 +64,21 @@ class LegWorkouts extends StatefulWidget {
       title: 'Walking Lunges',
       description: 'Walking lunges build unilateral strength and balance.',
       image: 'assets/images/leg_walking_lunge.png',
-      setsReps: '3 sets x 10-12 steps',
+      setsReps: '1–5 sets x 10-12 steps',
     ),
     _Exercise(
       id: 'reverse_lunge',
       title: 'Reverse Lunge',
       description: 'Reverse lunges are knee-friendly and focus glutes.',
       image: 'assets/images/leg_reverse_lunge.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'bulgarian_split_squat',
       title: 'Bulgarian Split Squat',
       description: 'Single-leg squat variation for quad and glute strength.',
       image: 'assets/images/leg_bulgarian_split.png',
-      setsReps: '3 sets x 8-10 reps',
+      setsReps: '1–5 sets x 8-10 reps',
     ),
 
     // Extensions & curls
@@ -87,14 +87,14 @@ class LegWorkouts extends StatefulWidget {
       title: 'Leg Extensions',
       description: 'Isolate quads with leg extension machine.',
       image: 'assets/images/leg_extensions.png',
-      setsReps: '3 sets x 10-15 reps',
+      setsReps: '1–5 sets x 10-15 reps',
     ),
     _Exercise(
       id: 'hamstring_curls',
       title: 'Hamstring Curls',
       description: 'Machine or swiss ball hamstring curls for posterior chain.',
       image: 'assets/images/leg_hamstring_curls.png',
-      setsReps: '3 sets x 10-15 reps',
+      setsReps: '1–5 sets x 10-15 reps',
     ),
 
     // Glutes
@@ -103,7 +103,7 @@ class LegWorkouts extends StatefulWidget {
       title: 'Glute Bridges',
       description: 'Glute bridges and hip thrusts for glute development.',
       image: 'assets/images/leg_glute_bridges.png',
-      setsReps: '3-4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
   ];
 }

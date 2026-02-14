@@ -19,7 +19,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Heavy compound movement that targets glutes, quads, and hamstrings.',
       image: 'assets/images/glutes_barbell_squat.png',
-      setsReps: '4 sets x 6-8 reps',
+      setsReps: '1–5 sets x 6-8 reps',
     ),
     _Exercise(
       id: 'glute_bridge',
@@ -27,7 +27,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Bodyweight or weighted glute bridge focuses on glute activation and isolation.',
       image: 'assets/images/glutes_glute_bridge.png',
-      setsReps: '3 sets x 12-15 reps',
+      setsReps: '1–5 sets x 12-15 reps',
     ),
     _Exercise(
       id: 'hip_thrust',
@@ -35,7 +35,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Hip thrust is one of the most effective exercises for glute hypertrophy.',
       image: 'assets/images/glutes_hip_thrust.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'rumanian_deadlift',
@@ -43,7 +43,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'RDL targets glutes and hamstrings with emphasis on the posterior chain.',
       image: 'assets/images/glutes_romanian_deadlift.png',
-      setsReps: '3 sets x 8-10 reps',
+      setsReps: '1–5 sets x 8-10 reps',
     ),
     _Exercise(
       id: 'leg_press',
@@ -51,7 +51,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Machine leg press allows heavy loading and targets all leg muscles including glutes.',
       image: 'assets/images/glutes_leg_press.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'bulgarian_split_squat',
@@ -59,7 +59,7 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Single-leg variation that isolates each glute and improves balance.',
       image: 'assets/images/glutes_bulgarian_split_squat.png',
-      setsReps: '3 sets x 10 reps per leg',
+      setsReps: '1–5 sets x 10 reps per leg',
     ),
     _Exercise(
       id: 'cable_glute_kickback',
@@ -67,14 +67,14 @@ class GlutesWorkouts extends StatefulWidget {
       description:
           'Cable kickback provides constant tension for glute isolation.',
       image: 'assets/images/glutes_cable_kickback.png',
-      setsReps: '3 sets x 12-15 reps per side',
+      setsReps: '1–5 sets x 12-15 reps per side',
     ),
     _Exercise(
       id: 'leg_curl',
       title: 'Leg Curl',
       description: 'Machine leg curl targets hamstrings and lower glutes.',
       image: 'assets/images/glutes_leg_curl.png',
-      setsReps: '3 sets x 10-12 reps',
+      setsReps: '1–5 sets x 10-12 reps',
     ),
   ];
 }

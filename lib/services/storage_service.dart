@@ -549,8 +549,8 @@ class StorageService {
         final latest = exerciseRecords[0];
         final previous = exerciseRecords[1];
 
-        final latestVolume = latest.volumeLoadKg.toInt();
-        final previousVolume = previous.volumeLoadKg.toInt();
+        final latestVolume = latest.progressScore.toInt();
+        final previousVolume = previous.progressScore.toInt();
 
         metrics.add(
           ProgressiveOverloadMetrics(

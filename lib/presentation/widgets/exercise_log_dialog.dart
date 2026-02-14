@@ -21,19 +21,23 @@ class ExerciseLogDialog extends StatefulWidget {
 
 class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   late TextEditingController _weightController;
-  late TextEditingController _setsController;
   late TextEditingController _repsController;
+  late TextEditingController _timeUnderTensionController;
+  late TextEditingController _tempoController;
+  late TextEditingController _difficultyVariationController;
   late TextEditingController _restTimeController;
   late TextEditingController _notesController;
 
   late List<TextEditingController> _setWeightControllers;
   late List<TextEditingController> _setRepsControllers;
 
-  static const int _maxSetInputs = 20;
+  static const int _maxSets = 5;
 
   bool _usesWeight = true;
   bool _useProgressiveSetWeights = false;
   bool _useVariableReps = false;
+
+  int _sets = 3;
 
   late DateTime _performedOn;
 
@@ -44,18 +48,20 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     super.initState();
     _performedOn = DateTime.now();
     _weightController = TextEditingController(text: '0');
-    _setsController = TextEditingController(text: '3');
     _repsController = TextEditingController(text: '10');
+    _timeUnderTensionController = TextEditingController(text: '');
+    _tempoController = TextEditingController(text: '');
+    _difficultyVariationController = TextEditingController(text: '');
     _restTimeController = TextEditingController(text: '60');
     _notesController = TextEditingController();
 
     _setWeightControllers = List<TextEditingController>.generate(
-      4,
+      _maxSets,
       (_) => TextEditingController(text: '0'),
     );
 
     _setRepsControllers = List<TextEditingController>.generate(
-      _maxSetInputs,
+      _maxSets,
       (_) => TextEditingController(text: '10'),
     );
 
@@ -69,8 +75,10 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   @override
   void dispose() {
     _weightController.dispose();
-    _setsController.dispose();
     _repsController.dispose();
+    _timeUnderTensionController.dispose();
+    _tempoController.dispose();
+    _difficultyVariationController.dispose();
     _restTimeController.dispose();
     _notesController.dispose();
     for (final c in _setWeightControllers) {
@@ -108,12 +116,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     return keywords.any(n.contains);
   }
 
-  int _parsedSetsClamped() {
-    final sets = int.tryParse(_setsController.text) ?? 3;
-    if (_useProgressiveSetWeights) return sets.clamp(1, 4);
-    if (_useVariableReps) return sets.clamp(1, _maxSetInputs);
-    return sets.clamp(1, 99);
-  }
+  int _parsedSetsClamped() => _sets.clamp(1, _maxSets);
 
   Future<void> _pickPerformedOnDate() async {
     final now = DateTime.now();
@@ -138,22 +141,17 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     });
   }
 
-  void _applyProgressiveDefaultsIfNeeded() {
-    if (!_useProgressiveSetWeights) return;
-    final sets = _parsedSetsClamped();
-    // Prefer 3–4 sets when using progressive weights.
-    if (sets < 3) {
-      _setsController.text = '3';
-    } else if (sets > 4) {
-      _setsController.text = '4';
-    }
-  }
-
   Future<void> _saveExercise() async {
     final sets = _parsedSetsClamped();
     final reps = int.tryParse(_repsController.text) ?? 10;
     final restTime = int.tryParse(_restTimeController.text) ?? 60;
     final notes = _notesController.text.trim();
+
+    final timeUnderTensionSeconds = int.tryParse(
+      _timeUnderTensionController.text.trim(),
+    );
+    final tempo = _tempoController.text.trim();
+    final difficultyVariation = _difficultyVariationController.text.trim();
 
     final List<double>? setWeightsKg;
     final double weight;
@@ -212,6 +210,14 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       setReps: setReps,
       sets: sets,
       repsPerSet: reps,
+      timeUnderTensionSeconds: _usesWeight
+          ? null
+          : (timeUnderTensionSeconds != null && timeUnderTensionSeconds > 0
+            ? timeUnderTensionSeconds
+            : null),
+      tempo: _usesWeight ? null : (tempo.isEmpty ? null : tempo),
+      difficultyVariation:
+          _usesWeight ? null : (difficultyVariation.isEmpty ? null : difficultyVariation),
       restTime: restTime,
       difficulty: _difficulty,
       notes: notes.isEmpty ? null : notes,
@@ -270,13 +276,12 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             if (_usesWeight)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Progressive weight (3–4 sets)'),
-                subtitle: const Text('Increase weight each set (up to set 4).'),
+                title: const Text('Progressive weight (1–5 sets)'),
+                subtitle: const Text('Increase weight each set (up to set 5).'),
                 value: _useProgressiveSetWeights,
                 onChanged: (v) {
                   setState(() {
                     _useProgressiveSetWeights = v;
-                    _applyProgressiveDefaultsIfNeeded();
                   });
                 },
               ),
@@ -326,19 +331,23 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
               ),
 
             const SizedBox(height: 12),
-            TextField(
-              controller: _setsController,
-              keyboardType: TextInputType.number,
+            DropdownButtonFormField<int>(
+              value: sets,
               decoration: const InputDecoration(
                 labelText: 'Sets',
                 border: OutlineInputBorder(),
               ),
-              onChanged: (_) {
-                if (_useProgressiveSetWeights || _useVariableReps) {
-                  setState(() {
-                    _applyProgressiveDefaultsIfNeeded();
-                  });
-                }
+              items: List<DropdownMenuItem<int>>.generate(
+                _maxSets,
+                (i) {
+                  final v = i + 1;
+                  return DropdownMenuItem<int>(value: v, child: Text('$v'));
+                },
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _sets = (value ?? 3).clamp(1, _maxSets);
+                });
               },
             ),
             const SizedBox(height: 12),
@@ -368,6 +377,34 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                 }),
               ),
             const SizedBox(height: 12),
+            if (!_usesWeight)
+              TextField(
+                controller: _timeUnderTensionController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Time under tension (seconds, total)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            if (!_usesWeight) const SizedBox(height: 12),
+            if (!_usesWeight)
+              TextField(
+                controller: _tempoController,
+                decoration: const InputDecoration(
+                  labelText: 'Tempo (optional, e.g., 3-1-1)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            if (!_usesWeight) const SizedBox(height: 12),
+            if (!_usesWeight)
+              TextField(
+                controller: _difficultyVariationController,
+                decoration: const InputDecoration(
+                  labelText: 'Difficulty variation (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            if (!_usesWeight) const SizedBox(height: 12),
             TextField(
               controller: _restTimeController,
               keyboardType: TextInputType.number,

@@ -30,6 +30,9 @@ class ExerciseGridCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final cardBg = theme.cardTheme.color ?? theme.cardColor;
 
+    final setsRepsDisplay =
+        setsReps.toLowerCase().contains('set') ? setsReps : '1–5 sets • $setsReps';
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Protect against RenderFlex overflow on smaller devices.
@@ -134,7 +137,7 @@ class ExerciseGridCard extends StatelessWidget {
                             ),
                             SizedBox(height: isTight ? 4 : 6),
                             Text(
-                              setsReps,
+                              setsRepsDisplay,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

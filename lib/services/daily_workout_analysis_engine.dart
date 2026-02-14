@@ -81,7 +81,7 @@ class WorkoutAnalysisIndex {
 class DailyWorkoutAnalysisEngine {
   static DateTime dayStart(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
-  static double volumeOf(ExerciseRecord r) => r.volumeLoadKg;
+  static double volumeOf(ExerciseRecord r) => r.progressScore;
 
   /// Groups records into (day + bodyPart) sessions. MVP grouping: one session per
   /// day/bodyPart.

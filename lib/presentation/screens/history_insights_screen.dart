@@ -245,14 +245,14 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
   Future<void> _exportExerciseRecordsCsv() async {
     try {
       final rows = <String>[
-        'id,dateRecorded,exerciseName,bodyPart,weightKg,sets,repsPerSet,restTimeSeconds,difficulty,notes',
+        'id,dateRecorded,exerciseName,bodyPart,weightKg,sets,repsPerSet,timeUnderTensionSeconds,tempo,difficultyVariation,restTimeSeconds,difficulty,notes',
       ];
 
       final ordered = _exerciseRecords.toList()
         ..sort((a, b) => a.dateRecorded.compareTo(b.dateRecorded));
       for (final r in ordered) {
         rows.add(
-          '${_csv(r.id)},${_csv(r.dateRecorded.toIso8601String())},${_csv(r.exerciseName)},${_csv(r.bodyPart)},${r.weight},${r.sets},${r.repsPerSet},${r.restTime},${_csv(r.difficulty)},${_csv(r.notes ?? '')}',
+          '${_csv(r.id)},${_csv(r.dateRecorded.toIso8601String())},${_csv(r.exerciseName)},${_csv(r.bodyPart)},${r.weight},${r.sets},${r.repsPerSet},${r.timeUnderTensionSeconds ?? ''},${_csv(r.tempo ?? '')},${_csv(r.difficultyVariation ?? '')},${r.restTime},${_csv(r.difficulty)},${_csv(r.notes ?? '')}',
         );
       }
 

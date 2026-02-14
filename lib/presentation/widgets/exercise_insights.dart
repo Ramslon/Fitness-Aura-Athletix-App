@@ -211,7 +211,17 @@ class ExerciseInsights {
                           );
                           final dateLabel =
                               '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-                          final load = r.volumeLoadKg;
+                          final load = r.progressScore;
+
+                          final extras = <String>[];
+                          if (r.isBodyweight) {
+                            final tut = r.timeUnderTensionSeconds ?? 0;
+                            if (tut > 0) extras.add('TUT ${tut}s');
+                            final tempo = r.tempo?.trim() ?? '';
+                            if (tempo.isNotEmpty) extras.add('Tempo $tempo');
+                            final v = r.difficultyVariation?.trim() ?? '';
+                            if (v.isNotEmpty) extras.add(v);
+                          }
 
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -222,13 +232,13 @@ class ExerciseInsights {
                               ),
                             ),
                             subtitle: Text(
-                              '${r.sets}x${r.repsPerSet} @ ${r.weightLabel} • ${r.difficulty}',
+                              '${r.sets}x${r.repsPerSet} @ ${r.weightLabel} • ${r.difficulty}${extras.isEmpty ? '' : ' • ${extras.join(' • ')}'}',
                               style: TextStyle(
                                 color: scheme.onSurface.withValues(alpha: 0.70),
                               ),
                             ),
                             trailing: Text(
-                              load.toStringAsFixed(0),
+                              r.isBodyweight ? r.progressScoreLabel : load.toStringAsFixed(0),
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: scheme.onSurface.withValues(alpha: 0.85),

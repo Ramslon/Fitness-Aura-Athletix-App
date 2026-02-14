@@ -19,21 +19,21 @@ class ChestWorkouts extends StatefulWidget {
       description:
           'Barbell flat bench press — compound pressing movement for overall chest strength.',
       image: 'assets/images/chest_flat_bench.png',
-      setsReps: '4 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'incline_bench_press',
       title: 'Incline Bench Press',
       description: 'Incline bench press focuses upper chest and front delts.',
       image: 'assets/images/chest_incline_bench.png',
-      setsReps: '4 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'decline_bench_press',
       title: 'Decline Bench Press',
       description: 'Decline bench targets lower chest fibers.',
       image: 'assets/images/chest_decline_bench.png',
-      setsReps: '3 sets x 6-10 reps',
+      setsReps: '1–5 sets x 6-10 reps',
     ),
     _Exercise(
       id: 'dumbbell_flies',
@@ -41,7 +41,7 @@ class ChestWorkouts extends StatefulWidget {
       description:
           'Dumbbell flies isolate the chest and create stretch at the bottom of the movement.',
       image: 'assets/images/chest_dumbbell_flies.png',
-      setsReps: '3 sets x 10-15 reps',
+      setsReps: '1–5 sets x 10-15 reps',
     ),
     _Exercise(
       id: 'pullovers',
@@ -49,7 +49,7 @@ class ChestWorkouts extends StatefulWidget {
       description:
           'Dumbbell pullovers work the chest and lats depending on arm path.',
       image: 'assets/images/chest_pullovers.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'dips',
@@ -57,7 +57,7 @@ class ChestWorkouts extends StatefulWidget {
       description:
           'Parallel-bar dips (lean forward) emphasize the lower chest and triceps.',
       image: 'assets/images/chest_dips.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'flat_dumbbell_press',
@@ -65,21 +65,21 @@ class ChestWorkouts extends StatefulWidget {
       description:
           'Dumbbell press allows a greater range of motion and balanced loading.',
       image: 'assets/images/chest_flat_dumbbell_press.png',
-      setsReps: '4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'incline_dumbbell_press',
       title: 'Incline Dumbbell Press',
       description: 'Upper chest emphasis with dumbbells for stability work.',
       image: 'assets/images/chest_incline_dumbbell_press.png',
-      setsReps: '4 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'decline_dumbbell_press',
       title: 'Decline Dumbbell Press',
       description: 'Targets lower chest with dumbbell stability demands.',
       image: 'assets/images/chest_decline_dumbbell_press.png',
-      setsReps: '3 sets x 8-12 reps',
+      setsReps: '1–5 sets x 8-12 reps',
     ),
   ];
 }

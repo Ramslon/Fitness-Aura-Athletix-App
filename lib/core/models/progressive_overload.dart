@@ -8,7 +8,11 @@ class ProgressiveOverloadMetrics {
   final int currentReps;
   final int previousSets;
   final int currentSets;
-  final int previousVolume; // weight * sets * reps
+  /// Training load score.
+  ///
+  /// - Weighted exercises: kg*reps across sets.
+  /// - Non-weight exercises: time-under-tension seconds if provided, otherwise total reps.
+  final int previousVolume;
   final int currentVolume;
   final DateTime lastPerformedDate;
   final DateTime previousPerformedDate;
