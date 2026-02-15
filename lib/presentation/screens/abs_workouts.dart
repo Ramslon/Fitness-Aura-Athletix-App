@@ -118,6 +118,14 @@ class AbsWorkouts extends StatefulWidget {
     ),
     _Exercise(
       id: 'crossover_crunch',
+        _Exercise(
+          id: 'hanging_leg_raises',
+          title: 'Hanging Leg Raises',
+          description:
+              'Perform leg raises from a bar to heavily target lower abs and hip flexors.',
+          image: null,
+          setsReps: '10-15 reps • Core',
+        ),
       title: 'Crossover Crunch',
       description: 'Crunch across the body to emphasize the obliques.',
       image: null,

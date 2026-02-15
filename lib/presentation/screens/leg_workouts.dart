@@ -110,6 +110,40 @@ class LegWorkouts extends StatefulWidget {
       image: 'assets/images/leg_glute_bridges.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
+
+    // Calves
+    _Exercise(
+      id: 'standing_calf_raises',
+      title: 'Standing Calf Raises',
+      description:
+          'Classic calf movement emphasizing the gastrocnemius through full range.',
+      image: 'assets/images/leg_standing_calf_raises.png',
+      setsReps: '1–5 sets x 12-20 reps',
+    ),
+    _Exercise(
+      id: 'seated_calf_raises',
+      title: 'Seated Calf Raises',
+      description:
+          'Bent-knee calf raise variation that targets the soleus more directly.',
+      image: 'assets/images/leg_seated_calf_raises.png',
+      setsReps: '1–5 sets x 12-20 reps',
+    ),
+    _Exercise(
+      id: 'donkey_calf_raises',
+      title: 'Donkey Calf Raises',
+      description:
+          'Hip-hinged calf raise variation for deep stretch and strong contraction.',
+      image: 'assets/images/leg_donkey_calf_raises.png',
+      setsReps: '1–5 sets x 10-15 reps',
+    ),
+    _Exercise(
+      id: 'single_leg_calf_raises',
+      title: 'Single-Leg Calf Raises',
+      description:
+          'Unilateral calf raises to improve balance, control, and side-to-side symmetry.',
+      image: 'assets/images/leg_single_leg_calf_raises.png',
+      setsReps: '1–5 sets x 10-15 reps per side',
+    ),
   ];
 }
 
