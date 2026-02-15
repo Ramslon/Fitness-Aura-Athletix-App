@@ -992,6 +992,14 @@ class _MovementHistorySheet extends StatelessWidget {
     required this.records,
   });
 
+  Widget _buildTagFilters() {
+    return const Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFmt = DateFormat('yyyy-MM-dd');
@@ -1026,14 +1034,15 @@ class _MovementHistorySheet extends StatelessWidget {
                 ),
               ),
           ],
-                      const Text(
-                        'Exercise tag filters',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTagFilters(),
-                      const SizedBox(height: 12),
         ),
+        const SizedBox(height: 12),
+        const Text(
+          'Exercise tag filters',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        _buildTagFilters(),
+        const SizedBox(height: 12),
         const SizedBox(height: 12),
         if (records.isEmpty)
           const Padding(
