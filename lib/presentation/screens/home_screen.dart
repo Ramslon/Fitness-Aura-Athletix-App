@@ -230,7 +230,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  _FeatureCard? _featureForBodyPart(String bodyPart, List<_FeatureCard> features) {
+  _FeatureCard? _featureForBodyPart(
+    String bodyPart,
+    List<_FeatureCard> features,
+  ) {
     for (final f in features) {
       if (f.kind == _FeatureKind.bodyPart && f.bodyPart == bodyPart) {
         return f;
@@ -333,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           final dateLabel =
                               '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-                            final load = r.volumeLoadKg;
+                          final load = r.volumeLoadKg;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
@@ -703,10 +706,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.pushNamed(
-                context,
-                AppRoutes.dailyWorkoutAnalysis,
-              ),
+              onTap: () =>
+                  Navigator.pushNamed(context, AppRoutes.dailyWorkoutAnalysis),
             ),
           ),
           const SizedBox(height: 12),
@@ -869,7 +870,8 @@ class _HomeScreenState extends State<HomeScreen> {
               return _FeatureCardWidget(
                 feature: feature,
                 bodyPartStats: stats,
-                isPinned: bodyPart != null && _pinnedWorkouts.contains(bodyPart),
+                isPinned:
+                    bodyPart != null && _pinnedWorkouts.contains(bodyPart),
                 onTogglePin: bodyPart == null
                     ? null
                     : () => _togglePinnedWorkout(bodyPart),
@@ -1273,7 +1275,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
+                ],
               ),
             ),
             _TrendPill(trend: trend, accent: accent),
