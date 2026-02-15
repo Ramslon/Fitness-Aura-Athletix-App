@@ -1250,7 +1250,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
 
         // Middle Section — Progress Feedback
         Row(
@@ -1281,7 +1281,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
             _TrendPill(trend: trend, accent: accent),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
@@ -1291,14 +1291,16 @@ class _BodyPartWorkoutCard extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
 
         // Bottom Section — Action
         SizedBox(
           width: double.infinity,
+          height: 16,
           child: ElevatedButton(
             onPressed: onPrimaryAction,
-            child: const Text('Start Workout'),
+            style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
+            child: const Text('Start Workout', style: TextStyle(fontSize: 12)),
           ),
         ),
       ],

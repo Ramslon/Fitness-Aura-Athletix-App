@@ -234,95 +234,112 @@ class ShoulderExerciseDetail extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(exercise.title)),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
+        child: _BodyPartWorkoutCard(
+          exercise: exercise,
+        ),
+      ),
+    );
+  }
+}
+
+class _BodyPartWorkoutCard extends StatelessWidget {
+  final _Exercise exercise;
+
+  const _BodyPartWorkoutCard({Key? key, required this.exercise})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 240,
+            child: LocalImagePlaceholder(
+              id: exercise.id,
+              assetPath: exercise.image,
+              fit: BoxFit.cover,
               height: 240,
-              child: LocalImagePlaceholder(
-                id: exercise.id,
-                assetPath: exercise.image,
-                fit: BoxFit.cover,
-                height: 240,
-              ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exercise.title,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  exercise.title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  exercise.setsReps,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  exercise.description,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                    title: const Text(
+                      'Tip',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    exercise.setsReps,
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    exercise.description,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-                      title: const Text(
-                        'Tip',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: const Text('Form cue for this exercise'),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                          child: Text(
-                            ExerciseFormTipsService.tipFor(
-                              exerciseId: exercise.id,
-                              title: exercise.title,
-                            ),
+                    subtitle: const Text('Form cue for this exercise'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        child: Text(
+                          ExerciseFormTipsService.tipFor(
+                            exerciseId: exercise.id,
+                            title: exercise.title,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final restSeconds = await showDialog<int>(
-                        context: context,
-                        builder: (ctx) => ExerciseLogDialog(
-                          exerciseName: exercise.title,
-                          bodyPart: 'Shoulders',
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final restSeconds = await showDialog<int>(
+                      context: context,
+                      builder: (ctx) => ExerciseLogDialog(
+                        exerciseName: exercise.title,
+                        bodyPart: 'Shoulders',
+                      ),
+                    );
+                    if (!context.mounted) return;
+                    if (restSeconds != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${exercise.title} logged successfully!',
+                          ),
                         ),
                       );
-                      if (!context.mounted) return;
-                      if (restSeconds != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${exercise.title} logged successfully!',
-                            ),
-                          ),
-                        );
-                        await showRestTimerBottomSheet(
-                          context,
-                          seconds: restSeconds,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check),
-                    label: const Text('Log Exercise'),
-                  ),
-                ],
-              ),
+                      await showRestTimerBottomSheet(
+                        context,
+                        seconds: restSeconds,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Log Exercise'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

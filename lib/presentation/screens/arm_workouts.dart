@@ -248,6 +248,23 @@ class ArmExerciseDetail extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(exercise.title)),
       body: SingleChildScrollView(
+        child: _BodyPartWorkoutCard(exercise: exercise),
+      ),
+    );
+  }
+}
+
+class _BodyPartWorkoutCard extends StatelessWidget {
+  final _Exercise exercise;
+
+  const _BodyPartWorkoutCard({Key? key, required this.exercise})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(exercise.title)),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -341,5 +358,3 @@ class ArmExerciseDetail extends StatelessWidget {
     );
   }
 }
-
-

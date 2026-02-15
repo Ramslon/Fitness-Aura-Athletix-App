@@ -132,10 +132,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   Future<void> _prefillFromLastRecord() async {
     try {
       final records = await StorageService().loadExerciseRecords();
-      final matching = records
-          .where((r) => r.exerciseName == widget.exerciseName)
-          .toList()
-        ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
+      final matching =
+          records.where((r) => r.exerciseName == widget.exerciseName).toList()
+            ..sort((a, b) => b.dateRecorded.compareTo(a.dateRecorded));
       if (matching.isEmpty) return;
       if (!mounted) return;
 
@@ -179,8 +178,8 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
 
         if (!usesWeight) {
           if (last.timeUnderTensionSeconds != null) {
-            _timeUnderTensionController.text =
-                last.timeUnderTensionSeconds.toString();
+            _timeUnderTensionController.text = last.timeUnderTensionSeconds
+                .toString();
           }
           _tempoController.text = last.tempo ?? '';
           _difficultyVariationController.text = last.difficultyVariation ?? '';
@@ -198,11 +197,13 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             if (usesWeight) {
               final current =
                   double.tryParse(_setWeightControllers[idx].text) ??
-                      last.effectiveWeightKg;
-              _setWeightControllers[idx].text =
-                  (current + 2.5).toStringAsFixed(1);
+                  last.effectiveWeightKg;
+              _setWeightControllers[idx].text = (current + 2.5).toStringAsFixed(
+                1,
+              );
             } else {
-              final current = int.tryParse(_setRepsControllers[idx].text) ??
+              final current =
+                  int.tryParse(_setRepsControllers[idx].text) ??
                   last.repsPerSet;
               _setRepsControllers[idx].text = (current + 1).toString();
             }
@@ -241,10 +242,12 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   Future<void> _saveExercise() async {
     final existingRecords = await StorageService().loadExerciseRecords();
     final previousForExercise = existingRecords
-      .where((r) =>
-        r.exerciseName == widget.exerciseName &&
-        r.bodyPart == widget.bodyPart)
-      .toList();
+        .where(
+          (r) =>
+              r.exerciseName == widget.exerciseName &&
+              r.bodyPart == widget.bodyPart,
+        )
+        .toList();
 
     final sets = _parsedSetsClamped();
     final restTime = int.tryParse(_restTimeController.text) ?? 60;
@@ -272,7 +275,8 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     } else {
       final weights = <double>[];
       for (var i = 0; i < sets; i++) {
-        final w = double.tryParse(_setWeightControllers[i].text) ??
+        final w =
+            double.tryParse(_setWeightControllers[i].text) ??
             (double.tryParse(_weightController.text) ?? 0.0);
         weights.add(w);
       }
@@ -308,12 +312,15 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
       timeUnderTensionSeconds: _usesWeight
           ? null
           : (timeUnderTensionSeconds != null && timeUnderTensionSeconds > 0
-            ? timeUnderTensionSeconds
-            : null),
+                ? timeUnderTensionSeconds
+                : null),
       tempo: _usesWeight ? null : (tempo.isEmpty ? null : tempo),
-      difficultyVariation:
-          _usesWeight ? null : (difficultyVariation.isEmpty ? null : difficultyVariation),
-      tags: _selectedTags.isEmpty ? null : _selectedTags.toList(growable: false),
+      difficultyVariation: _usesWeight
+          ? null
+          : (difficultyVariation.isEmpty ? null : difficultyVariation),
+      tags: _selectedTags.isEmpty
+          ? null
+          : _selectedTags.toList(growable: false),
       restTime: restTime,
       difficulty: _difficulty,
       notes: notes.isEmpty ? null : notes,
@@ -366,8 +373,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
         _setWeightControllers[i].text = _setWeightControllers[i - 1].text;
       }
       _setRepsControllers[index + 1].text = _setRepsControllers[index].text;
-      _setWeightControllers[index + 1].text =
-          _setWeightControllers[index].text;
+      _setWeightControllers[index + 1].text = _setWeightControllers[index].text;
       _sets = (sets + 1).clamp(1, _maxSets);
       if (_suggestedSetIndex != null && _suggestedSetIndex! >= index + 1) {
         _suggestedSetIndex = _suggestedSetIndex! + 1;
@@ -378,9 +384,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   void _copyLastSet() {
     final sets = _parsedSetsClamped();
     if (sets >= _maxSets) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum is 5 sets.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Maximum is 5 sets.')));
       return;
     }
 
@@ -397,9 +403,9 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   @override
   Widget build(BuildContext context) {
     final sets = _parsedSetsClamped();
-    final dateLabel = MaterialLocalizations.of(context).formatMediumDate(
-      _performedOn,
-    );
+    final dateLabel = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(_performedOn);
 
     return AlertDialog(
       title: Text('Log ${widget.exerciseName}'),
@@ -436,13 +442,10 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                 labelText: 'Sets',
                 border: OutlineInputBorder(),
               ),
-              items: List<DropdownMenuItem<int>>.generate(
-                _maxSets,
-                (i) {
-                  final v = i + 1;
-                  return DropdownMenuItem<int>(value: v, child: Text('$v'));
-                },
-              ),
+              items: List<DropdownMenuItem<int>>.generate(_maxSets, (i) {
+                final v = i + 1;
+                return DropdownMenuItem<int>(value: v, child: Text('$v'));
+              }),
               onChanged: (value) {
                 setState(() {
                   _sets = (value ?? 3).clamp(1, _maxSets);
@@ -470,22 +473,24 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _tagOptions.map((tag) {
-                final selected = _selectedTags.contains(tag);
-                return FilterChip(
-                  label: Text(tag),
-                  selected: selected,
-                  onSelected: (v) {
-                    setState(() {
-                      if (v) {
-                        _selectedTags.add(tag);
-                      } else {
-                        _selectedTags.remove(tag);
-                      }
-                    });
-                  },
-                );
-              }).toList(growable: false),
+              children: _tagOptions
+                  .map((tag) {
+                    final selected = _selectedTags.contains(tag);
+                    return FilterChip(
+                      label: Text(tag),
+                      selected: selected,
+                      onSelected: (v) {
+                        setState(() {
+                          if (v) {
+                            _selectedTags.add(tag);
+                          } else {
+                            _selectedTags.remove(tag);
+                          }
+                        });
+                      },
+                    );
+                  })
+                  .toList(growable: false),
             ),
             const SizedBox(height: 12),
 
@@ -551,8 +556,8 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
                               controller: _setWeightControllers[i],
                               keyboardType:
                                   const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                                    decimal: true,
+                                  ),
                               decoration: InputDecoration(
                                 labelText: suggested
                                     ? 'Set ${i + 1} kg (suggested)'
