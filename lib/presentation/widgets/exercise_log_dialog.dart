@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_insights.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/pr_celebration_dialog.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
 import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
+import 'package:fitness_aura_athletix/services/pr_celebration_service.dart';
 
 class ExerciseLogDialog extends StatefulWidget {
   final String exerciseName;
@@ -237,6 +239,13 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
   }
 
   Future<void> _saveExercise() async {
+    final existingRecords = await StorageService().loadExerciseRecords();
+    final previousForExercise = existingRecords
+      .where((r) =>
+        r.exerciseName == widget.exerciseName &&
+        r.bodyPart == widget.bodyPart)
+      .toList();
+
     final sets = _parsedSetsClamped();
     final restTime = int.tryParse(_restTimeController.text) ?? 60;
     final notes = _notesController.text.trim();
@@ -316,6 +325,15 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
     DailyWorkoutAnalysisEngine.invalidateCache();
     await WorkoutSessionService.instance.markExerciseLogged(record.bodyPart);
     if (!mounted) return;
+
+    final celebrate = PrCelebrationService.isNewPr(
+      current: record,
+      previous: previousForExercise,
+    );
+    if (celebrate) {
+      await showPrCelebrationDialog(context);
+      if (!mounted) return;
+    }
 
     Navigator.pop<int>(context, restTime);
   }

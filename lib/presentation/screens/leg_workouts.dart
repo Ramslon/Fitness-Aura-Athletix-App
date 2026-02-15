@@ -7,6 +7,7 @@ import 'package:fitness_aura_athletix/presentation/widgets/muscle_fatigue_indica
 import 'package:fitness_aura_athletix/presentation/widgets/simple_progress_summary_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/warmup_recommendations_card.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
+import 'package:fitness_aura_athletix/services/exercise_form_tips_service.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
 
@@ -299,6 +300,28 @@ class LegExerciseDetail extends StatelessWidget {
                   Text(
                     exercise.description,
                     style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                      title: const Text(
+                        'Tip',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: const Text('Form cue for this exercise'),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          child: Text(
+                            ExerciseFormTipsService.tipFor(
+                              exerciseId: exercise.id,
+                              title: exercise.title,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(

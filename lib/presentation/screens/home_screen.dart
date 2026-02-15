@@ -5,6 +5,10 @@ import 'package:fitness_aura_athletix/routes/app_route.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 import 'package:fitness_aura_athletix/services/workout_session_service.dart';
+import 'package:fitness_aura_athletix/services/pinned_workouts_service.dart';
+import 'package:fitness_aura_athletix/services/smart_reminder_service.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/weekly_checkin_card.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/plate_calculator_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _mostImprovedMuscle = 'N/A';
   String _weakestMuscle = 'N/A';
   int _strengthTrends = 0; // Number of exercises with improvements
+  List<String> _pinnedWorkouts = const [];
+  SmartReminder? _smartReminder;
+  double _weeklyVolumePercent = 0;
+  String _recoveryLabel = 'Moderate';
 
   final Map<String, _BodyPartCardStats> _bodyPartStats = {};
 
@@ -36,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final week = await StorageService().workoutsThisWeek();
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
     final overload = await StorageService().getProgressiveOverloadMetrics();
-    await StorageService().loadEntries();
+    final entries = await StorageService().loadEntries();
 
     // Per-body-part card stats for workout categories.
     final bodyParts = <String>[
@@ -111,6 +119,43 @@ class _HomeScreenState extends State<HomeScreen> {
     // Calculate consistency: workouts this week / ideal workouts (assume 5 ideal per week)
     double consistency = week > 0 ? (week / 5.0 * 100).clamp(0, 100) : 0;
 
+    final totalVolumeThisWeek = normalized.values.fold<double>(
+      0,
+      (sum, s) => sum + s.volumeThisWeek,
+    );
+    final totalVolumePrevWeek = normalized.values.fold<double>(
+      0,
+      (sum, s) => sum + s.volumePrevWeek,
+    );
+    final weeklyVolumePercent = totalVolumePrevWeek <= 0
+        ? (totalVolumeThisWeek > 0 ? 100.0 : 0.0)
+        : ((totalVolumeThisWeek - totalVolumePrevWeek) /
+                  totalVolumePrevWeek *
+                  100)
+              .clamp(-100, 300)
+              .toDouble();
+
+    entries.sort((a, b) => b.date.compareTo(a.date));
+    final recoveryLabel = entries.isEmpty
+        ? 'Moderate'
+        : (() {
+            final days = DateTime.now()
+                .difference(
+                  DateTime(
+                    entries.first.date.year,
+                    entries.first.date.month,
+                    entries.first.date.day,
+                  ),
+                )
+                .inDays;
+            if (days <= 1) return 'Good';
+            if (days <= 3) return 'Moderate';
+            return 'High';
+          })();
+
+    final pinned = await PinnedWorkoutsService.getPinnedWorkouts();
+    final smartReminder = await SmartReminderService.getReminder();
+
     // Find most improved muscle (most volume increase)
     String mostImproved = 'N/A';
     if (overload.isNotEmpty) {
@@ -143,6 +188,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _strengthTrends = overload
           .where((m) => m.hasWeightIncrease || m.hasRepIncrease)
           .length;
+      _weeklyVolumePercent = weeklyVolumePercent;
+      _recoveryLabel = recoveryLabel;
+      _pinnedWorkouts = pinned;
+      _smartReminder = smartReminder;
       _bodyPartStats
         ..clear()
         ..addAll(normalized);
@@ -167,6 +216,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+
+  Future<void> _togglePinnedWorkout(String bodyPart) async {
+    if (_pinnedWorkouts.contains(bodyPart)) {
+      await PinnedWorkoutsService.unpinWorkout(bodyPart);
+    } else {
+      await PinnedWorkoutsService.pinWorkout(bodyPart);
+    }
+    final latest = await PinnedWorkoutsService.getPinnedWorkouts();
+    if (!mounted) return;
+    setState(() {
+      _pinnedWorkouts = latest;
+    });
+  }
+
+  _FeatureCard? _featureForBodyPart(String bodyPart, List<_FeatureCard> features) {
+    for (final f in features) {
+      if (f.kind == _FeatureKind.bodyPart && f.bodyPart == bodyPart) {
+        return f;
+      }
+    }
+    return null;
+  }
 
   void _openBodyPartHistorySheet(
     BuildContext context,
@@ -494,6 +565,62 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const _WelcomeHeader(),
           const SizedBox(height: 12),
+          if (!_loading && _smartReminder != null) ...[
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: const Text(
+                  'Smart Reminder',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(_smartReminder!.message),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (!_loading)
+            WeeklyCheckinCard(
+              workoutsThisWeek: _thisWeek,
+              weeklyGoal: 5,
+              volumePercent: _weeklyVolumePercent,
+              recoveryLabel: _recoveryLabel,
+            ),
+          const SizedBox(height: 12),
+          if (!_loading && _pinnedWorkouts.isNotEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '⭐ Pinned Workouts',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _pinnedWorkouts.map((bodyPart) {
+                        final feature = _featureForBodyPart(bodyPart, features);
+                        if (feature == null) return const SizedBox.shrink();
+                        return FilledButton.tonalIcon(
+                          onPressed: () => _navigateAndRefresh(
+                            feature.route,
+                            context,
+                            bodyPart: feature.bodyPart,
+                          ),
+                          icon: Icon(_iconForBodyPart(bodyPart), size: 18),
+                          label: Text(bodyPart),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           // Quick summary cards
           Row(
             children: [
@@ -580,6 +707,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 AppRoutes.dailyWorkoutAnalysis,
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.calculate_outlined),
+              title: const Text(
+                'Plate Calculator',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Get barbell plate breakdown for your target weight',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.70),
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showPlateCalculatorSheet(context),
             ),
           ),
           const SizedBox(height: 12),
@@ -724,6 +869,10 @@ class _HomeScreenState extends State<HomeScreen> {
               return _FeatureCardWidget(
                 feature: feature,
                 bodyPartStats: stats,
+                isPinned: bodyPart != null && _pinnedWorkouts.contains(bodyPart),
+                onTogglePin: bodyPart == null
+                    ? null
+                    : () => _togglePinnedWorkout(bodyPart),
                 onTap: () => _navigateAndRefresh(
                   feature.route,
                   context,
@@ -880,12 +1029,16 @@ class _BodyPartCardStats {
 class _FeatureCardWidget extends StatelessWidget {
   final _FeatureCard feature;
   final _BodyPartCardStats? bodyPartStats;
+  final bool isPinned;
+  final VoidCallback? onTogglePin;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
   const _FeatureCardWidget({
     required this.feature,
     required this.bodyPartStats,
+    required this.isPinned,
+    required this.onTogglePin,
     required this.onTap,
     required this.onLongPress,
   });
@@ -915,6 +1068,8 @@ class _FeatureCardWidget extends StatelessWidget {
         title: feature.bodyPart ?? feature.title,
         accent: feature.color,
         stats: bodyPartStats,
+        isPinned: isPinned,
+        onTogglePin: onTogglePin,
         onPrimaryAction: onTap,
       );
     } else {
@@ -984,12 +1139,16 @@ class _BodyPartWorkoutCard extends StatelessWidget {
   final String title;
   final Color accent;
   final _BodyPartCardStats? stats;
+  final bool isPinned;
+  final VoidCallback? onTogglePin;
   final VoidCallback onPrimaryAction;
 
   const _BodyPartWorkoutCard({
     required this.title,
     required this.accent,
     required this.stats,
+    required this.isPinned,
+    required this.onTogglePin,
     required this.onPrimaryAction,
   });
 
@@ -1057,13 +1216,33 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.06),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
-              child: Text(
-                '$pct%',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: scheme.onSurface.withValues(alpha: 0.92),
-                  fontSize: 12,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onTogglePin != null)
+                    InkWell(
+                      onTap: onTogglePin,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Icon(
+                          isPinned ? Icons.star : Icons.star_border,
+                          size: 16,
+                          color: isPinned
+                              ? Colors.amber.shade400
+                              : scheme.onSurface.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    '$pct%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.onSurface.withValues(alpha: 0.92),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1094,7 +1273,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
+                ),
               ),
             ),
             _TrendPill(trend: trend, accent: accent),
