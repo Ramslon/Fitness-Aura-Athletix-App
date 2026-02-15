@@ -15,8 +15,92 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
   static const int _monthlyKes = 50;
   static const int _annualKes = 100;
 
+  static final List<_PremiumFeature> _premiumFeatures = [
+    const _PremiumFeature(
+      title: 'AI Coaching',
+      subtitle: 'Plateaus, deloads, weak-points.',
+      details:
+          'Get intelligent training recommendations based on your history, recovery trend, and recent performance.',
+      icon: Icons.auto_awesome_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Advanced Analytics',
+      subtitle: 'Long-term trends & insights.',
+      details:
+          'Unlock deeper charts and trend breakdowns over weeks and months so you can spot stalls and growth patterns quickly.',
+      icon: Icons.insights_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Smart Programs',
+      subtitle: 'Adaptive splits & updates.',
+      details:
+          'Receive adaptive program updates that adjust your split and weekly workload as your progress changes.',
+      icon: Icons.route_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Form Analysis',
+      subtitle: 'Coming soon (Phase 2+).',
+      details:
+          'Upcoming premium capability for deeper movement-quality feedback and corrective guidance.',
+      icon: Icons.videocam_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Unlimited History',
+      subtitle: 'Export CSV/PDF.',
+      details:
+          'Keep full long-term training history with richer export options for coaching reviews and personal archives.',
+      icon: Icons.history_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Cloud Backup',
+      subtitle: 'Sync across devices.',
+      details:
+          'Back up your data and sync workout progress reliably across supported devices.',
+      icon: Icons.cloud_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Advanced PRs & Goals',
+      subtitle: '1RM, ratios, projections.',
+      details:
+          'Track advanced personal records and projected milestones with richer performance indicators.',
+      icon: Icons.emoji_events_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Smart Reminders',
+      subtitle: 'Recovery-aware nudges.',
+      details:
+          'Receive personalized reminders tuned to your training rhythm and recovery profile.',
+      icon: Icons.notifications_active_outlined,
+    ),
+    const _PremiumFeature(
+      title: 'Premium Perks',
+      subtitle: 'Themes, templates, filters.',
+      details:
+          'Access extra customization options and premium-only workflow shortcuts.',
+      icon: Icons.tune_outlined,
+    ),
+  ];
+
   _Plan _plan = _Plan.monthly;
   bool _startingTrial = false;
+  bool _premiumActive = false;
+  DateTime? _trialUntil;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccessState();
+  }
+
+  Future<void> _loadAccessState() async {
+    final active = await PremiumAccessService().isPremiumActive();
+    final trialUntil = await PremiumAccessService().trialUntil();
+    if (!mounted) return;
+    setState(() {
+      _premiumActive = active;
+      _trialUntil = trialUntil;
+    });
+  }
 
   int get _selectedKes {
     switch (_plan) {
@@ -34,8 +118,123 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
     await PremiumAccessService().startFreeTrial(days: 7);
     if (!mounted) return;
     setState(() => _startingTrial = false);
+    await _loadAccessState();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('7-day free trial started.')),
+    );
+  }
+
+  String _trialUntilLabel(DateTime date) {
+    final d = date;
+    final month = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$day/$month/${d.year}';
+  }
+
+  void _openFeatureDetails(_PremiumFeature feature) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(feature.icon, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        feature.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _premiumActive ? Icons.lock_open : Icons.lock,
+                      size: 18,
+                      color: _premiumActive
+                          ? Colors.green
+                          : scheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  feature.details,
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: 0.80),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_premiumActive)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.green.withValues(alpha: 0.12),
+                    ),
+                    child: Text(
+                      _trialUntil != null && DateTime.now().isBefore(_trialUntil!)
+                          ? 'Unlocked via free trial until ${_trialUntilLabel(_trialUntil!)}'
+                          : 'Unlocked with Premium access',
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: scheme.errorContainer.withValues(alpha: 0.45),
+                    ),
+                    child: const Text(
+                      'Locked. Start the 7-day free trial or subscribe to unlock this feature.',
+                    ),
+                  ),
+                const SizedBox(height: 14),
+                if (!_premiumActive)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        if (_plan == _Plan.freeTrial) {
+                          _startTrial();
+                        } else {
+                          _startPremium();
+                        }
+                      },
+                      icon: Icon(
+                        _plan == _Plan.freeTrial
+                            ? Icons.timer_outlined
+                            : Icons.workspace_premium,
+                      ),
+                      label: Text(
+                        _plan == _Plan.freeTrial
+                            ? 'Start 7-day free trial'
+                            : 'Unlock with Premium',
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -80,6 +279,29 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
           ),
           const SizedBox(height: 16),
 
+          Card(
+            child: ListTile(
+              leading: Icon(
+                _premiumActive ? Icons.lock_open : Icons.lock_outline,
+                color: _premiumActive ? Colors.green : scheme.primary,
+              ),
+              title: Text(
+                _premiumActive ? 'Premium is active' : 'Premium is locked',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                _premiumActive &&
+                        _trialUntil != null &&
+                        DateTime.now().isBefore(_trialUntil!)
+                    ? 'Free trial active until ${_trialUntilLabel(_trialUntil!)}'
+                    : _premiumActive
+                        ? 'Paid premium is active on this account'
+                        : 'Choose free trial or premium plan below to unlock features',
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // FREE vs PREMIUM separation
           Text(
             'FREE (Must Stay Free)',
@@ -123,53 +345,17 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: const [
-              _PremiumFeatureCard(
-                title: 'AI Coaching',
-                subtitle: 'Plateaus, deloads, weak-points.',
-                icon: Icons.auto_awesome_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Advanced Analytics',
-                subtitle: 'Long-term trends & insights.',
-                icon: Icons.insights_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Smart Programs',
-                subtitle: 'Adaptive splits & updates.',
-                icon: Icons.route_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Form Analysis',
-                subtitle: 'Coming soon (Phase 2+).',
-                icon: Icons.videocam_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Unlimited History',
-                subtitle: 'Export CSV/PDF.',
-                icon: Icons.history_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Cloud Backup',
-                subtitle: 'Sync across devices.',
-                icon: Icons.cloud_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Advanced PRs & Goals',
-                subtitle: '1RM, ratios, projections.',
-                icon: Icons.emoji_events_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Smart Reminders',
-                subtitle: 'Recovery-aware nudges.',
-                icon: Icons.notifications_active_outlined,
-              ),
-              _PremiumFeatureCard(
-                title: 'Premium Perks',
-                subtitle: 'Themes, templates, filters.',
-                icon: Icons.tune_outlined,
-              ),
-            ],
+            children: _premiumFeatures
+                .map(
+                  (feature) => _PremiumFeatureCard(
+                    title: feature.title,
+                    subtitle: feature.subtitle,
+                    icon: feature.icon,
+                    unlocked: _premiumActive,
+                    onTap: () => _openFeatureDetails(feature),
+                  ),
+                )
+                .toList(growable: false),
           ),
           const SizedBox(height: 18),
 
@@ -274,7 +460,11 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                 : const Icon(Icons.timer_outlined),
-                            label: const Text('Start 7-day free trial'),
+                            label: Text(
+                              _premiumActive
+                                  ? 'Trial/Premium already active'
+                                  : 'Start 7-day free trial',
+                            ),
                             onPressed: _startingTrial ? null : _startTrial,
                           )
                         : ElevatedButton.icon(
@@ -323,11 +513,15 @@ class _PremiumFeatureCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final bool unlocked;
+  final VoidCallback onTap;
 
   const _PremiumFeatureCard({
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.unlocked,
+    required this.onTap,
   });
 
   @override
@@ -338,42 +532,74 @@ class _PremiumFeatureCard extends StatelessWidget {
 
     return SizedBox(
       width: w.clamp(160, 340),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.12),
-              blurRadius: 18,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: scheme.primary),
-                    const Spacer(),
-                    Icon(Icons.lock, size: 18, color: scheme.onSurface.withValues(alpha: 0.55)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.70)),
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  spreadRadius: 1,
                 ),
               ],
+            ),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(icon, color: scheme.primary),
+                        const Spacer(),
+                        Icon(
+                          unlocked ? Icons.lock_open : Icons.lock,
+                          size: 18,
+                          color: unlocked
+                              ? Colors.green
+                              : scheme.onSurface.withValues(alpha: 0.55),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: scheme.onSurface.withValues(alpha: 0.70),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _PremiumFeature {
+  final String title;
+  final String subtitle;
+  final String details;
+  final IconData icon;
+
+  const _PremiumFeature({
+    required this.title,
+    required this.subtitle,
+    required this.details,
+    required this.icon,
+  });
 }
