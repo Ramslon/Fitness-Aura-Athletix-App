@@ -9,11 +9,20 @@ class SmartReminder {
 }
 
 class SmartReminderService {
+  static const String _customReminderEnabledKey = 'reminder_custom_enabled';
+  static const String _customReminderHourKey = 'reminder_custom_hour';
+
   static Future<SmartReminder?> getReminder() async {
     final enabled = await data.StorageService().loadBoolSetting(
       'notifications_enabled',
     );
     if (enabled == false) return null;
+
+    final customEnabled =
+        await data.StorageService().loadBoolSetting(_customReminderEnabledKey);
+    final customHourRaw =
+        await data.StorageService().loadStringSetting(_customReminderHourKey);
+    final customHour = int.tryParse(customHourRaw ?? '');
 
     final entries = await data.StorageService().loadEntries();
     if (entries.isEmpty) return null;
@@ -25,11 +34,15 @@ class SmartReminderService {
     }
 
     int? bestHour;
-    var bestCount = 0;
-    for (final e in hourCount.entries) {
-      if (e.value > bestCount) {
-        bestCount = e.value;
-        bestHour = e.key;
+    if (customEnabled == true && customHour != null) {
+      bestHour = customHour.clamp(0, 23);
+    } else {
+      var bestCount = 0;
+      for (final e in hourCount.entries) {
+        if (e.value > bestCount) {
+          bestCount = e.value;
+          bestHour = e.key;
+        }
       }
     }
 
@@ -42,7 +55,9 @@ class SmartReminderService {
 
     final nowHour = DateTime.now().hour;
     final nearHabit = (nowHour - bestHour).abs() <= 1;
-    final lead = nearHabit
+    final lead = customEnabled == true
+      ? 'Reminder set for ${_hourLabel(bestHour)}.'
+      : nearHabit
         ? 'You usually train at ${_hourLabel(bestHour)}.'
         : 'Your usual training time is ${_hourLabel(bestHour)}.';
 

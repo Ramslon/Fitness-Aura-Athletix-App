@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -18,9 +17,15 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const String _customReminderEnabledKey =
+      'reminder_custom_enabled';
+  static const String _customReminderHourKey = 'reminder_custom_hour';
+
   final _apiController = TextEditingController();
   final _endpointController = TextEditingController();
   bool _notifications = true;
+  bool _customReminderEnabled = false;
+  int _customReminderHour = 18;
   String _theme = 'system';
   bool _loading = true;
 
@@ -46,11 +51,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final notifications = await StorageService().loadBoolSetting(
       'notifications_enabled',
     );
+    final customEnabled =
+        await StorageService().loadBoolSetting(_customReminderEnabledKey);
+    final customHourRaw =
+        await StorageService().loadStringSetting(_customReminderHourKey);
+    final customHour = int.tryParse(customHourRaw ?? '') ?? 18;
     final themeMode = ThemeSettingsService().themeMode;
     setState(() {
       _apiController.text = api ?? '';
       _endpointController.text = endpoint ?? '';
       _notifications = notifications ?? true;
+      _customReminderEnabled = customEnabled ?? false;
+      _customReminderHour = customHour.clamp(0, 23);
       _theme = _themeLabel(themeMode);
       _loading = false;
     });
@@ -78,6 +90,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveNotificationSetting(bool v) async {
     await StorageService().saveBoolSetting('notifications_enabled', v);
     setState(() => _notifications = v);
+  }
+
+  Future<void> _saveCustomReminderEnabled(bool v) async {
+    await StorageService().saveBoolSetting(_customReminderEnabledKey, v);
+    setState(() => _customReminderEnabled = v);
+  }
+
+  Future<void> _pickCustomReminderTime() async {
+    final initial = TimeOfDay(hour: _customReminderHour, minute: 0);
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: 'Pick reminder time',
+    );
+    if (selected == null) return;
+
+    await StorageService().saveStringSetting(
+      _customReminderHourKey,
+      selected.hour.toString(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _customReminderHour = selected.hour;
+    });
+  }
+
+  String _hourLabel(int hour24) {
+    final suffix = hour24 >= 12 ? 'PM' : 'AM';
+    final h = hour24 % 12 == 0 ? 12 : hour24 % 12;
+    return '$h:00 $suffix';
   }
 
   Future<void> _saveTheme(String mode) async {
@@ -232,6 +275,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Notifications'),
                   value: _notifications,
                   onChanged: _saveNotificationSetting,
+                ),
+                SwitchListTile(
+                  title: const Text('Custom reminder time'),
+                  subtitle: const Text('Use your chosen hour instead of auto-detect'),
+                  value: _customReminderEnabled,
+                  onChanged: _notifications
+                      ? _saveCustomReminderEnabled
+                      : null,
+                ),
+                ListTile(
+                  enabled: _notifications && _customReminderEnabled,
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Reminder time'),
+                  subtitle: Text(_hourLabel(_customReminderHour)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _notifications && _customReminderEnabled
+                      ? _pickCustomReminderTime
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 Row(
