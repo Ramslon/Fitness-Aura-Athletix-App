@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
@@ -117,15 +117,15 @@ class AbsWorkouts extends StatefulWidget {
       setsReps: '30s \u2022 Warm-up',
     ),
     _Exercise(
+      id: 'hanging_leg_raises',
+      title: 'Hanging Leg Raises',
+      description:
+          'Perform leg raises from a bar to heavily target lower abs and hip flexors.',
+      image: null,
+      setsReps: '10-15 reps \u2022 Core',
+    ),
+    _Exercise(
       id: 'crossover_crunch',
-        _Exercise(
-          id: 'hanging_leg_raises',
-          title: 'Hanging Leg Raises',
-          description:
-              'Perform leg raises from a bar to heavily target lower abs and hip flexors.',
-          image: null,
-          setsReps: '10-15 reps • Core',
-        ),
       title: 'Crossover Crunch',
       description: 'Crunch across the body to emphasize the obliques.',
       image: null,
