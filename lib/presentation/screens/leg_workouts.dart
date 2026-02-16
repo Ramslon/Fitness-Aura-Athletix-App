@@ -110,6 +110,101 @@ class LegWorkouts extends StatefulWidget {
       image: 'assets/images/leg_glute_bridges.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
+    _Exercise(
+      id: 'donkey_kickbacks',
+      title: 'Donkey Kickbacks',
+      description:
+          'Bodyweight kickback variation to isolate and activate the glutes.',
+      image: 'assets/images/leg_donkey_kickbacks.png',
+      setsReps: '1–5 sets x 12-20 reps per side',
+    ),
+    _Exercise(
+      id: 'fire_hydrant',
+      title: 'Fire Hydrant',
+      description:
+          'Glute medius focused movement to improve hip stability and shape.',
+      image: 'assets/images/leg_fire_hydrant.png',
+      setsReps: '1–5 sets x 12-20 reps per side',
+    ),
+    _Exercise(
+      id: 'bodyweight_squat',
+      title: 'Bodyweight Squats',
+      description:
+          'Foundational squat pattern for glute and lower-body endurance.',
+      image: 'assets/images/leg_bodyweight_squat.png',
+      setsReps: '1–5 sets x 15-25 reps',
+    ),
+    _Exercise(
+      id: 'step_ups',
+      title: 'Step-Ups',
+      description:
+          'Unilateral movement that targets glutes while improving balance.',
+      image: 'assets/images/leg_step_ups.png',
+      setsReps: '1–5 sets x 10-12 reps per leg',
+    ),
+    _Exercise(
+      id: 'hip_thrusts',
+      title: 'Hip Thrusts',
+      description:
+          'Hip thrust variation focused on glute power and full lockout.',
+      image: 'assets/images/leg_hip_thrusts.png',
+      setsReps: '1–5 sets x 10-15 reps',
+    ),
+    _Exercise(
+      id: 'walking_lunges',
+      title: 'Walking Lunges',
+      description:
+          'Dynamic lunge variation for glute, quad, and balance development.',
+      image: 'assets/images/leg_walking_lunges.png',
+      setsReps: '1–5 sets x 10-14 steps per leg',
+    ),
+    _Exercise(
+      id: 'single_leg_glute_bridge',
+      title: 'Single Leg Glute Bridge',
+      description:
+          'Single-leg bridge variation to strengthen each glute independently.',
+      image: 'assets/images/leg_single_leg_glute_bridge.png',
+      setsReps: '1–5 sets x 10-15 reps per side',
+    ),
+    _Exercise(
+      id: 'squat_pulse',
+      title: 'Squat Pulse',
+      description:
+          'High-tension squat pulse for glute burn and lower-body endurance.',
+      image: 'assets/images/leg_squat_pulse.png',
+      setsReps: '1–5 sets x 15-30 pulses',
+    ),
+    _Exercise(
+      id: 'barbell_hip_thrust',
+      title: 'Barbell Hip Thrust',
+      description:
+          'Loaded hip thrust for maximal glute strength and hypertrophy.',
+      image: 'assets/images/leg_barbell_hip_thrust.png',
+      setsReps: '1–5 sets x 6-12 reps',
+    ),
+    _Exercise(
+      id: 'sumo_squat_glute',
+      title: 'Sumo Squat',
+      description: 'Wide-stance squat emphasizing glutes and inner thighs.',
+      image: 'assets/images/leg_sumo_squat_glute.png',
+      setsReps: '1–5 sets x 10-15 reps',
+    ),
+    _Exercise(
+      id: 'weighted_step_ups',
+      title: 'Weighted Step-Ups',
+      description:
+          'Loaded step-up progression for glute strength and unilateral control.',
+      image: 'assets/images/leg_weighted_step_ups.png',
+      setsReps: '1–5 sets x 8-12 reps per leg',
+    ),
+    _Exercise(
+      id: 'crusty_lunges',
+      title: 'Crusty Lunges',
+      description:
+          'Lunge variation that challenges glute control and lower-body stability.',
+      image: 'assets/images/leg_crusty_lunges.png',
+      setsReps: '1–5 sets x 10-12 reps per leg',
+    ),
 
     // Calves
     _Exercise(
@@ -290,8 +385,6 @@ class _Exercise {
     required this.setsReps,
   });
 }
-
-// ...existing code...
 
 class LegExerciseDetail extends StatelessWidget {
   final _Exercise exercise;
