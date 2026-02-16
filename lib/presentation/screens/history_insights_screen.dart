@@ -174,22 +174,24 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: _tagOptions.map((tag) {
-        final selected = _selectedExerciseTags.contains(tag);
-        return FilterChip(
-          label: Text(tag),
-          selected: selected,
-          onSelected: (v) {
-            setState(() {
-              if (v) {
-                _selectedExerciseTags.add(tag);
-              } else {
-                _selectedExerciseTags.remove(tag);
-              }
-            });
-          },
-        );
-      }).toList(growable: false),
+      children: _tagOptions
+          .map((tag) {
+            final selected = _selectedExerciseTags.contains(tag);
+            return FilterChip(
+              label: Text(tag),
+              selected: selected,
+              onSelected: (v) {
+                setState(() {
+                  if (v) {
+                    _selectedExerciseTags.add(tag);
+                  } else {
+                    _selectedExerciseTags.remove(tag);
+                  }
+                });
+              },
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -475,162 +477,6 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     );
   }
 
-  List<Widget> _buildLast7Bars() {
-    final entries = _last7DaysWorkoutCounts.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    final maxCount = entries
-        .map((e) => e.value)
-        .fold<int>(0, (p, c) => c > p ? c : p);
-
-    final now = DateTime.now();
-    final labels = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: 6 - i));
-      return DateFormat('E').format(d);
-    });
-
-    return List.generate(entries.length, (i) {
-      final count = entries[i].value;
-      final height = maxCount == 0 ? 8.0 : (8.0 + (120.0 * (count / maxCount)));
-      return Expanded(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('$count', style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 6),
-            Container(
-              width: 18,
-              height: height,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(labels[i], style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildSummaryTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          children: [
-            Expanded(child: _metricCard('Total Workouts', '$_totalWorkouts')),
-            const SizedBox(width: 12),
-            Expanded(child: _metricCard('Total Minutes', '$_totalMinutes min')),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _metricCard(
-                'Current Streak',
-                '$_streak days',
-                color: Theme.of(
-                  context,
-                ).colorScheme.tertiary.withValues(alpha: 0.12),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _metricCard(
-                'This Week',
-                '$_thisWeek workouts',
-                color: Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.12),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Last 7 Days',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: _buildLast7Bars(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Workout History',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '${_entries.length} total',
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.65),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _entries.isEmpty
-                    ? const Center(child: Text('No workout history yet.'))
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _entries.length.clamp(0, 25),
-                        itemBuilder: (context, i) {
-                          final ordered = _entries.toList()
-                            ..sort((a, b) => b.date.compareTo(a.date));
-                          final e = ordered[i];
-                          return ListTile(
-                            leading: const Icon(Icons.fitness_center),
-                            title: Text(
-                              '${e.workoutType} — ${e.durationMinutes} min',
-                            ),
-                            subtitle: Text(
-                              DateFormat('yyyy-MM-dd').format(e.date),
-                            ),
-                          );
-                        },
-                      ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _loadAll,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Refresh'),
-        ),
-      ],
-    );
-  }
-
   Widget _buildCalendarTab() {
     final selected = _selectedDay ?? _normalizeDay(DateTime.now());
     final dayWorkouts = _workoutsForDay(selected);
@@ -793,8 +639,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                         ),
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading:
-                              const Icon(Icons.bolt, color: Colors.orange),
+                          leading: const Icon(Icons.bolt, color: Colors.orange),
                           title: Text(
                             '${r.exerciseName} — ${r.weight.toStringAsFixed(1)} kg',
                           ),
@@ -820,8 +665,9 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete Record?'),
-          content:
-              Text('Permanently delete this record for ${record.exerciseName}?'),
+          content: Text(
+            'Permanently delete this record for ${record.exerciseName}?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -838,34 +684,15 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
 
     if (confirmed == true && mounted) {
       await StorageService().deleteExerciseRecord(record.id);
-      await DailyWorkoutAnalysisEngine.invalidateCache(
-        reason: 'Exercise record deleted',
-      );
+      DailyWorkoutAnalysisEngine.invalidateCache();
       await _loadAll();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Record deleted.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Record deleted.')));
       }
     }
-  }
-
-  Widget _metricCard(String title, String value, {Color? color}) {
-    return Card(
-      color: color,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 18)),
-          ],
-        ),
-      ),
-    );
   }
 
   List<Widget> _buildLast7Bars() {
@@ -1019,189 +846,6 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
           onPressed: _loadAll,
           icon: const Icon(Icons.refresh),
           label: const Text('Refresh'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCalendarTab() {
-    final selected = _selectedDay ?? _normalizeDay(DateTime.now());
-    final dayWorkouts = _workoutsForDay(selected);
-    final dayExercises = _exerciseForDay(selected);
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TableCalendar<_DayEvent>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2100, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => _normalizeDay(day) == selected,
-              eventLoader: _getEventsForDay,
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = _normalizeDay(selectedDay);
-                  _focusedDay = focusedDay;
-                });
-              },
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.65),
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              calendarBuilders: CalendarBuilders(
-                markerBuilder: (context, day, events) {
-                  if (events.isEmpty) return null;
-
-                  final workouts = events
-                      .where((e) => e.kind == _DayEventKind.workout)
-                      .length;
-                  final exercises = events
-                      .where((e) => e.kind == _DayEventKind.exercise)
-                      .length;
-
-                  final dots = <Widget>[];
-                  if (workouts > 0) {
-                    dots.add(
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    );
-                  }
-                  if (exercises > 0) {
-                    dots.add(
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 36),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: dots
-                          .map(
-                            (w) => Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 1.5,
-                              ),
-                              child: w,
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      DateFormat('yyyy-MM-dd').format(selected),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: [
-                        _LegendDot(color: Colors.blue, label: 'Workouts'),
-                        const SizedBox(width: 8),
-                        _LegendDot(color: Colors.orange, label: 'Exercises'),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (dayWorkouts.isEmpty && dayExercises.isEmpty)
-                  const Text('No activity logged for this day.')
-                else ...[
-                  if (dayWorkouts.isNotEmpty) ...[
-                    const Text(
-                      'Workouts',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    ...dayWorkouts.map((e) {
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.fitness_center,
-                          color: Colors.blue,
-                        ),
-                        title: Text(
-                          '${e.workoutType} — ${e.durationMinutes} min',
-                        ),
-                        subtitle: e.notes == null || e.notes!.trim().isEmpty
-                            ? null
-                            : Text(e.notes!),
-                      );
-                    }),
-                    const Divider(),
-                  ],
-                  if (dayExercises.isNotEmpty) ...[
-                    const Text(
-                      'Exercises',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    ...dayExercises.map((r) {
-                      return Dismissible(
-                        key: Key(r.id),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (_) => _deleteRecord(r),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20.0),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading:
-                              const Icon(Icons.bolt, color: Colors.orange),
-                          title: Text(
-                            '${r.exerciseName} — ${r.weight.toStringAsFixed(1)} kg',
-                          ),
-                          subtitle: Text(
-                            '${DateFormat('yyyy-MM-dd').format(r.dateRecorded)} • ${r.sets} x ${r.repsPerSet} • ${r.bodyPart} • ${r.difficulty}',
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ],
-              ],
-            ),
-          ),
         ),
       ],
     );
@@ -1235,6 +879,10 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
             child: _MovementHistorySheet(
               movementName: movementName,
               records: records,
+              onDelete: (record) async {
+                Navigator.pop(context);
+                await _deleteRecord(record);
+              },
             ),
           ),
         );
@@ -1271,15 +919,16 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
           const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
-              child: Text(
-                'No exercise records match selected tags yet.',
-              ),
+              child: Text('No exercise records match selected tags yet.'),
             ),
           )
         else
-          Expanded(
-            child: ListView.builder(
+          Card(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: movements.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, i) {
                 final name = movements[i];
                 final count = _exerciseRecords
@@ -1433,13 +1082,6 @@ class _MovementHistorySheet extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Exercise tag filters',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildTagFilters(),
-        const SizedBox(height: 12),
         const SizedBox(height: 12),
         if (records.isEmpty)
           const Center(child: Text('No records for this movement yet.'))
@@ -1465,7 +1107,7 @@ class _MovementHistorySheet extends StatelessWidget {
                       '${r.weight.toStringAsFixed(1)} kg — ${r.sets} x ${r.repsPerSet}',
                     ),
                     subtitle: Text(
-                      '${DateFormat('yyyy-MM-dd').format(r.dateRecorded)} • ${r.difficulty}',
+                      '${dateFmt.format(r.dateRecorded)} • ${r.difficulty}',
                     ),
                   ),
                 );
