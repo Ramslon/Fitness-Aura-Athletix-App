@@ -278,12 +278,9 @@ class _BodyPartWorkoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(exercise.title)),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
             SizedBox(
               height: 240,
               child: LocalImagePlaceholder(
@@ -369,8 +366,6 @@ class _BodyPartWorkoutCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
     );
   }
 }

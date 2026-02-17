@@ -409,10 +409,12 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
 
     return AlertDialog(
       title: Text('Log ${widget.exerciseName}'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.9,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             OutlinedButton.icon(
               onPressed: _pickPerformedOnDate,
               icon: const Icon(Icons.calendar_today),
@@ -645,6 +647,7 @@ class _ExerciseLogDialogState extends State<ExerciseLogDialog> {
           ],
         ),
       ),
+        ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
