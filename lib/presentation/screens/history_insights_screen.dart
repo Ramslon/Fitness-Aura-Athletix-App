@@ -1058,63 +1058,66 @@ class _MovementHistorySheet extends StatelessWidget {
 
     final latest = records.isNotEmpty ? records.first : null;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          movementName,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            Chip(label: Text('${records.length} logs')),
-            Chip(label: Text('Best: ${bestWeight.toStringAsFixed(1)} kg')),
-            if (latest != null)
-              Chip(
-                label: Text(
-                  'Latest: ${dateFmt.format(latest.dateRecorded)} • ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const SizedBox(height: 12),
-        if (records.isEmpty)
-          const Center(child: Text('No records for this movement yet.'))
-        else
-          Expanded(
-            child: ListView.builder(
-              itemCount: records.length,
-              itemBuilder: (context, i) {
-                final r = records[i];
-                return Dismissible(
-                  key: Key(r.id),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (_) => onDelete?.call(r),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20.0),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.bar_chart),
-                    title: Text(
-                      '${r.weight.toStringAsFixed(1)} kg — ${r.sets} x ${r.repsPerSet}',
-                    ),
-                    subtitle: Text(
-                      '${dateFmt.format(r.dateRecorded)} • ${r.difficulty}',
-                    ),
-                  ),
-                );
-              },
-            ),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            movementName,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-      ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(label: Text('${records.length} logs')),
+              Chip(label: Text('Best: ${bestWeight.toStringAsFixed(1)} kg')),
+              if (latest != null)
+                Chip(
+                  label: Text(
+                    'Latest: ${dateFmt.format(latest.dateRecorded)} • ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (records.isEmpty)
+            const Expanded(
+              child: Center(child: Text('No records for this movement yet.')),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: records.length,
+                itemBuilder: (context, i) {
+                  final r = records[i];
+                  return Dismissible(
+                    key: Key(r.id),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (_) => onDelete?.call(r),
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20.0),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.bar_chart),
+                      title: Text(
+                        '${r.weight.toStringAsFixed(1)} kg — ${r.sets} x ${r.repsPerSet}',
+                      ),
+                      subtitle: Text(
+                        '${dateFmt.format(r.dateRecorded)} • ${r.difficulty}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
