@@ -95,6 +95,21 @@ class LegWorkouts extends StatefulWidget {
       setsReps: '1–5 sets x 10-15 reps',
     ),
     _Exercise(
+      id: 'leg_press_calves',
+      title: 'Leg Press Calves',
+      description:
+          'Leg press calf raises to load calves with controlled range of motion.',
+      image: 'assets/images/leg_press_calves.png',
+      setsReps: '1–5 sets x 12-20 reps',
+    ),
+    _Exercise(
+      id: 'leg_press',
+      title: 'Leg Press',
+      description: 'Machine leg press for quad-focused lower body strength.',
+      image: 'assets/images/leg_press.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
+    _Exercise(
       id: 'hamstring_curls',
       title: 'Hamstring Curls',
       description: 'Machine or swiss ball hamstring curls for posterior chain.',
@@ -238,6 +253,14 @@ class LegWorkouts extends StatefulWidget {
           'Unilateral calf raises to improve balance, control, and side-to-side symmetry.',
       image: 'assets/images/leg_single_leg_calf_raises.png',
       setsReps: '1–5 sets x 10-15 reps per side',
+    ),
+    _Exercise(
+      id: 'barbell_squat_calves',
+      title: 'Barbell Squat Calves',
+      description:
+          'Calf-focused movement performed with barbell-loaded squat positioning.',
+      image: 'assets/images/leg_barbell_squat_calves.png',
+      setsReps: '1–5 sets x 10-15 reps',
     ),
   ];
 }

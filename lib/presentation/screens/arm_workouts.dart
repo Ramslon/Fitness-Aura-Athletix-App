@@ -91,6 +91,22 @@ class ArmWorkouts extends StatefulWidget {
       image: 'assets/images/arm_skull_crusher.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
+    _Exercise(
+      id: 'overhand_triceps_pushdowns',
+      title: 'Overhand Triceps Pushdowns',
+      description:
+          'Cable pushdown with overhand grip to target triceps control and lockout.',
+      image: 'assets/images/arm_overhand_triceps_pushdowns.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
+    _Exercise(
+      id: 'underhand_triceps_pushdown',
+      title: 'Underhand Triceps Pushdown',
+      description:
+          'Underhand grip pushdown variation to bias triceps through a different angle.',
+      image: 'assets/images/arm_underhand_triceps_pushdown.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
   ];
 }
 
