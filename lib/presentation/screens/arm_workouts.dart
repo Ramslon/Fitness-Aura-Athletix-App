@@ -107,6 +107,64 @@ class ArmWorkouts extends StatefulWidget {
       image: 'assets/images/arm_underhand_triceps_pushdown.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
+
+    // Forearms
+    _Exercise(
+      id: 'farmers_walk',
+      title: 'Farmers Walk',
+      description: 'Loaded carry to build grip, forearm endurance, and stability.',
+      image: 'assets/images/arm_farmers_walk.png',
+      setsReps: '1–5 sets x 20-60 sec',
+    ),
+    _Exercise(
+      id: 'barbell_suitcase_hold',
+      title: 'Barbell Suitcase Hold',
+      description: 'Unilateral loaded hold to challenge grip and anti-lateral flexion.',
+      image: 'assets/images/arm_barbell_suitcase_hold.png',
+      setsReps: '1–5 sets x 20-45 sec each side',
+    ),
+    _Exercise(
+      id: 'thick_bar_reverse_curls',
+      title: 'Thick Bar Reverse Curls',
+      description: 'Reverse curls with a thick grip to emphasize forearms and brachioradialis.',
+      image: 'assets/images/arm_thick_bar_reverse_curls.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
+    _Exercise(
+      id: 'static_barbell_holds',
+      title: 'Static Barbell Holds',
+      description: 'Time-based holds for maximal grip strength and forearm tension.',
+      image: 'assets/images/arm_static_barbell_holds.png',
+      setsReps: '1–5 sets x 20-60 sec',
+    ),
+    _Exercise(
+      id: 'seated_wrist_curls',
+      title: 'Seated Wrist Curls',
+      description: 'Controlled wrist flexion to target the forearm flexors.',
+      image: 'assets/images/arm_seated_wrist_curls.png',
+      setsReps: '1–5 sets x 12-20 reps',
+    ),
+    _Exercise(
+      id: 'reverse_barbell_curls',
+      title: 'Reverse Barbell Curls',
+      description: 'Pronated curl variation to target brachioradialis and forearms.',
+      image: 'assets/images/arm_reverse_barbell_curls.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
+    _Exercise(
+      id: 'zottman_curls',
+      title: 'Zottman Curls',
+      description: 'Curl and controlled rotation combo for biceps and forearms.',
+      image: 'assets/images/arm_zottman_curls.png',
+      setsReps: '1–5 sets x 8-12 reps',
+    ),
+    _Exercise(
+      id: 'behind_the_back_wrist_curls',
+      title: 'Behind the Back Wrist Curls',
+      description: 'Behind-the-back wrist flexion to isolate forearm flexors.',
+      image: 'assets/images/arm_behind_the_back_wrist_curls.png',
+      setsReps: '1–5 sets x 12-20 reps',
+    ),
   ];
 }
 
