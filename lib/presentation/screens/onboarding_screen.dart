@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
+import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'dart:convert';
 
 // NOTE: This file uses `shared_preferences` for local persistence. Add
@@ -8,10 +9,18 @@ import 'dart:convert';
 // then import the package and uncomment the save code.
 // import 'package:shared_preferences/shared_preferences.dart';
 
+/// Key used to persist / load onboarding profile data via StorageService.
+const _kOnboardingDataKey = 'onboarding_profile_v1';
+
 class OnboardingScreen extends StatefulWidget {
   static const routeName = '/onboarding-details';
 
-  const OnboardingScreen({Key? key}) : super(key: key);
+  /// When [isEditMode] is true the screen pre-fills from storage and shows
+  /// "Save Changes" instead of "Save and Continue", and navigates back on
+  /// success rather than replacing the navigation stack.
+  final bool isEditMode;
+
+  const OnboardingScreen({Key? key, this.isEditMode = false}) : super(key: key);
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -202,6 +211,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _useMetric = true;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.isEditMode) {
+      _loadSavedProfile();
+    }
+  }
+
+  Future<void> _loadSavedProfile() async {
+    final raw =
+        await StorageService().loadStringSetting(_kOnboardingDataKey);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final data = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      setState(() {
+        _nameController.text = (data['name'] as String?) ?? '';
+        _ageController.text =
+            (data['age'] != null) ? data['age'].toString() : '';
+        _gender = (data['gender'] as String?) ?? _gender;
+        _goal = (data['goal'] as String?) ?? _goal;
+        _experience = (data['experience'] as String?) ?? _experience;
+        _preferredTime =
+            (data['preferredTime'] as String?) ?? _preferredTime;
+        _useMetric = (data['useMetric'] as bool?) ?? _useMetric;
+        _heightController.text = (data['height'] as String?) ?? '';
+        _weightController.text = (data['weight'] as String?) ?? '';
+        if (data['days'] is List) {
+          final savedDays = List<String>.from(data['days'] as List);
+          _days = {
+            for (final d in _days.keys) d: savedDays.contains(d),
+          };
+        }
+      });
+    } catch (_) {
+      // Corrupted data — start fresh.
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _ageController.dispose();
@@ -227,17 +274,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'createdAt': DateTime.now().toIso8601String(),
     };
 
-    // Persisting locally requires `shared_preferences`. If you add the
-    // dependency, uncomment the import at top and the lines below.
-    // final prefs = await SharedPreferences.getInstance();
-    // await prefs.setString('onboarding_data', jsonEncode(data));
+    // Persist locally via StorageService so edits survive restart.
+    await StorageService()
+        .saveStringSetting(_kOnboardingDataKey, jsonEncode(data));
 
-    // For now, simply show a confirmation and navigate to home.
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Onboarding saved locally')));
+    if (!mounted) return;
 
-    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(widget.isEditMode
+            ? 'Fitness profile updated'
+            : 'Onboarding saved locally'),
+      ),
+    );
+
+    if (widget.isEditMode) {
+      Navigator.of(context).pop(); // go back to Settings
+    } else {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    }
   }
 
   Widget _buildDaysChips() {
@@ -257,7 +312,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Onboarding')),
+      appBar: AppBar(title: Text(widget.isEditMode ? 'Update Fitness Profile' : 'Onboarding')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -398,9 +453,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _saveOnboarding,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14.0),
-                      child: Text('Save and Continue'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                      child: Text(widget.isEditMode
+                          ? 'Save Changes'
+                          : 'Save and Continue'),
                     ),
                   ),
                 ),

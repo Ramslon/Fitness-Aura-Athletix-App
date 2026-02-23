@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:fitness_aura_athletix/services/ai_gym_workout_plan.dart';
 import 'package:fitness_aura_athletix/services/theme_settings_service.dart';
 import 'package:fitness_aura_athletix/presentation/screens/privacy_settings_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
+import 'package:fitness_aura_athletix/presentation/screens/onboarding_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -257,6 +259,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.fitness_center),
+                  title: const Text('Update Fitness Profile'),
+                  subtitle: const Text('Edit your onboarding info'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const OnboardingScreen(isEditMode: true),
+                    ),
+                  ),
+                ),
+                const _FitnessProgressBanner(),
+                ListTile(
                   leading: const Icon(Icons.lock),
                   title: const Text('Privacy & Security'),
                   onTap: () => Navigator.of(context).push(
@@ -375,6 +389,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _FitnessProgressBanner extends StatefulWidget {
+  const _FitnessProgressBanner();
+
+  @override
+  State<_FitnessProgressBanner> createState() => _FitnessProgressBannerState();
+}
+
+class _FitnessProgressBannerState extends State<_FitnessProgressBanner> {
+  static const String _kOnboardingDataKey = 'onboarding_profile_v1';
+
+  bool _loading = true;
+  bool _show = false;
+  String _targetLevel = 'Intermediate';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerState();
+  }
+
+  Future<void> _loadBannerState() async {
+    final storage = StorageService();
+    final entries = await storage.loadEntries();
+    final weeklyWorkouts = await storage.workoutsThisWeek();
+    final streak = await storage.currentStreak();
+
+    String currentLevel = 'Beginner';
+    final raw = await storage.loadStringSetting(_kOnboardingDataKey);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+        currentLevel = (map['experience'] as String?) ?? currentLevel;
+      } catch (_) {}
+    }
+
+    final normalized = currentLevel.toLowerCase();
+    final improvedSignal = entries.length >= 20 || weeklyWorkouts >= 4 || streak >= 7;
+    final shouldSuggest = improvedSignal && normalized == 'beginner';
+
+    if (!mounted) return;
+    setState(() {
+      _show = shouldSuggest;
+      _targetLevel = 'Intermediate';
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading || !_show) return const SizedBox.shrink();
+
+    return Card(
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'You\'ve improved a lot 💪',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Want to update your level to $_targetLevel?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const OnboardingScreen(isEditMode: true),
+                  ),
+                ),
+                child: const Text('Update Now'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
