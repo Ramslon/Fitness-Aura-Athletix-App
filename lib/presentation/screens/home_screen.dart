@@ -18,6 +18,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const String _aiSuggestionsEnabledKey = 'ai_suggestions_enabled';
+
   int _streak = 0;
   int _thisWeek = 0;
   bool _loading = true;
@@ -29,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   SmartReminder? _smartReminder;
   double _weeklyVolumePercent = 0;
   String _recoveryLabel = 'Moderate';
+  bool _aiSuggestionsEnabled = true;
 
   final Map<String, _BodyPartCardStats> _bodyPartStats = {};
 
@@ -45,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
     final overload = await StorageService().getProgressiveOverloadMetrics();
     final entries = await StorageService().loadEntries();
+    final aiEnabled =
+        await StorageService().loadBoolSetting(_aiSuggestionsEnabledKey);
 
     // Per-body-part card stats for workout categories.
     final bodyParts = <String>[
@@ -190,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .length;
       _weeklyVolumePercent = weeklyVolumePercent;
       _recoveryLabel = recoveryLabel;
+      _aiSuggestionsEnabled = aiEnabled ?? true;
       _pinnedWorkouts = pinned;
       _smartReminder = smartReminder;
       _bodyPartStats
@@ -476,14 +482,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       // Analysis & premium
-      _FeatureCard(
-        title: 'Daily Workout Analysis',
-        description:
-            'AI-driven analysis comparing performance to recommendations with improvement tips.',
-        icon: Icons.analytics,
-        color: Colors.green.shade400,
-        route: AppRoutes.dailyWorkoutAnalysis,
-      ),
+      if (_aiSuggestionsEnabled)
+        _FeatureCard(
+          title: 'Daily Workout Analysis',
+          description:
+              'AI-driven analysis comparing performance to recommendations with improvement tips.',
+          icon: Icons.analytics,
+          color: Colors.green.shade400,
+          route: AppRoutes.dailyWorkoutAnalysis,
+        ),
       _FeatureCard(
         title: 'Goal-Based Tracking',
         description:
@@ -692,25 +699,29 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           // Keep Home fast: don't compute & render the latest analysis preview here.
           // Provide a lightweight entry card instead.
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.analytics_outlined),
-              title: const Text(
-                'Daily Workout Analysis',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                'Open your latest insights and trends',
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.70),
+          if (_aiSuggestionsEnabled) ...[
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.analytics_outlined),
+                title: const Text(
+                  'Daily Workout Analysis',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Open your latest insights and trends',
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: 0.70),
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.dailyWorkoutAnalysis,
                 ),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.dailyWorkoutAnalysis),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           Card(
             child: ListTile(
               leading: const Icon(Icons.calculate_outlined),

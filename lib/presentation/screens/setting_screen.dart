@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
-import 'package:fitness_aura_athletix/services/ai_gym_workout_plan.dart';
 import 'package:fitness_aura_athletix/services/theme_settings_service.dart';
 import 'package:fitness_aura_athletix/presentation/screens/privacy_settings_screen.dart';
 import 'package:fitness_aura_athletix/presentation/screens/profile_screen.dart';
@@ -22,13 +21,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const String _customReminderEnabledKey =
       'reminder_custom_enabled';
   static const String _customReminderHourKey = 'reminder_custom_hour';
+  static const String _aiSuggestionsEnabledKey = 'ai_suggestions_enabled';
 
-  final _apiController = TextEditingController();
-  final _endpointController = TextEditingController();
   bool _notifications = true;
   bool _customReminderEnabled = false;
   int _customReminderHour = 18;
   String _theme = 'system';
+  bool _aiSuggestionsEnabled = true;
   bool _loading = true;
 
   @override
@@ -38,18 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    // API key and endpoint stored securely when available. Fall back to
-    // non-secure settings if secure values are not present (for older installs).
-    final apiSecure = await StorageService().loadSecureString('llm_api_key');
-    final endpointSecure = await StorageService().loadSecureString(
-      'llm_endpoint',
-    );
-    final apiFallback = await StorageService().loadStringSetting('llm_api_key');
-    final endpointFallback = await StorageService().loadStringSetting(
-      'llm_endpoint',
-    );
-    final api = apiSecure ?? apiFallback;
-    final endpoint = endpointSecure ?? endpointFallback;
     final notifications = await StorageService().loadBoolSetting(
       'notifications_enabled',
     );
@@ -58,35 +45,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final customHourRaw =
         await StorageService().loadStringSetting(_customReminderHourKey);
     final customHour = int.tryParse(customHourRaw ?? '') ?? 18;
+    final aiEnabled =
+        await StorageService().loadBoolSetting(_aiSuggestionsEnabledKey);
     final themeMode = ThemeSettingsService().themeMode;
     setState(() {
-      _apiController.text = api ?? '';
-      _endpointController.text = endpoint ?? '';
       _notifications = notifications ?? true;
       _customReminderEnabled = customEnabled ?? false;
       _customReminderHour = customHour.clamp(0, 23);
+      _aiSuggestionsEnabled = aiEnabled ?? true;
       _theme = _themeLabel(themeMode);
       _loading = false;
     });
-  }
-
-  Future<void> _saveLlMSettings() async {
-    // Save API key and endpoint into secure storage.
-    await StorageService().saveSecureString(
-      'llm_api_key',
-      _apiController.text.trim(),
-    );
-    await StorageService().saveSecureString(
-      'llm_endpoint',
-      _endpointController.text.trim(),
-    );
-    AiGymWorkoutPlan().configure(
-      apiKey: _apiController.text.trim(),
-      endpoint: _endpointController.text.trim(),
-    );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('AI settings saved')));
   }
 
   Future<void> _saveNotificationSetting(bool v) async {
@@ -97,6 +66,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveCustomReminderEnabled(bool v) async {
     await StorageService().saveBoolSetting(_customReminderEnabledKey, v);
     setState(() => _customReminderEnabled = v);
+  }
+
+  Future<void> _saveAiSuggestionsEnabled(bool v) async {
+    await StorageService().saveBoolSetting(_aiSuggestionsEnabledKey, v);
+    setState(() => _aiSuggestionsEnabled = v);
   }
 
   Future<void> _pickCustomReminderTime() async {
@@ -212,8 +186,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _apiController.dispose();
-    _endpointController.dispose();
     super.dispose();
   }
 
@@ -226,31 +198,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'AI Integration',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _apiController,
-                  decoration: const InputDecoration(
-                    labelText: 'API Key (optional)',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _endpointController,
-                  decoration: const InputDecoration(
-                    labelText: 'Endpoint (optional)',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _saveLlMSettings,
-                  child: const Text('Save AI Settings'),
-                ),
-                const Divider(height: 30),
-
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text('Profile'),
@@ -270,6 +217,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const _FitnessProgressBanner(),
+                SwitchListTile(
+                  title: const Text('Enable AI Suggestions'),
+                  subtitle: const Text(
+                    'Shows AI-driven insights in Home and analysis screens.',
+                  ),
+                  value: _aiSuggestionsEnabled,
+                  onChanged: _saveAiSuggestionsEnabled,
+                ),
                 ListTile(
                   leading: const Icon(Icons.lock),
                   title: const Text('Privacy & Security'),
@@ -402,6 +357,8 @@ class _FitnessProgressBanner extends StatefulWidget {
 
 class _FitnessProgressBannerState extends State<_FitnessProgressBanner> {
   static const String _kOnboardingDataKey = 'onboarding_profile_v1';
+  static const String _kBannerDismissedKey =
+      'fitness_progress_banner_dismissed';
 
   bool _loading = true;
   bool _show = false;
@@ -418,6 +375,8 @@ class _FitnessProgressBannerState extends State<_FitnessProgressBanner> {
     final entries = await storage.loadEntries();
     final weeklyWorkouts = await storage.workoutsThisWeek();
     final streak = await storage.currentStreak();
+    final dismissed =
+        await storage.loadBoolSetting(_kBannerDismissedKey) ?? false;
 
     String currentLevel = 'Beginner';
     final raw = await storage.loadStringSetting(_kOnboardingDataKey);
@@ -430,7 +389,12 @@ class _FitnessProgressBannerState extends State<_FitnessProgressBanner> {
 
     final normalized = currentLevel.toLowerCase();
     final improvedSignal = entries.length >= 20 || weeklyWorkouts >= 4 || streak >= 7;
-    final shouldSuggest = improvedSignal && normalized == 'beginner';
+    final shouldSuggest =
+        improvedSignal && normalized == 'beginner' && !dismissed;
+
+    if (normalized != 'beginner' && !dismissed) {
+      await storage.saveBoolSetting(_kBannerDismissedKey, true);
+    }
 
     if (!mounted) return;
     setState(() {
@@ -464,11 +428,14 @@ class _FitnessProgressBannerState extends State<_FitnessProgressBanner> {
             Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const OnboardingScreen(isEditMode: true),
-                  ),
-                ),
+                onPressed: () => Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const OnboardingScreen(isEditMode: true),
+                      ),
+                    )
+                    .then((_) => _loadBannerState()),
                 child: const Text('Update Now'),
               ),
             ),
