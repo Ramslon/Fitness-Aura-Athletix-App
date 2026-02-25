@@ -48,8 +48,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final muscleFreq = await StorageService().getMuscleGroupFrequency();
     final overload = await StorageService().getProgressiveOverloadMetrics();
     final entries = await StorageService().loadEntries();
-    final aiEnabled =
-        await StorageService().loadBoolSetting(_aiSuggestionsEnabledKey);
+    final aiEnabled = await StorageService().loadBoolSetting(
+      _aiSuggestionsEnabledKey,
+    );
 
     // Per-body-part card stats for workout categories.
     final bodyParts = <String>[
@@ -1307,7 +1308,6 @@ class _BodyPartWorkoutCard extends StatelessWidget {
         // Bottom Section — Action
         SizedBox(
           width: double.infinity,
-          height: 16,
           child: ElevatedButton(
             onPressed: onPrimaryAction,
             style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
