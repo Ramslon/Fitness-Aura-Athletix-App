@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
+import 'package:fitness_aura_athletix/core/models/workout_history_summary.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -49,7 +50,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
   ];
 
   // Summary
-  Map<String, int> _last7DaysWorkoutCounts = {};
+  Map<DateTime, int> _last7DaysWorkoutCounts = {};
 
   @override
   void initState() {
@@ -71,8 +72,10 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     final storage = StorageService();
     final entries = await storage.loadEntries();
     final records = await storage.loadExerciseRecords();
-    final streak = await storage.currentStreak();
-    final week = await storage.workoutsThisWeek();
+    final summary = WorkoutHistorySummary(
+      workoutDates: entries.map((entry) => entry.date),
+      exerciseRecordDates: records.map((record) => record.dateRecorded),
+    );
 
     final events = <DateTime, List<_DayEvent>>{};
 
@@ -88,42 +91,24 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
       events[day]!.add(_DayEvent.exercise(r));
     }
 
-    // Last 7 days workout counts (for summary chart)
-    final now = DateTime.now();
-    final last7 = List.generate(7, (i) {
-      final d = _normalizeDay(now.subtract(Duration(days: 6 - i)));
-      return d;
-    });
-
-    final counts = <String, int>{};
-    for (final d in last7) {
-      counts[_dayKey(d)] = 0;
-    }
-    for (final e in entries) {
-      final d = _normalizeDay(e.date);
-      final k = _dayKey(d);
-      if (counts.containsKey(k)) counts[k] = (counts[k] ?? 0) + 1;
-    }
+    if (!mounted) return;
 
     setState(() {
       _entries = entries;
       _exerciseRecords = records;
-      _totalWorkouts = entries.length;
+      _totalWorkouts = summary.totalWorkoutCount;
       _totalMinutes = entries.fold<int>(0, (s, e) => s + e.durationMinutes);
-      _streak = streak;
-      _thisWeek = week;
+      _streak = summary.currentStreakDays;
+      _thisWeek = summary.workoutsThisWeek;
       _events
         ..clear()
         ..addAll(events);
-      _last7DaysWorkoutCounts = counts;
+      _last7DaysWorkoutCounts = summary.last7DayCounts;
       _loading = false;
     });
   }
 
   DateTime _normalizeDay(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  String _dayKey(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   List<_DayEvent> _getEventsForDay(DateTime day) {
     final d = _normalizeDay(day);
@@ -207,7 +192,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Export Data',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -330,9 +315,13 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
       final doc = pw.Document();
 
       final last7Rows = <List<String>>[];
-      final orderedKeys = _last7DaysWorkoutCounts.keys.toList()..sort();
+      final orderedKeys = _last7DaysWorkoutCounts.keys.toList()
+        ..sort((a, b) => a.compareTo(b));
       for (final k in orderedKeys) {
-        last7Rows.add([k, '${_last7DaysWorkoutCounts[k] ?? 0}']);
+        last7Rows.add([
+          dateFmt.format(k),
+          '${_last7DaysWorkoutCounts[k] ?? 0}',
+        ]);
       }
 
       final recentWorkouts = _entries.toList()
@@ -460,17 +449,62 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     }
   }
 
-  Widget _metricCard(String title, String value, {Color? color}) {
+  Widget _metricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color accent,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
-      color: color,
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: accent.withValues(alpha: 0.22)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(15),
+        child: Row(
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 18)),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: accent, size: 20),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -478,6 +512,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
   }
 
   Widget _buildCalendarTab() {
+    final scheme = Theme.of(context).colorScheme;
     final selected = _selectedDay ?? _normalizeDay(DateTime.now());
     final dayWorkouts = _workoutsForDay(selected);
     final dayExercises = _exerciseForDay(selected);
@@ -501,16 +536,21 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                 });
               },
               calendarStyle: CalendarStyle(
+                defaultTextStyle: TextStyle(color: scheme.onSurface),
+                weekendTextStyle: TextStyle(color: scheme.onSurfaceVariant),
+                outsideTextStyle: TextStyle(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
+                ),
                 todayDecoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.65),
+                  color: scheme.primaryContainer.withValues(alpha: 0.65),
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: scheme.primary,
                   shape: BoxShape.circle,
                 ),
+                todayTextStyle: TextStyle(color: scheme.onPrimaryContainer),
+                selectedTextStyle: TextStyle(color: scheme.onPrimary),
               ),
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
@@ -530,7 +570,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: scheme.primary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -542,7 +582,7 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondary,
+                          color: scheme.tertiary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -577,18 +617,23 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat('yyyy-MM-dd').format(selected),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      DateFormat('EEEE, MMM d, y').format(selected),
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    Row(
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
                       children: [
-                        _LegendDot(color: Colors.blue, label: 'Workouts'),
-                        const SizedBox(width: 8),
-                        _LegendDot(color: Colors.orange, label: 'Exercises'),
+                        _LegendDot(color: scheme.primary, label: 'Workouts'),
+                        _LegendDot(color: scheme.tertiary, label: 'Exercises'),
                       ],
                     ),
                   ],
@@ -598,17 +643,20 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                   const Text('No activity logged for this day.')
                 else ...[
                   if (dayWorkouts.isNotEmpty) ...[
-                    const Text(
+                    Text(
                       'Workouts',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     ...dayWorkouts.map((e) {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.fitness_center,
-                          color: Colors.blue,
+                        leading: Icon(
+                          Icons.fitness_center_rounded,
+                          color: scheme.primary,
                         ),
                         title: Text(
                           '${e.workoutType} — ${e.durationMinutes} min',
@@ -621,9 +669,12 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                     const Divider(),
                   ],
                   if (dayExercises.isNotEmpty) ...[
-                    const Text(
+                    Text(
                       'Exercises',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     ...dayExercises.map((r) {
@@ -632,14 +683,20 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                         direction: DismissDirection.endToStart,
                         onDismissed: (_) => _deleteRecord(r),
                         background: Container(
-                          color: Colors.red,
+                          color: scheme.error,
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20.0),
-                          child: const Icon(Icons.delete, color: Colors.white),
+                          child: Icon(
+                            Icons.delete_rounded,
+                            color: scheme.onError,
+                          ),
                         ),
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.bolt, color: Colors.orange),
+                          leading: Icon(
+                            Icons.bolt_rounded,
+                            color: scheme.tertiary,
+                          ),
                           title: Text(
                             '${r.exerciseName} — ${r.weight.toStringAsFixed(1)} kg',
                           ),
@@ -702,12 +759,6 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
         .map((e) => e.value)
         .fold<int>(0, (p, c) => c > p ? c : p);
 
-    final now = DateTime.now();
-    final labels = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: 6 - i));
-      return DateFormat('E').format(d);
-    });
-
     return List.generate(entries.length, (i) {
       final count = entries[i].value;
       final height = maxCount == 0 ? 8.0 : (8.0 + (120.0 * (count / maxCount)));
@@ -726,7 +777,10 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
               ),
             ),
             const SizedBox(height: 8),
-            Text(labels[i], style: const TextStyle(fontSize: 12)),
+            Text(
+              DateFormat('E').format(entries[i].key),
+              style: const TextStyle(fontSize: 12),
+            ),
           ],
         ),
       );
@@ -734,120 +788,221 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
   }
 
   Widget _buildSummaryTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
+    final scheme = Theme.of(context).colorScheme;
+    final orderedEntries = _entries.toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = 10.0;
+        final cardWidth = (constraints.maxWidth - spacing) / 2;
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           children: [
-            Expanded(child: _metricCard('Total Workouts', '$_totalWorkouts')),
-            const SizedBox(width: 12),
-            Expanded(child: _metricCard('Total Minutes', '$_totalMinutes min')),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _metricCard(
-                'Current Streak',
-                '$_streak days',
-                color: Theme.of(
-                  context,
-                ).colorScheme.tertiary.withValues(alpha: 0.12),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _metricCard(
-                'This Week',
-                '$_thisWeek workouts',
-                color: Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.12),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
               children: [
-                const Text(
-                  'Last 7 Days',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
                 SizedBox(
-                  height: 200,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: _buildLast7Bars(),
+                  width: cardWidth,
+                  child: _metricCard(
+                    title: 'Total workouts',
+                    value: '$_totalWorkouts',
+                    icon: Icons.fitness_center_rounded,
+                    accent: scheme.primary,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _metricCard(
+                    title: 'Training time',
+                    value: '$_totalMinutes min',
+                    icon: Icons.timer_outlined,
+                    accent: scheme.secondary,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _metricCard(
+                    title: 'Current streak',
+                    value: '$_streak days',
+                    icon: Icons.local_fire_department_rounded,
+                    accent: scheme.tertiary,
+                  ),
+                ),
+                SizedBox(
+                  width: cardWidth,
+                  child: _metricCard(
+                    title: 'This week',
+                    value: '$_thisWeek sessions',
+                    icon: Icons.calendar_view_week_rounded,
+                    accent: scheme.primary,
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 16),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Workout History',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
                     Text(
-                      '${_entries.length} total',
+                      'Training rhythm',
                       style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.65),
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Workout sessions over the last seven calendar days',
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 184,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: _buildLast7Bars(),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                _entries.isEmpty
-                    ? const Center(child: Text('No workout history yet.'))
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _entries.length.clamp(0, 25),
-                        itemBuilder: (context, i) {
-                          final ordered = _entries.toList()
-                            ..sort((a, b) => b.date.compareTo(a.date));
-                          final e = ordered[i];
-                          return ListTile(
-                            leading: const Icon(Icons.fitness_center),
-                            title: Text(
-                              '${e.workoutType} — ${e.durationMinutes} min',
-                            ),
-                            subtitle: Text(
-                              DateFormat('yyyy-MM-dd').format(e.date),
-                            ),
-                          );
-                        },
-                      ),
-              ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _loadAll,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Refresh'),
-        ),
-      ],
+            const SizedBox(height: 14),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Workout history',
+                            style: TextStyle(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            '${_entries.length} total',
+                            style: TextStyle(
+                              color: scheme.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (orderedEntries.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Text(
+                          'No workout history yet. Completed workouts will appear here.',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                      )
+                    else
+                      ...orderedEntries
+                          .take(25)
+                          .map(
+                            (entry) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: scheme.secondary.withValues(
+                                        alpha: 0.13,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      Icons.fitness_center_rounded,
+                                      color: scheme.secondary,
+                                      size: 19,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 11),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          entry.workoutType,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: scheme.onSurface,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          DateFormat(
+                                            'EEE, MMM d, y',
+                                          ).format(entry.date),
+                                          style: TextStyle(
+                                            color: scheme.onSurfaceVariant,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '${entry.durationMinutes} min',
+                                    style: TextStyle(
+                                      color: scheme.onSurface,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: _loading ? null : _loadAll,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Refresh history'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -891,39 +1046,102 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
   }
 
   Widget _buildMovementsTab() {
+    final scheme = Theme.of(context).colorScheme;
     final movements = _movementNames();
     final filteredExerciseCount = _exerciseRecords
         .where(_matchesSelectedTags)
         .length;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
-        const Text(
-          'Filter by tags',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        _buildTagFilters(),
-        const SizedBox(height: 12),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Search movement',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Find a movement',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$filteredExerciseCount exercise logs · filter by training tag or search',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Search movements',
+                    hintText: 'e.g. squat or bench press',
+                    prefixIcon: Icon(Icons.search_rounded),
+                  ),
+                  onChanged: (value) => setState(() => _movementQuery = value),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Training tags',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildTagFilters(),
+              ],
+            ),
           ),
-          onChanged: (v) => setState(() => _movementQuery = v),
         ),
         const SizedBox(height: 12),
         if (filteredExerciseCount == 0)
-          const Center(
+          Card(
+            margin: EdgeInsets.zero,
             child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('No exercise records match selected tags yet.'),
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.search_off_rounded,
+                    color: scheme.onSurfaceVariant,
+                    size: 30,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No exercise records match these tags yet.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else if (movements.isEmpty)
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'No movements match “${_movementQuery.trim()}”. Try another search.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
             ),
           )
         else
           Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -940,10 +1158,35 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                     .where(_matchesSelectedTags)
                     .length;
                 return ListTile(
-                  leading: const Icon(Icons.sports_gymnastics),
-                  title: Text(name),
-                  subtitle: Text('$count logged sets'),
-                  trailing: const Icon(Icons.chevron_right),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 3,
+                  ),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      Icons.fitness_center_rounded,
+                      color: scheme.primary,
+                      size: 19,
+                    ),
+                  ),
+                  title: Text(
+                    name,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text('$count session logs'),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   onTap: () => _openMovementHistory(name),
                 );
               },
@@ -981,13 +1224,18 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCalendarTab(),
-                _buildMovementsTab(),
-                _buildSummaryTab(),
-              ],
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildCalendarTab(),
+                    _buildMovementsTab(),
+                    _buildSummaryTab(),
+                  ],
+                ),
+              ),
             ),
     );
   }
@@ -1048,6 +1296,7 @@ class _MovementHistorySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final dateFmt = DateFormat('yyyy-MM-dd');
 
     double bestWeight = 0;
@@ -1059,38 +1308,55 @@ class _MovementHistorySheet extends StatelessWidget {
     final latest = records.isNotEmpty ? records.first : null;
 
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.7,
+      height: MediaQuery.of(context).size.height * 0.76,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             movementName,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              Chip(label: Text('${records.length} logs')),
-              Chip(label: Text('Best: ${bestWeight.toStringAsFixed(1)} kg')),
+              _MovementStatChip(
+                icon: Icons.list_alt_rounded,
+                label: '${records.length} logs',
+              ),
+              _MovementStatChip(
+                icon: Icons.emoji_events_outlined,
+                label: 'Best ${bestWeight.toStringAsFixed(1)} kg',
+              ),
               if (latest != null)
-                Chip(
-                  label: Text(
-                    'Latest: ${dateFmt.format(latest.dateRecorded)} • ${latest.weightLabel} • ${latest.sets}x${latest.repsPerSet}',
-                  ),
+                _MovementStatChip(
+                  icon: Icons.schedule_rounded,
+                  label:
+                      'Latest ${dateFmt.format(latest.dateRecorded)} · ${latest.weightLabel}',
                 ),
             ],
           ),
           const SizedBox(height: 12),
           if (records.isEmpty)
-            const Expanded(
-              child: Center(child: Text('No records for this movement yet.')),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'No records for this movement yet.',
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+              ),
             )
           else
             Expanded(
-              child: ListView.builder(
+              child: ListView.separated(
                 itemCount: records.length,
+                separatorBuilder: (_, __) => Divider(
+                  color: scheme.outlineVariant.withValues(alpha: 0.45),
+                ),
                 itemBuilder: (context, i) {
                   final r = records[i];
                   return Dismissible(
@@ -1098,24 +1364,84 @@ class _MovementHistorySheet extends StatelessWidget {
                     direction: DismissDirection.endToStart,
                     onDismissed: (_) => onDelete?.call(r),
                     background: Container(
-                      color: Colors.red,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: scheme.errorContainer,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20.0),
-                      child: const Icon(Icons.delete, color: Colors.white),
+                      padding: const EdgeInsets.only(right: 20),
+                      child: Icon(
+                        Icons.delete_rounded,
+                        color: scheme.onErrorContainer,
+                      ),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.bar_chart),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 2,
+                      ),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Icon(
+                          Icons.bar_chart_rounded,
+                          color: scheme.primary,
+                        ),
+                      ),
                       title: Text(
-                        '${r.weight.toStringAsFixed(1)} kg — ${r.sets} x ${r.repsPerSet}',
+                        '${r.weight.toStringAsFixed(1)} kg · ${r.sets} × ${r.repsPerSet}',
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       subtitle: Text(
-                        '${dateFmt.format(r.dateRecorded)} • ${r.difficulty}',
+                        '${dateFmt.format(r.dateRecorded)} · ${r.difficulty}',
                       ),
                     ),
                   );
                 },
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovementStatChip extends StatelessWidget {
+  const _MovementStatChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

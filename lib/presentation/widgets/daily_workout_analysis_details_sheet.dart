@@ -45,7 +45,9 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           color: theme.cardTheme.color ?? theme.cardColor,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.55),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +101,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                     width: 56,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: scheme.onSurface.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -108,7 +110,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
 
                 // Header summary
                 section(
-                  '1️⃣ Workout Summary',
+                  'Workout summary',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -125,19 +127,26 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                         spacing: 10,
                         runSpacing: 8,
                         children: [
-                          _pill(context, '⏱ ${analysis.durationMinutes} min'),
                           _pill(
                             context,
-                            '✅ ${analysis.exercisesCompleted} exercises',
+                            Icons.timer_outlined,
+                            '${analysis.durationMinutes} min',
                           ),
                           _pill(
                             context,
-                            '🏋️ ${analysis.totalVolume.toStringAsFixed(0)} kg vol',
+                            Icons.fitness_center_rounded,
+                            '${analysis.exercisesCompleted} exercises',
+                          ),
+                          _pill(
+                            context,
+                            Icons.monitor_weight_outlined,
+                            '${analysis.totalVolume.toStringAsFixed(0)} kg volume',
                           ),
                           if (analysis.caloriesBurned != null)
                             _pill(
                               context,
-                              '🔥 ${analysis.caloriesBurned} kcal',
+                              Icons.local_fire_department_outlined,
+                              '${analysis.caloriesBurned} kcal',
                             ),
                         ],
                       ),
@@ -146,7 +155,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                 ),
 
                 section(
-                  '2️⃣ Progressive Overload Indicator',
+                  'Progressive overload',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -213,7 +222,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                 ),
 
                 section(
-                  '3️⃣ Muscle Group Impact Analysis',
+                  'Muscle group impact',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -298,7 +307,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                 ),
 
                 section(
-                  '4️⃣ Fatigue & Recovery Signal',
+                  'Fatigue & recovery',
                   Text(
                     DailyWorkoutAnalysisEngine.fatigueLabel(analysis.fatigue),
                     style: TextStyle(
@@ -310,7 +319,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                 ),
 
                 section(
-                  '5️⃣ Personal Records & Milestones',
+                  'Personal records & milestones',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -326,12 +335,26 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                         ...analysis.prsAndMilestones.map(
                           (p) => Padding(
                             padding: const EdgeInsets.only(bottom: 6),
-                            child: Text(
-                              '🏅 $p',
-                              style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.85),
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.emoji_events_outlined,
+                                  color: scheme.tertiary,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    p,
+                                    style: TextStyle(
+                                      color: scheme.onSurface.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -339,7 +362,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            '🔥 Consistency streak: ${analysis.consistencyStreakDays} days',
+                            'Consistency streak: ${analysis.consistencyStreakDays} days',
                             style: TextStyle(
                               color: scheme.onSurface.withValues(alpha: 0.80),
                               fontWeight: FontWeight.w800,
@@ -351,7 +374,7 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                 ),
 
                 section(
-                  '🤖 AI Suggestions',
+                  'AI suggestions',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -370,7 +393,12 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('💡 '),
+                                Icon(
+                                  Icons.lightbulb_outline_rounded,
+                                  color: scheme.primary,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     s,
@@ -410,22 +438,31 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
     );
   }
 
-  static Widget _pill(BuildContext context, String text) {
+  static Widget _pill(BuildContext context, IconData icon, String text) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: Colors.black.withValues(alpha: 0.16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: scheme.onSurface.withValues(alpha: 0.85),
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.60),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.55),
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: scheme.primary),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -438,10 +475,10 @@ class DailyWorkoutAnalysisDetailsSheet extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final bg = active
         ? scheme.primary.withValues(alpha: 0.20)
-        : Colors.white.withValues(alpha: 0.06);
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.45);
     final border = active
         ? scheme.primary.withValues(alpha: 0.50)
-        : Colors.white.withValues(alpha: 0.10);
+        : scheme.outlineVariant.withValues(alpha: 0.55);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),

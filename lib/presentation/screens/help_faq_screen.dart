@@ -53,77 +53,183 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final categories = <String>{'All', ..._faqItems.map((e) => e.category)}
-        .toList(growable: false);
-
-    return DefaultTabController(
-      length: 5,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Help & FAQ'),
-          actions: [
-            IconButton(
-              tooltip: 'AI help assistant',
-              icon: const Icon(Icons.smart_toy_outlined),
-              onPressed: _openAssistant,
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(112),
+  Widget _contentList(List<Widget> children) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 880),
             child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: SearchBar(
-                    controller: _searchController,
-                    focusNode: _searchFocus,
-                    hintText:
-                        'Search help (e.g., “offline”, “billing”, “progress”)',
-                    leading: const Icon(Icons.search),
-                    trailing: [
-                      if (_query.isNotEmpty)
-                        IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _searchController.clear();
-                            _searchFocus.unfocus();
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-                TabBar(
-                  isScrollable: true,
-                  dividerColor: scheme.outlineVariant.withValues(alpha: 0.4),
-                  tabs: const [
-                    Tab(text: 'FAQs'),
-                    Tab(text: 'Guides'),
-                    Tab(text: 'Troubleshooting'),
-                    Tab(text: 'Contact'),
-                    Tab(text: 'Safety & Legal'),
-                  ],
-                ),
-              ],
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _openAssistant,
-          icon: const Icon(Icons.smart_toy_outlined),
-          label: const Text('AI help'),
-        ),
-        body: TabBarView(
+      ],
+    );
+  }
+
+  Widget _sectionIntro({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.primaryContainer.withValues(alpha: 0.72),
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
           children: [
-            _buildFaqTab(context, categories),
-            _buildGuidesTab(context),
-            _buildTroubleshootingTab(context),
-            _buildContactTab(context),
-            _buildSafetyLegalTab(context),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: scheme.onPrimaryContainer.withValues(alpha: 0.09),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: scheme.onPrimaryContainer),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onPrimaryContainer.withValues(alpha: 0.84),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final screenTheme = Theme.of(context).copyWith(
+      cardTheme: CardThemeData(
+        color: scheme.surfaceContainerLow,
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+        ),
+      ),
+    );
+    final categories = <String>{
+      'All',
+      ..._faqItems.map((e) => e.category),
+    }.toList(growable: false);
+
+    return Theme(
+      data: screenTheme,
+      child: DefaultTabController(
+        length: 5,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                Icon(Icons.support_agent_rounded, color: scheme.primary),
+                const SizedBox(width: 10),
+                const Text('Help & FAQ'),
+              ],
+            ),
+            actions: [
+              IconButton(
+                tooltip: 'AI help assistant',
+                icon: const Icon(Icons.smart_toy_outlined),
+                onPressed: _openAssistant,
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(108),
+              child: Column(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 880),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                        child: SearchBar(
+                          controller: _searchController,
+                          focusNode: _searchFocus,
+                          hintText:
+                              'Search help (e.g., “offline”, “billing”, “progress”)',
+                          leading: const Icon(Icons.search_rounded),
+                          trailing: [
+                            if (_query.isNotEmpty)
+                              IconButton(
+                                tooltip: 'Clear search',
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _searchFocus.unfocus();
+                                },
+                              ),
+                          ],
+                          elevation: const WidgetStatePropertyAll(0),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: BorderSide(color: scheme.outlineVariant),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    dividerColor: scheme.outlineVariant.withValues(alpha: 0.4),
+                    tabs: const [
+                      Tab(text: 'FAQs'),
+                      Tab(text: 'Guides'),
+                      Tab(text: 'Troubleshooting'),
+                      Tab(text: 'Contact'),
+                      Tab(text: 'Safety & Legal'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _openAssistant,
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: const Text('Ask for help'),
+          ),
+          body: TabBarView(
+            children: [
+              _buildFaqTab(context, categories),
+              _buildGuidesTab(context),
+              _buildTroubleshootingTab(context),
+              _buildContactTab(context),
+              _buildSafetyLegalTab(context),
+            ],
+          ),
         ),
       ),
     );
@@ -133,65 +239,81 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     final scheme = Theme.of(context).colorScheme;
     final filtered = _filterFaqs();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final c in categories)
-              ChoiceChip(
-                label: Text(c),
-                selected: _selectedFaqCategory == c,
-                onSelected: (_) => setState(() => _selectedFaqCategory = c),
-              ),
+    return _contentList([
+      _sectionIntro(
+        icon: Icons.help_outline_rounded,
+        title: 'Find your answer',
+        subtitle:
+            'Search common questions or browse by topic. Choose how much detail you want.',
+      ),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final c in categories)
+            ChoiceChip(
+              label: Text(c),
+              selected: _selectedFaqCategory == c,
+              onSelected: (_) => setState(() => _selectedFaqCategory = c),
+            ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: SegmentedButton<_HelpLevel>(
+          segments: const [
+            ButtonSegment<_HelpLevel>(
+              value: _HelpLevel.beginner,
+              label: Text('Beginner'),
+              icon: Icon(Icons.school_outlined),
+            ),
+            ButtonSegment<_HelpLevel>(
+              value: _HelpLevel.advanced,
+              label: Text('Advanced'),
+              icon: Icon(Icons.auto_graph_outlined),
+            ),
           ],
+          selected: {_level},
+          onSelectionChanged: (s) {
+            if (s.isNotEmpty) setState(() => _level = s.first);
+          },
         ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: SegmentedButton<_HelpLevel>(
-            segments: const [
-              ButtonSegment<_HelpLevel>(
-                value: _HelpLevel.beginner,
-                label: Text('Beginner'),
-                icon: Icon(Icons.school_outlined),
-              ),
-              ButtonSegment<_HelpLevel>(
-                value: _HelpLevel.advanced,
-                label: Text('Advanced'),
-                icon: Icon(Icons.auto_graph_outlined),
-              ),
-            ],
-            selected: {_level},
-            onSelectionChanged: (s) {
-              if (s.isNotEmpty) setState(() => _level = s.first);
-            },
+      ),
+      const SizedBox(height: 12),
+      if (_query.isNotEmpty)
+        Text(
+          'Showing results for “$_query”',
+          style: TextStyle(
+            color: scheme.onSurface.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 12),
-        if (_query.isNotEmpty)
+      Row(
+        children: [
+          Icon(Icons.menu_book_rounded, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
           Text(
-            'Showing results for “$_query”',
-            style: TextStyle(
-              color: scheme.onSurface.withValues(alpha: 0.75),
-              fontWeight: FontWeight.w600,
+            '${filtered.length} ${filtered.length == 1 ? 'answer' : 'answers'}',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
             ),
           ),
-        const SizedBox(height: 8),
-        if (filtered.isEmpty)
-          _EmptyState(
-            title: 'No matches found',
-            subtitle:
-                'Try a different keyword, switch categories, or ask the AI assistant.',
-            actionLabel: 'Ask AI assistant',
-            onAction: _openAssistant,
-          )
-        else
-          ...filtered.map((item) => _FaqTile(item: item, level: _level)),
-      ],
-    );
+        ],
+      ),
+      const SizedBox(height: 8),
+      if (filtered.isEmpty)
+        _EmptyState(
+          title: 'No matches found',
+          subtitle:
+              'Try a different keyword, switch categories, or ask the AI assistant.',
+          actionLabel: 'Ask AI assistant',
+          onAction: _openAssistant,
+        )
+      else
+        ...filtered.map((item) => _FaqTile(item: item, level: _level)),
+    ]);
   }
 
   Widget _buildGuidesTab(BuildContext context) {
@@ -200,37 +322,36 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
 
     final filtered = _query.isEmpty
         ? guides
-        : guides
-            .where((g) => g.matches(_query))
-            .toList(growable: false);
+        : guides.where((g) => g.matches(_query)).toList(growable: false);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Text(
-          'Visual guides',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Tap a guide to expand. You can also customize guide images from your device.',
-          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-        ),
-        const SizedBox(height: 12),
-        if (filtered.isEmpty)
-          _EmptyState(
-            title: 'No guides match your search',
-            subtitle: 'Try “progress”, “workout”, “photo”, or “offline”.',
-            actionLabel: 'Clear search',
-            onAction: () => _searchController.clear(),
-          )
-        else
-          ...filtered.map(_GuideTile.new),
-      ],
-    );
+    return _contentList([
+      _sectionIntro(
+        icon: Icons.auto_stories_rounded,
+        title: 'Visual guides',
+        subtitle: 'Step-by-step help for the app’s most useful features.',
+      ),
+      Text(
+        'Browse guides',
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        'Tap a guide to expand. You can also customize guide images from your device.',
+        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+      ),
+      const SizedBox(height: 12),
+      if (filtered.isEmpty)
+        _EmptyState(
+          title: 'No guides match your search',
+          subtitle: 'Try “progress”, “workout”, “photo”, or “offline”.',
+          actionLabel: 'Clear search',
+          onAction: () => _searchController.clear(),
+        )
+      else
+        ...filtered.map(_GuideTile.new),
+    ]);
   }
 
   Widget _buildTroubleshootingTab(BuildContext context) {
@@ -238,235 +359,239 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     final items = _query.isEmpty
         ? _troubleshooting
         : _troubleshooting
-            .where((t) => t.matches(_query))
-            .toList(growable: false);
+              .where((t) => t.matches(_query))
+              .toList(growable: false);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Text(
-          'Troubleshooting',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Common issues and quick fixes. If you\'re still stuck, use Contact Support.',
-          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-        ),
-        const SizedBox(height: 12),
-        if (items.isEmpty)
-          _EmptyState(
-            title: 'No troubleshooting matches',
-            subtitle: 'Try “billing”, “slow”, “sync”, or “image”.',
-            actionLabel: 'Ask AI assistant',
-            onAction: _openAssistant,
-          )
-        else
-          ...items.map(_TroubleTile.new),
-      ],
-    );
+    return _contentList([
+      _sectionIntro(
+        icon: Icons.build_circle_outlined,
+        title: 'Let’s get things working',
+        subtitle:
+            'Try these quick fixes first. If you’re still stuck, contact support.',
+      ),
+      Text(
+        'Troubleshooting',
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        'Common issues and quick fixes. If you\'re still stuck, use Contact Support.',
+        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+      ),
+      const SizedBox(height: 12),
+      if (items.isEmpty)
+        _EmptyState(
+          title: 'No troubleshooting matches',
+          subtitle: 'Try “billing”, “slow”, “sync”, or “image”.',
+          actionLabel: 'Ask AI assistant',
+          onAction: _openAssistant,
+        )
+      else
+        ...items.map(_TroubleTile.new),
+    ]);
   }
 
   Widget _buildContactTab(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Text(
-          'Contact support',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'If something is broken or confusing, you can report it with details so we can fix it faster.',
-          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.email_outlined, color: scheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Email support',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+    return _contentList([
+      _sectionIntro(
+        icon: Icons.support_agent_rounded,
+        title: 'We’re here to help',
+        subtitle:
+            'Choose how to reach us and include details so we can respond effectively.',
+      ),
+      Text(
+        'Contact support',
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        'If something is broken or confusing, you can report it with details so we can fix it faster.',
+        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.email_outlined, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Email support',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Email: $_supportEmail',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.75),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'Email: $_supportEmail',
-                  style:
-                      TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => _launchEmail(
-                        to: _supportEmail,
-                        subject: 'Fitness Aura Athletix — Support Request',
-                        body: [
-                          'What happened:',
-                          '',
-                          'Steps to reproduce:',
-                          '',
-                          'Expected result:',
-                          '',
-                          'Actual result:',
-                          '',
-                          'Device + OS:',
-                          'App version: 1.0.0+1',
-                          '',
-                          'If possible, include screenshots and any relevant settings.',
-                        ].join('\n'),
-                      ),
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Compose email'),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => _launchEmail(
+                      to: _supportEmail,
+                      subject: 'Fitness Aura Athletix — Support Request',
+                      body: [
+                        'What happened:',
+                        '',
+                        'Steps to reproduce:',
+                        '',
+                        'Expected result:',
+                        '',
+                        'Actual result:',
+                        '',
+                        'Device + OS:',
+                        'App version: 1.0.0+1',
+                        '',
+                        'If possible, include screenshots and any relevant settings.',
+                      ].join('\n'),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(
-                          const ClipboardData(text: _supportEmail),
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Email copied.')),
-                        );
-                      },
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy email'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Compose email'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        const ClipboardData(text: _supportEmail),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Email copied.')),
+                      );
+                    },
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy email'),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.bug_report_outlined, color: scheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Report an issue',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.bug_report_outlined, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Report an issue',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Best option: open a GitHub issue with steps to reproduce, screenshots, and what you expected vs what happened.',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.75),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'Best option: open a GitHub issue with steps to reproduce, screenshots, and what you expected vs what happened.',
-                  style:
-                      TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => _launchUrl(_supportIssueUrl),
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Open issue page'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(
-                          const ClipboardData(text: _supportIssueUrl),
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied.')),
-                        );
-                      },
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy link'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => _launchUrl(_supportIssueUrl),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open issue page'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        const ClipboardData(text: _supportIssueUrl),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link copied.')),
+                      );
+                    },
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy link'),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.send_outlined, color: scheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Share feedback',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.send_outlined, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Share feedback',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'This opens the system share sheet so you can send details to yourself or a support channel.',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.75),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'This opens the system share sheet so you can send details to yourself or a support channel.',
-                  style:
-                      TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            'Fitness Aura Athletix — Feedback\n\nWhat happened:\n\nSteps to reproduce:\n\nExpected result:\n\nActual result:\n\nDevice + OS:\nApp version: 1.0.0+1\n',
-                        subject: 'Fitness Aura Athletix — Feedback',
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.ios_share),
-                  label: const Text('Share feedback template'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () {
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text:
+                          'Fitness Aura Athletix — Feedback\n\nWhat happened:\n\nSteps to reproduce:\n\nExpected result:\n\nActual result:\n\nDevice + OS:\nApp version: 1.0.0+1\n',
+                      subject: 'Fitness Aura Athletix — Feedback',
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.ios_share),
+                label: const Text('Share feedback template'),
+              ),
+            ],
           ),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   Widget _buildSafetyLegalTab(BuildContext context) {
@@ -492,69 +617,76 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     final filtered = _query.isEmpty
         ? docs
         : docs
-            .where((d) => d.title.toLowerCase().contains(_query.toLowerCase()))
-            .toList(growable: false);
+              .where(
+                (d) => d.title.toLowerCase().contains(_query.toLowerCase()),
+              )
+              .toList(growable: false);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Text(
-          'Safety & legal information',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'This app provides fitness guidance but does not replace professional medical advice. Train within your limits and stop if you feel pain, dizziness, or unusual discomfort.',
-          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Column(
-            children: [
-              for (final d in filtered)
-                ListTile(
-                  leading: Icon(d.icon),
-                  title: Text(d.title),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => LegalDocScreen(
-                          title: d.title,
-                          assetPath: d.assetPath,
-                        ),
+    return _contentList([
+      _sectionIntro(
+        icon: Icons.verified_user_outlined,
+        title: 'Train safely. Know your rights.',
+        subtitle:
+            'Review safe-training guidance and learn how your information is handled.',
+      ),
+      Text(
+        'Safety & legal information',
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        'This app provides fitness guidance but does not replace professional medical advice. Train within your limits and stop if you feel pain, dizziness, or unusual discomfort.',
+        style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: Column(
+          children: [
+            for (final d in filtered)
+              ListTile(
+                leading: Icon(d.icon),
+                title: Text(d.title),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => LegalDocScreen(
+                        title: d.title,
+                        assetPath: d.assetPath,
                       ),
-                    );
-                  },
-                ),
-            ],
-          ),
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   List<_FaqItem> _filterFaqs() {
     final q = _query.toLowerCase();
-    return _faqItems.where((item) {
-      if (_selectedFaqCategory != 'All' && item.category != _selectedFaqCategory) {
-        return false;
-      }
-      if (q.isEmpty) return true;
-      return item.matches(q);
-    }).toList(growable: false);
+    return _faqItems
+        .where((item) {
+          if (_selectedFaqCategory != 'All' &&
+              item.category != _selectedFaqCategory) {
+            return false;
+          }
+          if (q.isEmpty) return true;
+          return item.matches(q);
+        })
+        .toList(growable: false);
   }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open link.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open link.')));
     }
   }
 
@@ -611,20 +743,25 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     );
   }
 
-  String _generateAssistantResponse(String prompt, {required _HelpLevel level}) {
+  String _generateAssistantResponse(
+    String prompt, {
+    required _HelpLevel level,
+  }) {
     final q = prompt.toLowerCase();
 
-    final faqMatches = _faqItems
-        .map((f) => (f, f.score(q)))
-        .where((p) => p.$2 > 0)
-        .toList(growable: false)
-      ..sort((a, b) => b.$2.compareTo(a.$2));
+    final faqMatches =
+        _faqItems
+            .map((f) => (f, f.score(q)))
+            .where((p) => p.$2 > 0)
+            .toList(growable: false)
+          ..sort((a, b) => b.$2.compareTo(a.$2));
 
-    final troubleMatches = _troubleshooting
-        .map((t) => (t, t.score(q)))
-        .where((p) => p.$2 > 0)
-        .toList(growable: false)
-      ..sort((a, b) => b.$2.compareTo(a.$2));
+    final troubleMatches =
+        _troubleshooting
+            .map((t) => (t, t.score(q)))
+            .where((p) => p.$2 > 0)
+            .toList(growable: false)
+          ..sort((a, b) => b.$2.compareTo(a.$2));
 
     if (q.contains('privacy') || q.contains('terms') || q.contains('legal')) {
       return 'For safety & legal information, open the “Safety & Legal” tab to read the Privacy Policy, Terms of Service, and Encryption Info.';
@@ -647,7 +784,10 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     }
 
     if (troubleMatches.isNotEmpty) {
-      final top = troubleMatches.take(1).map((p) => p.$1).toList(growable: false);
+      final top = troubleMatches
+          .take(1)
+          .map((p) => p.$1)
+          .toList(growable: false);
       for (final t in top) {
         buffer.writeln();
         buffer.writeln('• Troubleshooting: ${t.title}');
@@ -677,17 +817,25 @@ class _FaqTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        leading: Icon(Icons.help_outline_rounded, color: scheme.primary),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Text(
           item.question,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         subtitle: Text(
           item.category,
           style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.65)),
         ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           Text(
             level == _HelpLevel.beginner ? item.beginner : item.advanced,
@@ -703,10 +851,7 @@ class _FaqTile extends StatelessWidget {
               runSpacing: 8,
               children: [
                 for (final t in item.tags)
-                  Chip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text(t),
-                  ),
+                  Chip(visualDensity: VisualDensity.compact, label: Text(t)),
               ],
             ),
           ],
@@ -724,8 +869,15 @@ class _GuideTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        leading: Icon(Icons.menu_book_rounded, color: scheme.primary),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Text(
           guide.title,
           style: const TextStyle(fontWeight: FontWeight.w800),
@@ -734,7 +886,6 @@ class _GuideTile extends StatelessWidget {
           guide.subtitle,
           style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7)),
         ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
@@ -782,25 +933,43 @@ class _TroubleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        leading: Icon(Icons.build_circle_outlined, color: scheme.primary),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          item.title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+        ),
         subtitle: Text(
           item.symptoms,
           style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7)),
         ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           Text(
             item.quickAnswer,
-            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.85), height: 1.35),
+            style: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.85),
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 12),
           for (final s in item.steps) ...[
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.check_circle_outline, size: 18, color: scheme.primary),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 18,
+                  color: scheme.primary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -842,14 +1011,24 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.only(top: 18),
       child: Column(
         children: [
-          Icon(Icons.search_off_outlined, size: 42, color: scheme.onSurface.withValues(alpha: 0.55)),
+          Icon(
+            Icons.search_off_outlined,
+            size: 42,
+            color: scheme.onSurface.withValues(alpha: 0.55),
+          ),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
           const SizedBox(height: 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75), height: 1.3),
+            style: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.75),
+              height: 1.3,
+            ),
           ),
           const SizedBox(height: 12),
           FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -932,6 +1111,7 @@ class _AiAssistantSheetState extends State<_AiAssistantSheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final maxChatHeight = MediaQuery.sizeOf(context).height * 0.62;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -945,72 +1125,106 @@ class _AiAssistantSheetState extends State<_AiAssistantSheet> {
           children: [
             Row(
               children: [
-                Icon(Icons.smart_toy_outlined, color: scheme.primary),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: scheme.primary,
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'AI help assistant',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-                Chip(
-                  label: Text(widget.level == _HelpLevel.beginner
-                      ? 'Beginner'
-                      : 'Advanced'),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    widget.level == _HelpLevel.beginner
+                        ? 'Beginner'
+                        : 'Advanced',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             Flexible(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.6),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxChatHeight),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.6),
+                    ),
                   ),
-                ),
-                child: ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: widget.messages.length,
-                  itemBuilder: (_, i) {
-                    final m = widget.messages[i];
-                    final isUser = m.role == _AssistantRole.user;
-                    return Align(
-                      alignment:
-                          isUser ? Alignment.centerRight : Alignment.centerLeft,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isUser
-                                ? scheme.primaryContainer
-                                : scheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: scheme.outlineVariant
-                                  .withValues(alpha: isUser ? 0.3 : 0.6),
-                            ),
-                          ),
-                          child: Text(
-                            m.text,
-                            style: TextStyle(
+                  child: ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.all(14),
+                    itemCount: widget.messages.length,
+                    itemBuilder: (_, i) {
+                      final m = widget.messages[i];
+                      final isUser = m.role == _AssistantRole.user;
+                      return Align(
+                        alignment: isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
                               color: isUser
-                                  ? scheme.onPrimaryContainer
-                                  : scheme.onSurface,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
+                                  ? scheme.primaryContainer
+                                  : scheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(18),
+                                topRight: const Radius.circular(18),
+                                bottomLeft: Radius.circular(isUser ? 18 : 5),
+                                bottomRight: Radius.circular(isUser ? 5 : 18),
+                              ),
+                              border: Border.all(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: isUser ? 0.3 : 0.6,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              m.text,
+                              style: TextStyle(
+                                color: isUser
+                                    ? scheme.onPrimaryContainer
+                                    : scheme.onSurface,
+                                height: 1.4,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -1024,15 +1238,15 @@ class _AiAssistantSheetState extends State<_AiAssistantSheet> {
                     onSubmitted: (_) => _send(),
                     decoration: const InputDecoration(
                       hintText: 'Ask a question…',
-                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                FilledButton.icon(
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  tooltip: 'Send question',
                   onPressed: _send,
-                  icon: const Icon(Icons.send),
-                  label: const Text('Send'),
+                  icon: const Icon(Icons.send_rounded),
                 ),
               ],
             ),
@@ -1216,10 +1430,22 @@ const List<_VisualGuide> _visualGuides = [
     imageId: 'help_guide_log_workout',
     fallbackAssetPath: 'assets/images/chest_flat_bench.png',
     steps: [
-      _GuideStep(Icons.home_outlined, 'Go to Home and pick a workout category.'),
-      _GuideStep(Icons.fitness_center_outlined, 'Select an exercise and review the cues.'),
-      _GuideStep(Icons.edit_outlined, 'Enter your sets/reps/weight as you complete them.'),
-      _GuideStep(Icons.save_outlined, 'Save the session so it appears in History/Insights.'),
+      _GuideStep(
+        Icons.home_outlined,
+        'Go to Home and pick a workout category.',
+      ),
+      _GuideStep(
+        Icons.fitness_center_outlined,
+        'Select an exercise and review the cues.',
+      ),
+      _GuideStep(
+        Icons.edit_outlined,
+        'Enter your sets/reps/weight as you complete them.',
+      ),
+      _GuideStep(
+        Icons.save_outlined,
+        'Save the session so it appears in History/Insights.',
+      ),
     ],
   ),
   _VisualGuide(
@@ -1228,9 +1454,18 @@ const List<_VisualGuide> _visualGuides = [
     imageId: 'help_guide_progress',
     fallbackAssetPath: 'assets/images/back_deadlift.png',
     steps: [
-      _GuideStep(Icons.auto_graph_outlined, 'Open Progress Dashboard / History & Insights.'),
-      _GuideStep(Icons.calendar_month_outlined, 'Use the calendar to find past sessions.'),
-      _GuideStep(Icons.trending_up_outlined, 'Look for steady improvements week to week.'),
+      _GuideStep(
+        Icons.auto_graph_outlined,
+        'Open Progress Dashboard / History & Insights.',
+      ),
+      _GuideStep(
+        Icons.calendar_month_outlined,
+        'Use the calendar to find past sessions.',
+      ),
+      _GuideStep(
+        Icons.trending_up_outlined,
+        'Look for steady improvements week to week.',
+      ),
     ],
   ),
   _VisualGuide(
@@ -1239,9 +1474,15 @@ const List<_VisualGuide> _visualGuides = [
     imageId: 'help_guide_custom_photo',
     fallbackAssetPath: 'assets/images/arm_dumbbell_bicep_curls.png',
     steps: [
-      _GuideStep(Icons.image_outlined, 'Tap “Customize/Change” on an exercise card image.'),
+      _GuideStep(
+        Icons.image_outlined,
+        'Tap “Customize/Change” on an exercise card image.',
+      ),
       _GuideStep(Icons.folder_open_outlined, 'Pick a photo from your device.'),
-      _GuideStep(Icons.check_outlined, 'The app will reuse the image next time.'),
+      _GuideStep(
+        Icons.check_outlined,
+        'The app will reuse the image next time.',
+      ),
     ],
   ),
   _VisualGuide(
@@ -1250,9 +1491,18 @@ const List<_VisualGuide> _visualGuides = [
     imageId: 'help_guide_share',
     fallbackAssetPath: 'assets/images/shoulder_arnold_press.png',
     steps: [
-      _GuideStep(Icons.picture_as_pdf_outlined, 'Create a report (if available) or take a screenshot.'),
-      _GuideStep(Icons.ios_share_outlined, 'Use Share to send it to your target app.'),
-      _GuideStep(Icons.lock_outlined, 'Avoid sharing sensitive personal details.'),
+      _GuideStep(
+        Icons.picture_as_pdf_outlined,
+        'Create a report (if available) or take a screenshot.',
+      ),
+      _GuideStep(
+        Icons.ios_share_outlined,
+        'Use Share to send it to your target app.',
+      ),
+      _GuideStep(
+        Icons.lock_outlined,
+        'Avoid sharing sensitive personal details.',
+      ),
     ],
   ),
 ];

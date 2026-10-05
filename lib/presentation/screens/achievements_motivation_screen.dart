@@ -91,18 +91,18 @@ class _AchievementsMotivationScreenState
     await _load();
     if (!mounted) return;
     setState(() => _savingBodyWeight = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bodyweight saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Bodyweight saved.')));
   }
 
   Future<void> _markDeloadCompleted() async {
     await AchievementService().markDeloadCompleted();
     await _load();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Deload marked completed.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Deload marked completed.')));
   }
 
   Map<AchievementCategory, List<AchievementProgress>> _groupedAchievements() {
@@ -126,11 +126,165 @@ class _AchievementsMotivationScreenState
     return pending.first;
   }
 
+  Widget _sectionHeader(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: scheme.primary, size: 20),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _personalRecordCard(BuildContext context, _PrAlert record) {
+    final scheme = Theme.of(context).colorScheme;
+    final detail = switch (record.type) {
+      _PrType.weight => '+${record.delta.toStringAsFixed(1)} kg personal best',
+      _PrType.reps => '+${record.delta.toStringAsFixed(0)} reps personal best',
+      _PrType.volume =>
+        '+${record.delta.toStringAsFixed(0)} volume personal best',
+    };
+    final value = switch (record.type) {
+      _PrType.weight => '${record.value.toStringAsFixed(1)} kg',
+      _PrType.reps => '${record.value.toStringAsFixed(0)} reps',
+      _PrType.volume => '${record.value.toStringAsFixed(0)} volume',
+    };
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: scheme.tertiary.withValues(alpha: 0.26)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: scheme.tertiary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(record.icon, color: scheme.tertiary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    record.exerciseName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${record.bodyPart} · ${record.dateText}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    detail,
+                    style: TextStyle(
+                      color: scheme.tertiary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyNotice(
+    BuildContext context, {
+    required IconData icon,
+    required String message,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Icon(icon, color: scheme.onSurfaceVariant, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final grouped = _groupedAchievements();
     final next = _nextAchievement();
+    final earnedCount = _achievements.where((a) => a.isEarned).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -147,209 +301,467 @@ class _AchievementsMotivationScreenState
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _sectionHeader('New Personal Records'),
-                  const SizedBox(height: 8),
-                  if (_prAlerts.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text(
-                          'No new PRs yet. Log workouts to unlock PR alerts.',
-                        ),
-                      ),
-                    )
-                  else
-                    ..._prAlerts.map(
-                      (p) => Card(
-                        child: ListTile(
-                          leading: Icon(p.icon, color: scheme.primary),
-                          title: Text(p.titleText),
-                          subtitle: Text(p.subtitleText),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 18),
-
-                  _sectionHeader('Achievements'),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Achievement settings',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _bodyWeightController,
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Bodyweight (kg)',
-                                    hintText: 'e.g. 75.0',
-                                  ),
-                                  onSubmitted: (_) => _saveBodyWeight(),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              IconButton(
-                                tooltip: 'Save bodyweight',
-                                onPressed: _savingBodyWeight ? null : _saveBodyWeight,
-                                icon: _savingBodyWeight
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    : const Icon(Icons.save_outlined),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            colors: [
+                              scheme.primary.withValues(alpha: 0.20),
+                              scheme.tertiary.withValues(alpha: 0.10),
+                              scheme.surfaceContainerHighest.withValues(
+                                alpha: 0.48,
                               ),
                             ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: _markDeloadCompleted,
-                              icon: const Icon(Icons.restart_alt_outlined),
-                              label: const Text('Mark deload completed'),
-                            ),
+                          border: Border.all(
+                            color: scheme.primary.withValues(alpha: 0.20),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  for (final category in AchievementCategory.values) ...[
-                    if (grouped[category]?.isNotEmpty == true) ...[
-                      Row(
-                        children: [
-                          Icon(category.icon, size: 18, color: scheme.onSurface.withValues(alpha: 0.80)),
-                          const SizedBox(width: 8),
-                          Text(
-                            category.title,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ...grouped[category]!.map((a) => AchievementBadgeTile(progress: a)),
-                      const SizedBox(height: 14),
-                    ],
-                  ],
-
-                  _sectionHeader('Motivation'),
-                  const SizedBox(height: 8),
-
-                  if (_motivation != null) ...[
-                    _MotivationEngineCard(result: _motivation!),
-                    const SizedBox(height: 10),
-                  ],
-
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.bolt_outlined),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Next badge',
-                                style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: scheme.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              const Spacer(),
-                              Text(
-                                'Streak: $_currentStreakDays d',
-                                style: TextStyle(
-                                  color: scheme.onSurface.withValues(alpha: 0.70),
-                                  fontSize: 12,
-                                ),
+                              child: Icon(
+                                Icons.emoji_events_rounded,
+                                color: scheme.primary,
+                                size: 29,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          if (next == null)
-                            const Text('All achievements earned. Keep pushing your training quality.')
-                          else ...[
-                            Text(
-                              next.definition.title,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
                             ),
-                            const SizedBox(height: 6),
-                            LinearProgressIndicator(
-                              value: next.fraction,
-                              minHeight: 8,
-                              backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              next.progressText,
-                              style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.72),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Every rep moves you forward',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: scheme.onSurface,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    'Celebrate new records, build consistency, and keep your next milestone in sight.',
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                          const SizedBox(height: 12),
-                          Text(
-                            'This week: $_workoutsThisWeek sessions. Consistency beats intensity spikes.',
-                            style: TextStyle(
-                              color: scheme.onSurface.withValues(alpha: 0.72),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _OverviewMetric(
+                              icon: Icons.emoji_events_outlined,
+                              value: '$earnedCount',
+                              label: 'BADGES EARNED',
+                              color: scheme.tertiary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _OverviewMetric(
+                              icon: Icons.local_fire_department_outlined,
+                              value: '$_currentStreakDays',
+                              label: 'DAY STREAK',
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _OverviewMetric(
+                              icon: Icons.calendar_today_outlined,
+                              value: '$_workoutsThisWeek',
+                              label: 'THIS WEEK',
+                              color: scheme.secondary,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  _sectionHeader('Progressive Overload Streaks'),
-                  const SizedBox(height: 8),
-                  if (_overloadStreaks.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text(
-                          'No overload streaks yet. Keep increasing reps/weight/sets to build streaks.',
-                        ),
+                      const SizedBox(height: 26),
+                      _sectionHeader(
+                        context,
+                        title: 'Personal records',
+                        subtitle: 'Recent bests from the last 14 days',
+                        icon: Icons.military_tech_rounded,
                       ),
-                    )
-                  else
-                    ..._overloadStreaks
-                        .take(10)
-                        .map(
-                          (s) => Card(
-                            child: ListTile(
-                              leading: const Icon(Icons.trending_up),
-                              title: Text(
-                                '${s.exerciseName} — ${s.streak} streak',
-                              ),
-                              subtitle: Text(
-                                '${s.bodyPart} • ${s.lastImprovementText}',
-                              ),
-                            ),
+                      const SizedBox(height: 12),
+                      if (_prAlerts.isEmpty)
+                        _emptyNotice(
+                          context,
+                          icon: Icons.fitness_center_outlined,
+                          message:
+                              'No new records yet. Keep logging your workouts and your next PR will show up here.',
+                        )
+                      else
+                        ..._prAlerts.map(
+                          (record) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _personalRecordCard(context, record),
                           ),
                         ),
-                ],
+                      const SizedBox(height: 16),
+                      _sectionHeader(
+                        context,
+                        title: 'Achievements',
+                        subtitle:
+                            '$earnedCount of ${_achievements.length} badges earned',
+                        icon: Icons.workspace_premium_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Personalize your milestones',
+                                style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Bodyweight is used to calculate relative strength achievements.',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                  height: 1.35,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _bodyWeightController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Bodyweight (kg)',
+                                        hintText: 'e.g. 75.0',
+                                        prefixIcon: Icon(
+                                          Icons.monitor_weight_outlined,
+                                        ),
+                                      ),
+                                      onSubmitted: (_) => _saveBodyWeight(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  FilledButton(
+                                    onPressed: _savingBodyWeight
+                                        ? null
+                                        : _saveBodyWeight,
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(52, 52),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                      ),
+                                    ),
+                                    child: _savingBodyWeight
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.save_outlined),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                onPressed: _markDeloadCompleted,
+                                icon: const Icon(Icons.restart_alt_rounded),
+                                label: const Text('Mark deload completed'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      for (final category in AchievementCategory.values) ...[
+                        if (grouped[category]?.isNotEmpty == true) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2, bottom: 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  category.icon,
+                                  size: 18,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  category.title,
+                                  style: TextStyle(
+                                    color: scheme.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${grouped[category]!.where((a) => a.isEarned).length}/${grouped[category]!.length}',
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...grouped[category]!.map(
+                            (achievement) =>
+                                AchievementBadgeTile(progress: achievement),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                      const SizedBox(height: 8),
+                      _sectionHeader(
+                        context,
+                        title: 'Your next milestone',
+                        subtitle: 'A small target to keep progress moving',
+                        icon: Icons.flag_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      next?.definition.title ??
+                                          'All achievements earned',
+                                      style: TextStyle(
+                                        color: scheme.onSurface,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '$_currentStreakDays day streak',
+                                    style: TextStyle(
+                                      color: scheme.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (next != null) ...[
+                                const SizedBox(height: 10),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(99),
+                                  child: LinearProgressIndicator(
+                                    value: next.fraction,
+                                    minHeight: 8,
+                                    color: scheme.primary,
+                                    backgroundColor:
+                                        scheme.surfaceContainerHighest,
+                                  ),
+                                ),
+                                const SizedBox(height: 7),
+                                Text(
+                                  next.progressText,
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ] else ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'All badges are yours. Keep building strength and consistency.',
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              Text(
+                                'This week: $_workoutsThisWeek sessions. Consistency beats intensity spikes.',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      _sectionHeader(
+                        context,
+                        title: 'Progressive overload',
+                        subtitle: 'Exercises where you are building momentum',
+                        icon: Icons.trending_up_rounded,
+                      ),
+                      const SizedBox(height: 12),
+                      if (_overloadStreaks.isEmpty)
+                        _emptyNotice(
+                          context,
+                          icon: Icons.insights_outlined,
+                          message:
+                              'No improving streaks yet. Log progressive sessions to track your momentum here.',
+                        )
+                      else
+                        ..._overloadStreaks
+                            .take(10)
+                            .map(
+                              (streak) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Card(
+                                  margin: EdgeInsets.zero,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 5,
+                                    ),
+                                    leading: Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.13,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Icon(
+                                        Icons.trending_up_rounded,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      streak.exerciseName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      '${streak.bodyPart} · ${streak.lastImprovementText}',
+                                    ),
+                                    trailing: Text(
+                                      '${streak.streak}×',
+                                      style: TextStyle(
+                                        color: scheme.primary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                      if (_motivation != null) ...[
+                        const SizedBox(height: 16),
+                        _sectionHeader(
+                          context,
+                          title: 'Motivation',
+                          subtitle:
+                              'A little perspective for your next session',
+                          icon: Icons.bolt_rounded,
+                        ),
+                        const SizedBox(height: 12),
+                        _MotivationEngineCard(result: _motivation!),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
     );
   }
+}
 
-  static Widget _sectionHeader(String title) {
-    return Text(title, style: const TextStyle(fontWeight: FontWeight.bold));
+class _OverviewMetric extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _OverviewMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 13),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.45,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -383,28 +795,6 @@ class _PrAlert {
         return Icons.repeat;
       case _PrType.volume:
         return Icons.stacked_bar_chart_outlined;
-    }
-  }
-
-  String get titleText {
-    switch (type) {
-      case _PrType.weight:
-        return '${exerciseName} — ${value.toStringAsFixed(1)} kg';
-      case _PrType.reps:
-        return '${exerciseName} — ${value.toStringAsFixed(0)} reps';
-      case _PrType.volume:
-        return '${exerciseName} — ${value.toStringAsFixed(0)} volume';
-    }
-  }
-
-  String get subtitleText {
-    switch (type) {
-      case _PrType.weight:
-        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(1)} kg PR';
-      case _PrType.reps:
-        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(0)} reps PR';
-      case _PrType.volume:
-        return '${bodyPart} • ${dateText} • +${delta.toStringAsFixed(0)} volume PR';
     }
   }
 }

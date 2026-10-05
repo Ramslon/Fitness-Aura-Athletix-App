@@ -36,21 +36,29 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
 
   Future<void> _check() async {
     final has = await StorageService().hasSecureString('llm_api_key');
-    final endpoint = await StorageService().loadSecureString('llm_endpoint') ??
+    final endpoint =
+        await StorageService().loadSecureString('llm_endpoint') ??
         await StorageService().loadStringSetting('llm_endpoint');
 
-    final aiEnabled =
-        await StorageService().loadBoolSetting('privacy_ai_enabled');
-    final aiSendNotes =
-        await StorageService().loadBoolSetting('privacy_ai_send_notes');
-    final communityVisible = await StorageService()
-        .loadBoolSetting('privacy_community_profile_visible');
-    final communityStats =
-        await StorageService().loadBoolSetting('privacy_community_show_stats');
-    final cloudSync =
-        await StorageService().loadBoolSetting('privacy_cloud_sync_enabled');
-    final appLock =
-        await StorageService().loadBoolSetting('privacy_app_lock_enabled');
+    final aiEnabled = await StorageService().loadBoolSetting(
+      'privacy_ai_enabled',
+    );
+    final aiSendNotes = await StorageService().loadBoolSetting(
+      'privacy_ai_send_notes',
+    );
+    final communityVisible = await StorageService().loadBoolSetting(
+      'privacy_community_profile_visible',
+    );
+    final communityStats = await StorageService().loadBoolSetting(
+      'privacy_community_show_stats',
+    );
+    final cloudSync = await StorageService().loadBoolSetting(
+      'privacy_cloud_sync_enabled',
+    );
+    final appLock = await StorageService().loadBoolSetting(
+      'privacy_app_lock_enabled',
+    );
+    if (!mounted) return;
     setState(() {
       _hasApiKey = has;
       _aiEndpoint = endpoint;
@@ -92,8 +100,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     await StorageService().deleteSecureString('llm_api_key');
     await StorageService().deleteSecureString('llm_endpoint');
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('API key removed')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('API key removed')));
     await _check();
   }
 
@@ -126,8 +135,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 
@@ -154,381 +164,521 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context).copyWith(
+      cardTheme: CardThemeData(
+        color: scheme.surfaceContainerLow,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+        ),
+      ),
+    );
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Privacy & Security')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  // Clear privacy summary
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+    return Theme(
+      data: theme,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: scheme.primary),
+              const SizedBox(width: 10),
+              const Text('Privacy & Security'),
+            ],
+          ),
+        ),
+        body: _loading
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: scheme.primary),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Loading your privacy settings…',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 880),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    child: ListView(
+                      children: [
+                        Card(
+                          color: scheme.primaryContainer,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    color: scheme.onPrimaryContainer.withValues(
+                                      alpha: 0.09,
+                                    ),
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Icon(
+                                    Icons.verified_user_rounded,
+                                    color: scheme.onPrimaryContainer,
+                                    size: 29,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Your data, your choices',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              color: scheme.onPrimaryContainer,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        'Review what stays on this device, what can be shared, and how optional AI features use your data.',
+                                        style: TextStyle(
+                                          color: scheme.onPrimaryContainer
+                                              .withValues(alpha: 0.85),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.policy_outlined,
+                                      color: scheme.primary,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Privacy summary',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                _SummaryRow(
+                                  icon: Icons.phone_iphone_outlined,
+                                  title: 'Local storage by default',
+                                  subtitle:
+                                      'Your workouts and settings are saved on this device.',
+                                ),
+                                const SizedBox(height: 8),
+                                _SummaryRow(
+                                  icon: Icons.smart_toy_outlined,
+                                  title: 'AI is optional',
+                                  subtitle:
+                                      'You can disable AI and remove stored API keys anytime.',
+                                ),
+                                const SizedBox(height: 8),
+                                _SummaryRow(
+                                  icon: Icons.group_outlined,
+                                  title: 'Community sharing is controlled',
+                                  subtitle:
+                                      'Choose what appears in community features.',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Data ownership & export
+                        Text(
+                          'Data ownership & export',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You own your data. You can export workout entries as a CSV file at any time.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
                             children: [
-                              Icon(Icons.shield_outlined, color: scheme.primary),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Privacy summary',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w900),
+                              ListTile(
+                                leading: const Icon(Icons.download_outlined),
+                                title: const Text('Export workouts (CSV)'),
+                                subtitle: const Text(
+                                  'Creates a shareable CSV file.',
+                                ),
+                                onTap: _exportWorkoutsCsv,
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(Icons.image_outlined),
+                                title: const Text(
+                                  'Manage saved exercise images',
+                                ),
+                                subtitle: const Text(
+                                  'Review or delete custom photos.',
+                                ),
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const SettingsScreen(),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          _SummaryRow(
-                            icon: Icons.phone_iphone_outlined,
-                            title: 'Local storage by default',
-                            subtitle:
-                                'Your workouts and settings are saved on this device.',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(
-                            icon: Icons.smart_toy_outlined,
-                            title: 'AI is optional',
-                            subtitle:
-                                'You can disable AI and remove stored API keys anytime.',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryRow(
-                            icon: Icons.group_outlined,
-                            title: 'Community sharing is controlled',
-                            subtitle:
-                                'Choose what appears in community features.',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                        ),
+                        const SizedBox(height: 16),
 
-                  // Data ownership & export
-                  Text(
-                    'Data ownership & export',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'You own your data. You can export workout entries as a CSV file at any time.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.download_outlined),
-                          title: const Text('Export workouts (CSV)'),
-                          subtitle: const Text('Creates a shareable CSV file.'),
-                          onTap: _exportWorkoutsCsv,
+                        // Community privacy controls
+                        Text(
+                          'Community privacy controls',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.image_outlined),
-                          title: const Text('Manage saved exercise images'),
-                          subtitle: const Text('Review or delete custom photos.'),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Control what information is visible in community features.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Community privacy controls
-                  Text(
-                    'Community privacy controls',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Control what information is visible in community features.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: const Text('Show my profile in community'),
-                          subtitle: const Text('If off, your activity stays private.'),
-                          value: _communityProfileVisible,
-                          onChanged: (v) async {
-                            await _saveBool(
-                              'privacy_community_profile_visible',
-                              v,
-                            );
-                            if (!mounted) return;
-                            setState(() => _communityProfileVisible = v);
-                          },
-                        ),
-                        const Divider(height: 0),
-                        SwitchListTile(
-                          title: const Text('Show workout stats in community'),
-                          subtitle: const Text('Share high-level stats only (no notes).'),
-                          value: _communityShowStats,
-                          onChanged: (v) async {
-                            await _saveBool(
-                              'privacy_community_show_stats',
-                              v,
-                            );
-                            if (!mounted) return;
-                            setState(() => _communityShowStats = v);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // AI transparency & opt-out
-                  Text(
-                    'AI transparency & opt-out',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'If AI features are enabled, workout metadata and (optionally) your notes may be sent to your configured AI endpoint. Avoid personal information in notes.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: const Text('Enable AI features'),
-                          subtitle: const Text('Turn off to opt out of AI tools.'),
-                          value: _aiEnabled,
-                          onChanged: (v) async {
-                            await _saveBool('privacy_ai_enabled', v);
-                            if (!mounted) return;
-                            setState(() => _aiEnabled = v);
-                          },
-                        ),
-                        const Divider(height: 0),
-                        SwitchListTile(
-                          title: const Text('Allow notes to be sent to AI'),
-                          subtitle: const Text('If off, notes stay on-device.'),
-                          value: _aiSendNotes,
-                          onChanged: _aiEnabled
-                              ? (v) async {
-                                  await _saveBool('privacy_ai_send_notes', v);
-                                  if (!mounted) return;
-                                  setState(() => _aiSendNotes = v);
-                                }
-                              : null,
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.vpn_key_outlined),
-                          title: const Text('AI API key'),
-                          subtitle: Text(
-                            _hasApiKey
-                                ? 'Stored securely (Keychain/Keystore)'
-                                : 'No API key stored',
-                          ),
-                          trailing: _hasApiKey
-                              ? TextButton(
-                                  onPressed: _removeApiKey,
-                                  child: const Text('Remove'),
-                                )
-                              : TextButton(
-                                  onPressed: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const SettingsScreen(),
-                                    ),
-                                  ),
-                                  child: const Text('Add'),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
+                            children: [
+                              SwitchListTile(
+                                title: const Text(
+                                  'Show my profile in community',
                                 ),
-                        ),
-                        if (_aiEndpoint != null && _aiEndpoint!.trim().isNotEmpty) ...[
-                          const Divider(height: 0),
-                          ListTile(
-                            leading: const Icon(Icons.link_outlined),
-                            title: const Text('AI endpoint'),
-                            subtitle: Text(_aiEndpoint!),
+                                subtitle: const Text(
+                                  'If off, your activity stays private.',
+                                ),
+                                value: _communityProfileVisible,
+                                onChanged: (v) async {
+                                  await _saveBool(
+                                    'privacy_community_profile_visible',
+                                    v,
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _communityProfileVisible = v);
+                                },
+                              ),
+                              const Divider(height: 0),
+                              SwitchListTile(
+                                title: const Text(
+                                  'Show workout stats in community',
+                                ),
+                                subtitle: const Text(
+                                  'Share high-level stats only (no notes).',
+                                ),
+                                value: _communityShowStats,
+                                onChanged: (v) async {
+                                  await _saveBool(
+                                    'privacy_community_show_stats',
+                                    v,
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _communityShowStats = v);
+                                },
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // AI transparency & opt-out
+                        Text(
+                          'AI transparency & opt-out',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'If AI features are enabled, workout metadata and (optionally) your notes may be sent to your configured AI endpoint. Avoid personal information in notes.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
+                            children: [
+                              SwitchListTile(
+                                title: const Text('Enable AI features'),
+                                subtitle: const Text(
+                                  'Turn off to opt out of AI tools.',
+                                ),
+                                value: _aiEnabled,
+                                onChanged: (v) async {
+                                  await _saveBool('privacy_ai_enabled', v);
+                                  if (!mounted) return;
+                                  setState(() => _aiEnabled = v);
+                                },
+                              ),
+                              const Divider(height: 0),
+                              SwitchListTile(
+                                title: const Text(
+                                  'Allow notes to be sent to AI',
+                                ),
+                                subtitle: const Text(
+                                  'If off, notes stay on-device.',
+                                ),
+                                value: _aiSendNotes,
+                                onChanged: _aiEnabled
+                                    ? (v) async {
+                                        await _saveBool(
+                                          'privacy_ai_send_notes',
+                                          v,
+                                        );
+                                        if (!mounted) return;
+                                        setState(() => _aiSendNotes = v);
+                                      }
+                                    : null,
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(Icons.vpn_key_outlined),
+                                title: const Text('AI API key'),
+                                subtitle: Text(
+                                  _hasApiKey
+                                      ? 'Stored securely (Keychain/Keystore)'
+                                      : 'No API key stored',
+                                ),
+                                trailing: _hasApiKey
+                                    ? TextButton(
+                                        onPressed: _removeApiKey,
+                                        child: const Text('Remove'),
+                                      )
+                                    : TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const SettingsScreen(),
+                                              ),
+                                            ),
+                                        child: const Text('Add'),
+                                      ),
+                              ),
+                              if (_aiEndpoint != null &&
+                                  _aiEndpoint!.trim().isNotEmpty) ...[
+                                const Divider(height: 0),
+                                ListTile(
+                                  leading: const Icon(Icons.link_outlined),
+                                  title: const Text('AI endpoint'),
+                                  subtitle: Text(_aiEndpoint!),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // App lock & device security
+                        Text(
+                          'App lock & device security',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Use a device PIN/biometrics. You can also enable an in-app lock reminder.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
+                            children: [
+                              SwitchListTile(
+                                title: const Text('App lock (preference)'),
+                                subtitle: const Text(
+                                  'Stores your preference to lock sensitive areas. Enable device lock for full protection.',
+                                ),
+                                value: _appLockEnabled,
+                                onChanged: (v) async {
+                                  await _saveBool(
+                                    'privacy_app_lock_enabled',
+                                    v,
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _appLockEnabled = v);
+                                },
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(Icons.settings_outlined),
+                                title: const Text('Open device/app settings'),
+                                subtitle: const Text(
+                                  'Manage lock screen, permissions, and security.',
+                                ),
+                                onTap: _openAppSettings,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Cloud sync control
+                        Text(
+                          'Cloud sync control',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Currently, workouts are stored locally on your device. This toggle is reserved for future cloud sync support.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: SwitchListTile(
+                            title: const Text('Enable cloud sync (future)'),
+                            subtitle: const Text(
+                              'Off keeps data local-only (recommended).',
+                            ),
+                            value: _cloudSyncEnabled,
+                            onChanged: (v) async {
+                              await _saveBool('privacy_cloud_sync_enabled', v);
+                              if (!mounted) return;
+                              setState(() => _cloudSyncEnabled = v);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Permissions manager
+                        Text(
+                          'Permissions manager',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Permissions are managed by your device OS. Use system settings to review or revoke access (e.g., files/photos).',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.tune_outlined),
+                                title: const Text('Open app permissions'),
+                                subtitle: const Text(
+                                  'Review storage/photos, notifications, and more.',
+                                ),
+                                onTap: _openAppSettings,
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(Icons.info_outline),
+                                title: const Text('What we use'),
+                                subtitle: const Text(
+                                  'Files/photos (custom images), network (optional), notifications (optional).',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Legal clarity
+                        Text(
+                          'Legal clarity',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Read our policies for details on data handling, AI, and security.',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Card(
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.privacy_tip_outlined),
+                                title: const Text('Privacy Policy'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _openLegalDoc(
+                                  'Privacy Policy',
+                                  'assets/legal/privacy_policy.md',
+                                ),
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(Icons.description_outlined),
+                                title: const Text('Terms of Service'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _openLegalDoc(
+                                  'Terms of Service',
+                                  'assets/legal/terms.md',
+                                ),
+                              ),
+                              const Divider(height: 0),
+                              ListTile(
+                                leading: const Icon(
+                                  Icons.enhanced_encryption_outlined,
+                                ),
+                                title: const Text('Encryption Info'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => _openLegalDoc(
+                                  'Encryption Info',
+                                  'assets/legal/encryption_info.md',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // App lock & device security
-                  Text(
-                    'App lock & device security',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Use a device PIN/biometrics. You can also enable an in-app lock reminder.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: const Text('App lock (preference)'),
-                          subtitle: const Text(
-                            'Stores your preference to lock sensitive areas. Enable device lock for full protection.',
-                          ),
-                          value: _appLockEnabled,
-                          onChanged: (v) async {
-                            await _saveBool('privacy_app_lock_enabled', v);
-                            if (!mounted) return;
-                            setState(() => _appLockEnabled = v);
-                          },
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.settings_outlined),
-                          title: const Text('Open device/app settings'),
-                          subtitle: const Text('Manage lock screen, permissions, and security.'),
-                          onTap: _openAppSettings,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cloud sync control
-                  Text(
-                    'Cloud sync control',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Currently, workouts are stored locally on your device. This toggle is reserved for future cloud sync support.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: SwitchListTile(
-                      title: const Text('Enable cloud sync (future)') ,
-                      subtitle: const Text('Off keeps data local-only (recommended).'),
-                      value: _cloudSyncEnabled,
-                      onChanged: (v) async {
-                        await _saveBool('privacy_cloud_sync_enabled', v);
-                        if (!mounted) return;
-                        setState(() => _cloudSyncEnabled = v);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Permissions manager
-                  Text(
-                    'Permissions manager',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Permissions are managed by your device OS. Use system settings to review or revoke access (e.g., files/photos).',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.tune_outlined),
-                          title: const Text('Open app permissions'),
-                          subtitle: const Text('Review storage/photos, notifications, and more.'),
-                          onTap: _openAppSettings,
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.info_outline),
-                          title: const Text('What we use'),
-                          subtitle: const Text('Files/photos (custom images), network (optional), notifications (optional).'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Legal clarity
-                  Text(
-                    'Legal clarity',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Read our policies for details on data handling, AI, and security.',
-                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.privacy_tip_outlined),
-                          title: const Text('Privacy Policy'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openLegalDoc(
-                            'Privacy Policy',
-                            'assets/legal/privacy_policy.md',
-                          ),
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.description_outlined),
-                          title: const Text('Terms of Service'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openLegalDoc(
-                            'Terms of Service',
-                            'assets/legal/terms.md',
-                          ),
-                        ),
-                        const Divider(height: 0),
-                        ListTile(
-                          leading: const Icon(Icons.enhanced_encryption_outlined),
-                          title: const Text('Encryption Info'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _openLegalDoc(
-                            'Encryption Info',
-                            'assets/legal/encryption_info.md',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -560,7 +710,9 @@ class _SummaryRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.75),
+                ),
               ),
             ],
           ),

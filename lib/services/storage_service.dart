@@ -9,6 +9,7 @@ import 'package:fitness_aura_athletix/core/models/muscle_balance.dart';
 import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
 import 'package:fitness_aura_athletix/core/models/volume_load.dart';
 import 'package:fitness_aura_athletix/core/models/goal.dart';
+import 'package:fitness_aura_athletix/core/models/workout_history_summary.dart';
 import 'package:fitness_aura_athletix/services/exercise_records_store.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
 
@@ -325,83 +326,29 @@ class StorageService {
     await _writeEntriesRaw(entries.map((e) => e.toMap()).toList());
   }
 
-  /// Returns number of workouts in the last 7 days (including today)
+  /// Returns the number of workout sessions in the last seven calendar days.
   Future<int> workoutsThisWeek() async {
     final entries = await loadEntries();
-    if (entries.isEmpty) {
-      // Fallback: derive workout days from exercise logs.
-      final records = await loadExerciseRecords();
-      final now = DateTime.now();
-      final weekAgo = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 6));
-      final days = records
-          .map((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day))
-          .toSet();
-      return days.where((d) => !d.isBefore(weekAgo)).length;
-    }
-    final now = DateTime.now();
-    final weekAgo = now.subtract(const Duration(days: 6));
-    final count = entries
-        .where((e) => e.date.isAfter(weekAgo) || _isSameDay(e.date, weekAgo))
-        .length;
-    return count;
+    final records = entries.isEmpty
+        ? await loadExerciseRecords()
+        : const <ExerciseRecord>[];
+    return WorkoutHistorySummary(
+      workoutDates: entries.map((entry) => entry.date),
+      exerciseRecordDates: records.map((record) => record.dateRecorded),
+    ).workoutsThisWeek;
   }
 
-  /// Returns current streak (consecutive days with at least one entry)
+  /// Returns consecutive active days through today or yesterday.
   Future<int> currentStreak() async {
     final entries = await loadEntries();
-    if (entries.isEmpty) {
-      // Fallback: derive streak from exercise logs.
-      final records = await loadExerciseRecords();
-      if (records.isEmpty) return 0;
-      final dates = records
-          .map((r) => DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day))
-          .toSet()
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
-
-      int streak = 0;
-      DateTime cursor = DateTime.now();
-      while (true) {
-        final day = DateTime(cursor.year, cursor.month, cursor.day);
-        final found = dates.any(
-          (d) => d.year == day.year && d.month == day.month && d.day == day.day,
-        );
-        if (found) {
-          streak++;
-          cursor = cursor.subtract(const Duration(days: 1));
-        } else {
-          break;
-        }
-      }
-      return streak;
-    }
-    final dates =
-        entries
-            .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
-            .toSet()
-            .toList()
-          ..sort((a, b) => b.compareTo(a));
-
-    int streak = 0;
-    DateTime cursor = DateTime.now();
-    while (true) {
-      final day = DateTime(cursor.year, cursor.month, cursor.day);
-      final found = dates.any(
-        (d) => d.year == day.year && d.month == day.month && d.day == day.day,
-      );
-      if (found) {
-        streak++;
-        cursor = cursor.subtract(const Duration(days: 1));
-      } else {
-        break;
-      }
-    }
-    return streak;
+    final records = entries.isEmpty
+        ? await loadExerciseRecords()
+        : const <ExerciseRecord>[];
+    return WorkoutHistorySummary(
+      workoutDates: entries.map((entry) => entry.date),
+      exerciseRecordDates: records.map((record) => record.dateRecorded),
+    ).currentStreakDays;
   }
-
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 
   /// Persist a short analysis note for the given date (uses ISO yyyy-MM-dd keying).
   Future<void> saveAnalysisNoteForDate(DateTime date, String note) async {
@@ -652,20 +599,14 @@ class StorageService {
 
     final analysis = <MuscleBalanceAnalysis>[];
     final totalVolume = muscleData.entries.fold<double>(0, (sum, entry) {
-      final volume = entry.value.fold<double>(
-        0,
-        (s, r) => s + r.volumeLoadKg,
-      );
+      final volume = entry.value.fold<double>(0, (s, r) => s + r.volumeLoadKg);
       return sum + volume;
     });
 
     for (final muscle in muscleData.keys) {
       final records = muscleData[muscle]!;
       final frequency = records.length;
-      final volume = records.fold<double>(
-        0,
-        (s, r) => s + r.volumeLoadKg,
-      );
+      final volume = records.fold<double>(0, (s, r) => s + r.volumeLoadKg);
       final recommendedFreq = recommendedFrequencies[muscle] ?? 2;
       final avgVolume = frequency > 0 ? volume / frequency : 0;
 

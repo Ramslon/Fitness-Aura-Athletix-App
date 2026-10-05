@@ -31,6 +31,7 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
         ? <CoachSuggestion>[]
         : await StorageService().getGoalBasedSuggestions(active);
 
+    if (!mounted) return;
     setState(() {
       _goals = goals..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       _active = active;
@@ -102,7 +103,12 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('Create Goal'),
+          icon: Icon(
+            Icons.flag_rounded,
+            color: Theme.of(ctx).colorScheme.primary,
+          ),
+          title: const Text('Create a goal'),
+          contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
           content: StatefulBuilder(
             builder: (context, setLocalState) {
               return SingleChildScrollView(
@@ -226,17 +232,294 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
         );
       },
     );
+    titleController.dispose();
+    exerciseController.dispose();
+    targetController.dispose();
+  }
+
+  Widget _sectionHeading(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing,
+      ],
+    );
+  }
+
+  Widget _quickGoal(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String detail,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 208,
+      child: Material(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(icon, color: scheme.primary, size: 21),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: scheme.primary,
+                  size: 19,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _goalCard(BuildContext context, Goal goal) {
+    final scheme = Theme.of(context).colorScheme;
+    final active = _active?.id == goal.id;
+    final (icon, label) = switch (goal.type) {
+      GoalType.strengthTarget => (Icons.fitness_center_rounded, 'STRENGTH'),
+      GoalType.growMuscle => (Icons.trending_up_rounded, 'BUILD MUSCLE'),
+      GoalType.fixWeakness => (Icons.track_changes_rounded, 'FOCUS AREA'),
+    };
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: active
+              ? scheme.primary.withValues(alpha: 0.75)
+              : scheme.outlineVariant.withValues(alpha: 0.55),
+          width: active ? 1.4 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _setActive(goal),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: (active ? scheme.primary : scheme.secondary)
+                      .withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: active ? scheme.primary : scheme.secondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (active ? scheme.primary : scheme.secondary)
+                            .withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        active ? 'ACTIVE · $label' : label,
+                        style: TextStyle(
+                          color: active ? scheme.primary : scheme.secondary,
+                          fontSize: 9,
+                          letterSpacing: 0.6,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      goal.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _goalSubtitle(goal),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Delete ${goal.title}',
+                onPressed: () => _deleteGoal(goal),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _suggestionCard(BuildContext context, CoachSuggestion suggestion) {
+    final scheme = Theme.of(context).colorScheme;
+    final icon = switch (suggestion.type) {
+      SuggestionType.increaseWeight => Icons.fitness_center_rounded,
+      SuggestionType.increaseReps => Icons.trending_up_rounded,
+      SuggestionType.increaseSets => Icons.add_chart_rounded,
+      SuggestionType.accessoryExercise => Icons.add_circle_outline_rounded,
+      SuggestionType.deload => Icons.self_improvement_rounded,
+      SuggestionType.technique => Icons.tips_and_updates_outlined,
+    };
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: scheme.tertiary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: scheme.tertiary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    suggestion.exerciseName,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    suggestion.suggestion,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    suggestion.rationale,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Goal-Based Tracking'),
         actions: [
           IconButton(
+            tooltip: 'Create goal',
             onPressed: _showCreateGoalDialog,
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_rounded),
           ),
         ],
       ),
@@ -244,100 +527,222 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  const Text(
-                    'Quick goals',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
                     children: [
-                      ElevatedButton(
-                        onPressed: _createPresetBench100,
-                        child: const Text('Increase bench to 100kg'),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            colors: [
+                              scheme.primary.withValues(alpha: 0.18),
+                              scheme.surfaceContainerHighest.withValues(
+                                alpha: 0.55,
+                              ),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: scheme.primary.withValues(alpha: 0.20),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: scheme.primary.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Icon(
+                                Icons.flag_rounded,
+                                color: scheme.primary,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Train with a clear target',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          color: scheme.onSurface,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    'Choose a focus and get coaching suggestions shaped around your training.',
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      ElevatedButton(
-                        onPressed: _createPresetGrowLegs,
-                        child: const Text('Grow legs'),
+                      const SizedBox(height: 24),
+                      _sectionHeading(
+                        context,
+                        title: 'Quick start',
+                        subtitle: 'Add a goal with one tap',
                       ),
-                      ElevatedButton(
-                        onPressed: _createPresetFixShoulders,
-                        child: const Text('Fix weak shoulders'),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 76,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            _quickGoal(
+                              context,
+                              icon: Icons.fitness_center_rounded,
+                              title: 'Bench press',
+                              detail: 'Reach 100 kg',
+                              onTap: _createPresetBench100,
+                            ),
+                            const SizedBox(width: 10),
+                            _quickGoal(
+                              context,
+                              icon: Icons.directions_run_rounded,
+                              title: 'Build legs',
+                              detail: 'Grow leg strength',
+                              onTap: _createPresetGrowLegs,
+                            ),
+                            const SizedBox(width: 10),
+                            _quickGoal(
+                              context,
+                              icon: Icons.track_changes_rounded,
+                              title: 'Shoulders',
+                              detail: 'Focus on weak areas',
+                              onTap: _createPresetFixShoulders,
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 26),
+                      _sectionHeading(
+                        context,
+                        title: 'Your goals',
+                        subtitle: _goals.isEmpty
+                            ? 'Create a goal to personalize your training'
+                            : '${_goals.length} ${_goals.length == 1 ? 'goal' : 'goals'} · tap one to set your active focus',
+                        trailing: TextButton.icon(
+                          onPressed: _showCreateGoalDialog,
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Add'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_goals.isEmpty)
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.flag_outlined,
+                                  color: scheme.onSurfaceVariant,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    'No goals yet. Pick a quick start above or create a custom goal.',
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ..._goals.map(
+                          (goal) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _goalCard(context, goal),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      _sectionHeading(
+                        context,
+                        title: 'Coach insights',
+                        subtitle: _active == null
+                            ? 'Choose an active goal to see tailored advice'
+                            : 'Recommendations for ${_active!.title}',
+                        trailing: Icon(
+                          Icons.auto_awesome_rounded,
+                          color: scheme.tertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_active == null)
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Text(
+                              'Select one of your goals to see training suggestions tailored to that focus.',
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (_suggestions.isEmpty)
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.insights_outlined,
+                                  color: scheme.tertiary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Log more workouts to unlock useful guidance for this goal.',
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ..._suggestions.map(
+                          (suggestion) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _suggestionCard(context, suggestion),
+                          ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Your goals',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_goals.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('No goals yet. Tap + to add one.'),
-                      ),
-                    )
-                  else
-                    ..._goals.map(
-                      (g) => Card(
-                        child: ListTile(
-                          title: Text(g.title),
-                          subtitle: Text(_goalSubtitle(g)),
-                          leading: Radio<String>(
-                            value: g.id,
-                            groupValue: _active?.id,
-                            onChanged: (_) => _setActive(g),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _deleteGoal(g),
-                          ),
-                          onTap: () => _setActive(g),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 18),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Suggestions',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_active == null)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text(
-                          'Select a goal to see tailored suggestions.',
-                        ),
-                      ),
-                    )
-                  else if (_suggestions.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text(
-                          'No suggestions yet. Log more workouts for better guidance.',
-                        ),
-                      ),
-                    )
-                  else
-                    ..._suggestions.map(
-                      (s) => Card(
-                        child: ListTile(
-                          title: Text(s.suggestion),
-                          subtitle: Text(s.rationale),
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
     );

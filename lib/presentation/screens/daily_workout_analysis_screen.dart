@@ -50,6 +50,7 @@ class _DailyWorkoutAnalysisScreenState
 
     // Reuse the cached index to avoid rebuilding on every open.
     final index = await DailyWorkoutAnalysisEngine.loadIndexCached();
+    if (!mounted) return;
     final keys = DailyWorkoutAnalysisEngine.sessionKeys(
       index,
       bodyPart: bodyPartArg,
@@ -74,7 +75,11 @@ class _DailyWorkoutAnalysisScreenState
     });
 
     if (_sessionKeys.isNotEmpty) {
-      _pageController.jumpToPage(_index);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(_index);
+        }
+      });
     }
   }
 
@@ -157,122 +162,236 @@ class _DailyWorkoutAnalysisScreenState
     );
   }
 
+  void _movePage(int delta) {
+    final next = (_index + delta).clamp(0, _sessionKeys.length - 1);
+    if (next == _index || !_pageController.hasClients) return;
+    _pageController.animateToPage(
+      next,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Daily Workout Analysis')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-            child: _sessionKeys.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No workout data yet. Log an exercise to generate your first analysis.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.70),
-                        ),
-                      ),
-                    )
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _sessionKeys.isEmpty
+                  ? _emptyState(context)
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
                           children: [
                             Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _filterBodyPart == null
+                                        ? 'Your sessions'
+                                        : '$_filterBodyPart sessions',
+                                    style: TextStyle(
+                                      color: scheme.onSurface,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Swipe to move through your training history',
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Compare sessions',
+                              onPressed: _sessionKeys.length < 2
+                                  ? null
+                                  : () => _showCompare(context),
+                              icon: const Icon(Icons.compare_arrows_rounded),
+                            ),
+                            IconButton(
+                              tooltip: 'Refresh sessions',
+                              onPressed: _loadSessions,
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final cardHeight = constraints.maxHeight.clamp(
+                                0.0,
+                                480.0,
+                              );
+                              return Center(
+                                child: SizedBox(
+                                  height: cardHeight,
+                                  child: PageView.builder(
+                                    controller: _pageController,
+                                    onPageChanged: (i) {
+                                      setState(() => _index = i);
+                                    },
+                                    itemCount: _sessionKeys.length,
+                                    itemBuilder: (context, i) {
+                                      final a = _analysisAt(i);
+                                      if (a == null) {
+                                        return Center(
+                                          child: Text(
+                                            'Unable to load analysis for this session.',
+                                            style: TextStyle(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 10,
+                                        ),
+                                        child: Center(
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 470,
+                                            ),
+                                            child: DailyWorkoutAnalysisCard(
+                                              analysis: a,
+                                              compact: true,
+                                              onTap: () =>
+                                                  DailyWorkoutAnalysisDetailsSheet
+                                                      .show(
+                                                        context,
+                                                        analysis: a,
+                                                      ),
+                                              onLongPress: () =>
+                                                  _showCompare(context),
+                                              onViewDetails: () =>
+                                                  DailyWorkoutAnalysisDetailsSheet
+                                                      .show(
+                                                        context,
+                                                        analysis: a,
+                                                      ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              tooltip: 'Previous session',
+                              onPressed: _index < _sessionKeys.length - 1
+                                  ? () => _movePage(1)
+                                  : null,
+                              icon: const Icon(Icons.chevron_left_rounded),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(99),
+                              ),
                               child: Text(
-                                _filterBodyPart == null
-                                    ? 'Swipe for previous sessions'
-                                    : '$_filterBodyPart sessions',
-                                style: const TextStyle(
+                                '${_index + 1} / ${_sessionKeys.length}',
+                                style: TextStyle(
+                                  color: scheme.onSurface,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Compare (long-press also works)',
-                              onPressed: () => _showCompare(context),
-                              icon: const Icon(Icons.compare_arrows),
-                            ),
-                            IconButton(
-                              tooltip: 'Refresh',
-                              onPressed: _loadSessions,
-                              icon: const Icon(Icons.refresh),
+                              tooltip: 'Next session',
+                              onPressed: _index > 0
+                                  ? () => _movePage(-1)
+                                  : null,
+                              icon: const Icon(Icons.chevron_right_rounded),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: PageView.builder(
-                            controller: _pageController,
-                            onPageChanged: (i) => setState(() => _index = i),
-                            itemCount: _sessionKeys.length,
-                            itemBuilder: (context, i) {
-                              // PageView builds adjacent pages; keep open fast by only
-                              // computing the analysis for the visible page.
-                              final isActive = i == _index;
-                              if (!isActive) {
-                                return Center(
-                                  child: Text(
-                                    'Swipe to view this session',
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              final a = _analysisAt(i);
-                              if (a == null) {
-                                return Center(
-                                  child: Text(
-                                    'Unable to load analysis for this session.',
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                );
-                              }
-                              return DailyWorkoutAnalysisCard(
-                                analysis: a,
-                                onTap: () =>
-                                    DailyWorkoutAnalysisDetailsSheet.show(
-                                      context,
-                                      analysis: a,
-                                    ),
-                                onLongPress: () => _showCompare(context),
-                                onViewDetails: () =>
-                                    DailyWorkoutAnalysisDetailsSheet.show(
-                                      context,
-                                      analysis: a,
-                                    ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Done'),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 6),
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.check_rounded),
+                          label: const Text('Done'),
                         ),
                       ],
                     ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 420),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color ?? scheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.monitor_heart_outlined,
+              size: 44,
+              color: scheme.primary,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Your training insights start here',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Log a workout to see progress, recovery, and personalized guidance.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

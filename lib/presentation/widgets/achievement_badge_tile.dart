@@ -11,106 +11,124 @@ class AchievementBadgeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isEarned = progress.isEarned;
-
-    final iconColor = isEarned ? scheme.primary : scheme.onSurface.withValues(alpha: 0.70);
+    final accent = isEarned ? scheme.tertiary : scheme.primary;
 
     return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: accent.withValues(alpha: isEarned ? 0.42 : 0.18),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+        padding: const EdgeInsets.all(15),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                border: Border.all(
-                  color: isEarned
-                      ? scheme.primary.withValues(alpha: 0.55)
-                      : scheme.outline.withValues(alpha: 0.35),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: accent.withValues(alpha: isEarned ? 0.18 : 0.10),
+                  ),
+                  child: Icon(
+                    isEarned
+                        ? Icons.emoji_events_rounded
+                        : progress.definition.icon,
+                    color: accent,
+                    size: 23,
+                  ),
                 ),
-              ),
-              child: Icon(progress.definition.icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          progress.definition.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              progress.definition.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (isEarned) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: scheme.tertiary,
+                              size: 19,
+                            ),
+                          ],
+                        ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                          border: Border.all(
-                            color: scheme.outline.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          progress.definition.category.title,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: scheme.onSurface.withValues(alpha: 0.75),
-                          ),
+                      const SizedBox(height: 5),
+                      Text(
+                        progress.definition.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    progress.definition.description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: scheme.onSurface.withValues(alpha: 0.72),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (isEarned)
-                    Text(
-                      progress.progressText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: scheme.onSurface.withValues(alpha: 0.75),
-                      ),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        LinearProgressIndicator(
-                          value: progress.fraction,
-                          minHeight: 6,
-                          backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          progress.progressText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurface.withValues(alpha: 0.75),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  progress.definition.category.icon,
+                  size: 15,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  progress.definition.category.title,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  progress.progressText,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: isEarned ? scheme.tertiary : scheme.onSurface,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            if (!isEarned) ...[
+              const SizedBox(height: 9),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: progress.fraction,
+                  minHeight: 7,
+                  color: accent,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
+              ),
+            ],
           ],
         ),
       ),
