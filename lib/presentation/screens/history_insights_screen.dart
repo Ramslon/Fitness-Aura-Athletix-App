@@ -5,6 +5,7 @@ import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/workout_history_summary.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/premium_feature_offer_card.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -787,6 +788,204 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
     });
   }
 
+  Widget _advancedHistoryInsights(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final today = _normalizeDay(DateTime.now());
+    final recentStart = today.subtract(const Duration(days: 27));
+    final previousStart = today.subtract(const Duration(days: 55));
+    final recentDays = <DateTime>{};
+    final previousDays = <DateTime>{};
+
+    void addTrainingDay(DateTime date) {
+      final day = _normalizeDay(date);
+      if (!day.isBefore(recentStart) && !day.isAfter(today)) {
+        recentDays.add(day);
+      } else if (!day.isBefore(previousStart) && day.isBefore(recentStart)) {
+        previousDays.add(day);
+      }
+    }
+
+    for (final entry in _entries) {
+      addTrainingDay(entry.date);
+    }
+    for (final record in _exerciseRecords) {
+      addTrainingDay(record.dateRecorded);
+    }
+
+    final estimatesByExercise = <String, double>{};
+    for (final record in _exerciseRecords) {
+      final weights = record.setWeightsKg;
+      final repsBySet = record.setReps;
+      for (var setIndex = 0; setIndex < record.sets; setIndex++) {
+        final weight = weights != null && setIndex < weights.length
+            ? weights[setIndex]
+            : record.weight;
+        final reps = repsBySet != null && setIndex < repsBySet.length
+            ? repsBySet[setIndex]
+            : record.repsPerSet;
+        if (weight <= 0 || reps < 1 || reps > 12) continue;
+        final estimatedMax = weight * (1 + reps / 30);
+        final exercise = record.exerciseName.trim();
+        if (exercise.isEmpty) continue;
+        final current = estimatesByExercise[exercise] ?? 0;
+        if (estimatedMax > current)
+          estimatesByExercise[exercise] = estimatedMax;
+      }
+    }
+
+    final topLifts = estimatesByExercise.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final deltaDays = recentDays.length - previousDays.length;
+    final deltaText = deltaDays == 0
+        ? 'same as the previous 28 days'
+        : '${deltaDays > 0 ? '+' : ''}$deltaDays days vs previous 28 days';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.65),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _historyInsightMetric(
+                context,
+                label: 'TRAINING DAYS',
+                value: '${recentDays.length} / 28',
+                detail: deltaText,
+                icon: Icons.calendar_month_rounded,
+              ),
+              _historyInsightMetric(
+                context,
+                label: 'LOGGED SESSIONS',
+                value: '${_entries.length}',
+                detail: 'Across your saved history',
+                icon: Icons.fitness_center_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Estimated strength leaders',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (topLifts.isEmpty)
+            Text(
+              'Add weighted sets of 1–12 reps to see estimated one-rep max trends. These are estimates, not tested maxes.',
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
+            )
+          else ...[
+            for (final lift in topLifts.take(3))
+              _historyInsightLine(
+                context,
+                lift.key,
+                '${lift.value.toStringAsFixed(1)} kg estimated 1RM',
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'Epley estimates from your logged sets; not a tested maximum.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _historyInsightMetric(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String detail,
+    required IconData icon,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 135, maxWidth: 215),
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: scheme.primary, size: 18),
+          const SizedBox(height: 7),
+          Text(
+            label,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.35,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            detail,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _historyInsightLine(BuildContext context, String title, String value) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(Icons.trending_up_rounded, color: scheme.primary, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: scheme.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSummaryTab() {
     final scheme = Theme.of(context).colorScheme;
     final orderedEntries = _entries.toList()
@@ -993,6 +1192,19 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 14),
+            PremiumFeatureOfferCard(
+              title: 'Advanced history insights',
+              description:
+                  'Find longer-term consistency patterns and strength estimates from your workout history.',
+              icon: Icons.query_stats_rounded,
+              benefits: const [
+                'Compare unique training days across recent 28-day periods.',
+                'Surface your strongest estimated lifts from logged sets.',
+                'Turn saved training history into clearer progress context.',
+              ],
+              unlockedContent: _advancedHistoryInsights(context),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(

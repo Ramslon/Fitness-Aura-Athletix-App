@@ -517,9 +517,9 @@ class _HomeScreenState extends State<HomeScreen> {
         route: AppRoutes.volumeLoad,
       ),
       _FeatureCard(
-        title: 'Premium Features',
+        title: 'Premium Perks',
         description:
-            'Unlock advanced coaching, personalized plans and wearable integrations.',
+            'Explore advanced goal planning, PR analysis, and plan options.',
         icon: Icons.workspace_premium,
         color: const Color.fromARGB(255, 137, 151, 235),
         route: AppRoutes.premiumFeatures,

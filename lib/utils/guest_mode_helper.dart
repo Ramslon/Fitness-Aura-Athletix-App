@@ -58,7 +58,7 @@ class GuestModeHelper {
   /// Returns true if feature is allowed, false otherwise
   static Future<bool> checkFeatureAccess(GuestFeature feature) async {
     final isGuest = await isGuestMode();
-    
+
     if (!isGuest) {
       return true; // Authenticated users have full access
     }
@@ -100,7 +100,7 @@ class GuestModeHelper {
       case GuestFeature.socialSharing:
         return 'Social Sharing';
       case GuestFeature.premiumFeatures:
-        return 'Premium Features';
+        return 'Premium Perks';
       case GuestFeature.advancedAnalytics:
         return 'Advanced Analytics';
       case GuestFeature.customPlans:

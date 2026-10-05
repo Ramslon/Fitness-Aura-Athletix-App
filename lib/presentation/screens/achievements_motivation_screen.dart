@@ -3,6 +3,7 @@ import 'package:fitness_aura_athletix/core/models/achievement.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/core/models/progressive_overload.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/achievement_badge_tile.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/premium_feature_offer_card.dart';
 import 'package:fitness_aura_athletix/services/achievement_service.dart';
 import 'package:fitness_aura_athletix/services/motivation_engine.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
@@ -20,6 +21,7 @@ class _AchievementsMotivationScreenState
   bool _loading = true;
 
   List<_PrAlert> _prAlerts = const [];
+  List<ExerciseRecord> _records = const [];
   int _currentStreakDays = 0;
   int _workoutsThisWeek = 0;
   List<AchievementProgress> _achievements = const [];
@@ -64,7 +66,9 @@ class _AchievementsMotivationScreenState
       workoutsThisWeek: week,
     );
 
+    if (!mounted) return;
     setState(() {
+      _records = records;
       _prAlerts = prAlerts;
       _currentStreakDays = streak;
       _workoutsThisWeek = week;
@@ -103,6 +107,105 @@ class _AchievementsMotivationScreenState
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Deload marked completed.')));
+  }
+
+  double _estimatedOneRepMax(ExerciseRecord record) {
+    var best = 0.0;
+    if (record.hasSetWeights && record.hasSetReps) {
+      final count = record.setWeightsKg!.length < record.setReps!.length
+          ? record.setWeightsKg!.length
+          : record.setReps!.length;
+      for (var i = 0; i < count; i++) {
+        final reps = record.setReps![i];
+        if (reps > 0 && reps <= 12) {
+          final estimate = record.setWeightsKg![i] * (1 + reps / 30);
+          if (estimate > best) best = estimate;
+        }
+      }
+      return best;
+    }
+
+    final reps = record.repsPerSet;
+    if (record.weight > 0 && reps > 0 && reps <= 12) {
+      return record.weight * (1 + reps / 30);
+    }
+    return 0;
+  }
+
+  Widget _advancedPrAnalysis(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bestByExercise = <String, double>{};
+    for (final record in _records) {
+      final estimate = _estimatedOneRepMax(record);
+      if (estimate > (bestByExercise[record.exerciseName] ?? 0)) {
+        bestByExercise[record.exerciseName] = estimate;
+      }
+    }
+    final topEstimates = bestByExercise.entries
+        .where((entry) => entry.value > 0)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final weightedRecords = _records.where((record) => record.weight > 0).length;
+    final repRecords = _records
+        .where((record) => record.repsPerSet > 0)
+        .length;
+
+    if (_records.isEmpty) {
+      return Text(
+        'Log exercise records to build estimated strength and record-type insights.',
+        style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _PrInsightStat(label: 'WEIGHTED LOGS', value: '$weightedRecords'),
+            _PrInsightStat(label: 'REP LOGS', value: '$repRecords'),
+            _PrInsightStat(label: 'EXERCISES', value: '${_records.map((r) => r.exerciseName).toSet().length}'),
+          ],
+        ),
+        if (topEstimates.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text(
+            'Top estimated 1RMs',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (final entry in topEstimates.take(3))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.trending_up_rounded,
+                    size: 18,
+                    color: scheme.primary,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(child: Text(entry.key)),
+                  Text(
+                    '${entry.value.toStringAsFixed(1)} kg',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ),
+          Text(
+            'Epley estimates use logged sets of 12 reps or fewer; estimates are not tested maxes.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ],
+    );
   }
 
   Map<AchievementCategory, List<AchievementProgress>> _groupedAchievements() {
@@ -424,6 +527,20 @@ class _AchievementsMotivationScreenState
                             child: _personalRecordCard(context, record),
                           ),
                         ),
+                      const SizedBox(height: 8),
+                      PremiumFeatureOfferCard(
+                        title: 'Advanced PR analysis',
+                        description:
+                            'Go beyond recent bests with richer strength estimates and performance trends.',
+                        icon: Icons.insights_rounded,
+                        benefits: const [
+                          'Estimated one-rep max and strength projections.',
+                          'Separate weight, reps, and volume record insights.',
+                          'Longer-term progress context for your personal bests.',
+                        ],
+                        unlockedContent: _advancedPrAnalysis(context),
+                        onAccessChanged: _load,
+                      ),
                       const SizedBox(height: 16),
                       _sectionHeader(
                         context,
@@ -758,6 +875,45 @@ class _OverviewMetric extends StatelessWidget {
               fontWeight: FontWeight.w800,
               letterSpacing: 0.45,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrInsightStat extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _PrInsightStat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
         ],
       ),

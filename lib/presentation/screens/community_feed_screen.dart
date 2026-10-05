@@ -91,10 +91,6 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
     super.dispose();
   }
 
-  void _goToPremium() {
-    Navigator.of(context).pushNamed('/premium-features');
-  }
-
   Future<void> _openFilters() async {
     final scheme = _communityScheme;
     await showModalBottomSheet(
@@ -147,7 +143,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                   isPremium: _isPremium,
                   title: 'Advanced filters',
                   previewText: 'Unlock Nearby / Same level / Same goals 🔒',
-                  onUpgrade: _goToPremium,
+                  benefits: const [
+                    'Find lifters by location, training level, or shared goals.',
+                    'Narrow your feed to people and posts relevant to you.',
+                    'Switch filters on or off whenever you like.',
+                  ],
+                  onAccessChanged: _load,
                   child: Column(
                     children: [
                       SwitchListTile.adaptive(
@@ -1224,7 +1225,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
               isPremium: _isPremium,
               title: 'AI post insights',
               previewText: 'Unlock smart insights + safety notes 🔒',
-              onUpgrade: _goToPremium,
+              benefits: const [
+                'Get a concise summary of the workout post.',
+                'See training context and practical safety reminders.',
+                'Use insights to start more informed community discussions.',
+              ],
+              onAccessChanged: _load,
               child: _aiPostInsightPanel(p),
             ),
 
@@ -1625,7 +1631,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                       isPremium: _isPremium,
                       title: 'Challenge analytics',
                       previewText: 'Unlock deeper progress analytics 🔒',
-                      onUpgrade: _goToPremium,
+                      benefits: const [
+                        'Review consistency and progress toward your target.',
+                        'See pace-to-goal context for an active challenge.',
+                        'Use recovery notes to guide your next session.',
+                      ],
+                      onAccessChanged: _load,
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -1662,7 +1673,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
         isPremium: _isPremium,
         title: 'Private groups',
         previewText: 'Unlock private groups 🔒 (train with your circle).',
-        onUpgrade: _goToPremium,
+        benefits: const [
+          'Create a focused training space for your circle.',
+          'Share progress and coordinate around shared goals.',
+          'Keep group activity separate from the public feed.',
+        ],
+        onAccessChanged: _load,
         child: Card(
           child: Padding(
             padding: const EdgeInsets.all(22),

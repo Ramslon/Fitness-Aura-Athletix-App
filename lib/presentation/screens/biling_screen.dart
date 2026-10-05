@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/currency_service.dart';
 import 'package:fitness_aura_athletix/services/payment_service.dart';
 import 'package:fitness_aura_athletix/services/payment_provider.dart';
-import 'package:fitness_aura_athletix/services/storage_service.dart';
 import 'package:intl/intl.dart';
 
 class BillingScreen extends StatefulWidget {
@@ -35,24 +34,35 @@ class _BillingScreenState extends State<BillingScreen> {
 
   Future<void> _pay() async {
     setState(() => _processing = true);
-    if (_selectedProvider == 'Test') {
-      PaymentService().registerProvider(TestPaymentProvider());
-    }
-    final success = await PaymentService().processPayment(
-      amount: _displayAmount,
-      currency: _currency,
-      description: 'Premium upgrade',
-    );
-    setState(() => _processing = false);
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment successful — premium unlocked')),
+    try {
+      if (_selectedProvider == 'Test') {
+        PaymentService().registerProvider(TestPaymentProvider());
+      }
+      final success = await PaymentService().processPayment(
+        amount: _displayAmount,
+        currency: _currency,
+        description: 'Premium upgrade',
       );
-      Navigator.of(context).popUntil((r) => r.isFirst);
-    } else {
+      if (!mounted) return;
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment was not completed.')),
+        );
+        return;
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Payment failed')));
+      ).showSnackBar(
+        const SnackBar(content: Text('Premium access unlocked.')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -99,21 +109,17 @@ class _BillingScreenState extends State<BillingScreen> {
               'Payment provider',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 4),
+            const Text(
+              'Only the simulated test checkout is currently available. Live providers are not configured.',
+            ),
             const SizedBox(height: 8),
             DropdownButton<String>(
               value: _selectedProvider,
               items: const [
                 DropdownMenuItem(
                   value: 'Test',
-                  child: Text('Test (no real provider)'),
-                ),
-                DropdownMenuItem(
-                  value: 'Stripe',
-                  child: Text('Stripe (configure later)'),
-                ),
-                DropdownMenuItem(
-                  value: 'MPesa',
-                  child: Text('MPesa (configure later)'),
+                  child: Text('Test checkout (simulated)'),
                 ),
               ],
               onChanged: (v) {
@@ -124,15 +130,17 @@ class _BillingScreenState extends State<BillingScreen> {
             const SizedBox(height: 8),
             _processing
                 ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(onPressed: _pay, child: const Text('Pay now')),
+                : ElevatedButton(
+                    onPressed: _pay,
+                    child: const Text('Complete test checkout'),
+                  ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () async {
-                await StorageService().saveBoolSetting('premium', false);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Purchase cancelled')),
                 );
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(false);
               },
               child: const Text('Cancel'),
             ),

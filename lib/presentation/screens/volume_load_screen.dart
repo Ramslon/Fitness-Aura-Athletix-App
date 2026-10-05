@@ -5,6 +5,7 @@ import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_bar_chart.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_line_chart.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/premium_gate.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/premium_feature_offer_card.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fitness_aura_athletix/services/premium_access_service.dart';
@@ -63,29 +64,52 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     });
   }
 
-  void _goToPremium() {
-    Navigator.of(context).pushNamed('/premium-features');
-  }
-
   bool _isViewLocked(_VolumeView v) {
     if (_isPremium) return false;
-    // Keep beginners on Weekly. Premium unlocks the deeper views.
     return v != _VolumeView.weekly;
   }
 
   void _selectView(_VolumeView v) {
-    if (_isViewLocked(v)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unlock advanced analytics 🔒')),
-      );
-      _goToPremium();
-      return;
-    }
     setState(() {
       _view = v;
       _selectedVolumePoint = null;
       _selectedMuscleBar = null;
     });
+  }
+
+  void _showComparisonOffer() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            16 + MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: PremiumFeatureOfferCard(
+            title: 'Volume comparisons',
+            description: 'Compare training volume across time periods.',
+            icon: Icons.compare_arrows_rounded,
+            benefits: const [
+              'Compare your current period with previous training blocks.',
+              'Spot load changes and consistency shifts at a glance.',
+              'Use the comparison toggle on weekly and monthly summaries.',
+            ],
+            onAccessChanged: () {
+              _load().then((_) {
+                if (mounted && _isPremium) {
+                  setState(() => _compareMode = true);
+                }
+              });
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Color _deltaColor(double pct) {
@@ -480,7 +504,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                   value: _compareMode,
                   onChanged: (v) => setState(() => _compareMode = v),
                   isPremium: _isPremium,
-                  onUpgrade: _goToPremium,
+                  onUpgrade: _showComparisonOffer,
                 ),
               ],
             ),
@@ -573,7 +597,7 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                   value: _compareMode,
                   onChanged: (v) => setState(() => _compareMode = v),
                   isPremium: _isPremium,
-                  onUpgrade: _goToPremium,
+                  onUpgrade: _showComparisonOffer,
                 ),
               ],
             ),
@@ -1411,7 +1435,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           title: 'AI Insights',
                           previewText:
                               'Unlock insights 🔒 (plateaus, deloads, trends).',
-                          onUpgrade: _goToPremium,
+                          benefits: const [
+                            'Surface possible plateaus from your training history.',
+                            'Review volume trends before planning a deload.',
+                            'Get practical context for changes in training load.',
+                          ],
+                          onAccessChanged: _load,
                           child: _aiInsightCard(),
                         ),
                         const SizedBox(height: 14),
@@ -1432,7 +1461,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           title: 'Muscle breakdown',
                           previewText:
                               'Unlock muscle group load + balance view 🔒',
-                          onUpgrade: _goToPremium,
+                          benefits: const [
+                            'See how weekly training load is distributed by muscle.',
+                            'Find muscle groups receiving less or more attention.',
+                            'Open detailed totals to guide balanced programming.',
+                          ],
+                          onAccessChanged: _load,
                           child: Column(
                             children: [
                               _chartSection(
@@ -1457,7 +1491,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           title: 'Exercise-level tracking',
                           previewText:
                               'Unlock last/best/avg + overload signals 🔒',
-                          onUpgrade: _goToPremium,
+                          benefits: const [
+                            'Compare recent, average, and best exercise loads.',
+                            'Track overload signals across logged sessions.',
+                            'Filter the exercise list by movement or body part.',
+                          ],
+                          onAccessChanged: _load,
                           child: Column(
                             children: [
                               _filtersRow(),
@@ -1473,7 +1512,12 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           isPremium: _isPremium,
                           title: 'Monthly analytics',
                           previewText: 'Unlock long-term trends (months) 🔒',
-                          onUpgrade: _goToPremium,
+                          benefits: const [
+                            'Review volume patterns across recent months.',
+                            'Compare weekly totals and muscle-group distribution.',
+                            'Use longer-term context to adjust your training.',
+                          ],
+                          onAccessChanged: _load,
                           child: Column(
                             children: [
                               _topMonthlySummary(),
@@ -1509,31 +1553,63 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                       ],
 
                       if (_view == _VolumeView.byExercise) ...[
-                        _sectionIntro(
-                          'Exercise load tracking',
-                          'Compare recent, average and best training loads',
+                        PremiumGate(
+                          isPremium: _isPremium,
+                          title: 'Exercise load tracking',
+                          previewText:
+                              'Unlock recent, average, and best exercise loads.',
+                          benefits: const [
+                            'Review recent, average, and best loads per exercise.',
+                            'Spot progress or plateaus in individual movements.',
+                            'Filter by body part and search your exercise history.',
+                          ],
+                          onAccessChanged: _load,
+                          child: Column(
+                            children: [
+                              _sectionIntro(
+                                'Exercise load tracking',
+                                'Compare recent, average and best training loads',
+                              ),
+                              _filtersRow(),
+                              const SizedBox(height: 12),
+                              _exerciseTracking(),
+                            ],
+                          ),
                         ),
-                        _filtersRow(),
-                        const SizedBox(height: 12),
-                        _exerciseTracking(),
                       ],
 
                       if (_view == _VolumeView.byMuscleGroup) ...[
-                        _topWeeklySummary(),
-                        const SizedBox(height: 14),
-                        _chartSection(
-                          title: 'Load by muscle group',
-                          subtitle:
-                              'Tap a bar to see its share of your total load',
-                          chart: SimpleBarChart(
-                            bars: weekMuscleBars,
-                            selectedIndex: _selectedMuscleBar,
-                            onSelected: (i) =>
-                                setState(() => _selectedMuscleBar = i),
+                        PremiumGate(
+                          isPremium: _isPremium,
+                          title: 'Muscle-group analytics',
+                          previewText:
+                              'Unlock training load distribution across muscle groups.',
+                          benefits: const [
+                            'Compare training load across muscle groups.',
+                            'See a breakdown of each group’s share of weekly load.',
+                            'Use distribution patterns to plan balanced sessions.',
+                          ],
+                          onAccessChanged: _load,
+                          child: Column(
+                            children: [
+                              _topWeeklySummary(),
+                              const SizedBox(height: 14),
+                              _chartSection(
+                                title: 'Load by muscle group',
+                                subtitle:
+                                    'Tap a bar to see its share of your total load',
+                                chart: SimpleBarChart(
+                                  bars: weekMuscleBars,
+                                  selectedIndex: _selectedMuscleBar,
+                                  onSelected: (i) =>
+                                      setState(() => _selectedMuscleBar = i),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              _muscleBreakdownList(7),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        _muscleBreakdownList(7),
                       ],
                     ],
                   ),

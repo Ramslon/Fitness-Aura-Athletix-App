@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 class PremiumAccessService {
@@ -31,9 +32,14 @@ class PremiumAccessService {
     return (await trialUntil()) != null;
   }
 
-  Future<void> startFreeTrial({int days = 7}) async {
+  Future<bool> startFreeTrial({int days = 7}) async {
+    if (await hasUsedTrial()) return false;
     final until = DateTime.now().add(Duration(days: days));
-    await StorageService().saveStringSetting(_kTrialUntilKey, until.toIso8601String());
+    await StorageService().saveStringSetting(
+      _kTrialUntilKey,
+      until.toIso8601String(),
+    );
+    return true;
   }
 
   Future<void> clearTrial() async {
@@ -42,5 +48,14 @@ class PremiumAccessService {
       _kTrialUntilKey,
       DateTime.fromMillisecondsSinceEpoch(0).toIso8601String(),
     );
+  }
+
+  Future<void> resetForTesting() async {
+    if (!kDebugMode) {
+      throw StateError('Premium test access can only be reset in debug mode.');
+    }
+    final storage = StorageService();
+    await storage.saveBoolSetting(_kPremiumFlag, false);
+    await storage.removeSetting(_kTrialUntilKey);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/core/models/goal.dart';
 import 'package:fitness_aura_athletix/core/models/coach_suggestion.dart';
+import 'package:fitness_aura_athletix/core/models/exercise.dart';
+import 'package:fitness_aura_athletix/presentation/widgets/premium_feature_offer_card.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 class GoalBasedTrackingScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
   List<Goal> _goals = [];
   Goal? _active;
   List<CoachSuggestion> _suggestions = [];
+  List<ExerciseRecord> _records = [];
 
   @override
   void initState() {
@@ -26,6 +29,7 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final goals = await StorageService().loadGoals();
+    final records = await StorageService().loadExerciseRecords();
     final active = await StorageService().getActiveGoal();
     final suggestions = active == null
         ? <CoachSuggestion>[]
@@ -34,6 +38,7 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
     if (!mounted) return;
     setState(() {
       _goals = goals..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _records = records;
       _active = active;
       _suggestions = suggestions;
       _loading = false;
@@ -509,6 +514,145 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
     );
   }
 
+  double _estimatedOneRepMax(ExerciseRecord record) {
+    var best = 0.0;
+    if (record.hasSetWeights && record.hasSetReps) {
+      final count = record.setWeightsKg!.length < record.setReps!.length
+          ? record.setWeightsKg!.length
+          : record.setReps!.length;
+      for (var i = 0; i < count; i++) {
+        final reps = record.setReps![i];
+        if (reps > 0 && reps <= 12) {
+          final estimate = record.setWeightsKg![i] * (1 + reps / 30);
+          if (estimate > best) best = estimate;
+        }
+      }
+      return best;
+    }
+
+    final reps = record.repsPerSet;
+    if (record.weight > 0 && reps > 0 && reps <= 12) {
+      return record.weight * (1 + reps / 30);
+    }
+    return 0;
+  }
+
+  Widget _advancedGoalInsights(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final goal = _active;
+    if (goal == null) {
+      return Text(
+        'Set an active goal to see a personalized strength estimate or recent focus-area activity.',
+        style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+      );
+    }
+
+    if (goal.type == GoalType.strengthTarget &&
+        goal.exerciseName != null &&
+        goal.exerciseName!.trim().isNotEmpty) {
+      final matching = _records.where(
+        (record) =>
+            record.exerciseName.trim().toLowerCase() ==
+            goal.exerciseName!.trim().toLowerCase(),
+      );
+      var estimatedMax = 0.0;
+      for (final record in matching) {
+        final estimate = _estimatedOneRepMax(record);
+        if (estimate > estimatedMax) estimatedMax = estimate;
+      }
+
+      if (estimatedMax <= 0) {
+        return Text(
+          'Log a weighted set of ${goal.exerciseName} with 1–12 reps to build an estimated-strength trend toward your target.',
+          style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+        );
+      }
+
+      final target = goal.targetWeightKg;
+      final gap = target == null ? null : (target - estimatedMax).clamp(0, double.infinity);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Estimated ${goal.exerciseName} 1RM',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${estimatedMax.toStringAsFixed(1)} kg',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          if (target != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              gap == 0
+                  ? 'Your estimated max has reached the ${target.toStringAsFixed(0)} kg target.'
+                  : '${gap!.toStringAsFixed(1)} kg to the ${target.toStringAsFixed(0)} kg target.',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            'Estimate uses the Epley formula from logged sets of 12 reps or fewer; it is a training estimate, not a tested max.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      );
+    }
+
+    final focus = goal.focusMuscleGroup?.toLowerCase();
+    final cutoff = DateTime.now().subtract(const Duration(days: 28));
+    final recentRecords = _records.where(
+      (record) =>
+          record.dateRecorded.isAfter(cutoff) &&
+          (focus == null || record.bodyPart.toLowerCase() == focus),
+    );
+    final activeDays = recentRecords
+        .map(
+          (record) => DateTime(
+            record.dateRecorded.year,
+            record.dateRecorded.month,
+            record.dateRecorded.day,
+          ),
+        )
+        .toSet()
+        .length;
+    final label = goal.focusMuscleGroup ?? 'all training';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Recent $label training',
+          style: TextStyle(
+            color: scheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          '$activeDays active ${activeDays == 1 ? 'day' : 'days'} in the last 28 days',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Use this as a consistency check for your current ${goal.type == GoalType.growMuscle ? 'muscle-building' : 'focus-area'} goal.',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -740,6 +884,20 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
                             child: _suggestionCard(context, suggestion),
                           ),
                         ),
+                      const SizedBox(height: 10),
+                      PremiumFeatureOfferCard(
+                        title: 'Advanced goal planning',
+                        description:
+                            'Turn your active target into a more structured training plan with deeper progress context.',
+                        icon: Icons.flag_rounded,
+                        benefits: const [
+                          'Projected strength milestones based on logged lifts.',
+                          'More detailed weekly focus and goal-progress insights.',
+                          'Advanced coach guidance for your selected goal.',
+                        ],
+                        unlockedContent: _advancedGoalInsights(context),
+                        onAccessChanged: _load,
+                      ),
                     ],
                   ),
                 ),

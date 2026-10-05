@@ -33,7 +33,7 @@ class StorageService {
       await SharedPreferences.getInstance();
 
   final FlutterSecureStorage _secure = const FlutterSecureStorage();
-  final AuthService _authService = AuthService();
+  late final AuthService _authService = AuthService();
 
   Future<String> _scopedKey(String baseKey) async {
     final isGuest = await _authService.isGuestMode();
@@ -388,6 +388,11 @@ class StorageService {
   Future<String?> loadStringSetting(String key) async {
     final prefs = await _prefs;
     return prefs.getString('$_kSettingsPrefix$key');
+  }
+
+  Future<void> removeSetting(String key) async {
+    final prefs = await _prefs;
+    await prefs.remove('$_kSettingsPrefix$key');
   }
 
   Future<void> saveBoolSetting(String key, bool value) async {
