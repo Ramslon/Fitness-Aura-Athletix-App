@@ -562,6 +562,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     final scheme = Theme.of(context).colorScheme;
+    final viewport = MediaQuery.sizeOf(context);
+    final isMobilePortrait =
+        viewport.width < 600 && viewport.height > viewport.width;
+    final workoutCardAspectRatio = isMobilePortrait ? 0.76 : 0.60;
 
     return Scaffold(
       appBar: AppBar(
@@ -867,12 +871,11 @@ class _HomeScreenState extends State<HomeScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              // Taller cards to avoid vertical overflow on small devices
-              childAspectRatio: 0.74,
+              childAspectRatio: workoutCardAspectRatio,
             ),
             itemCount: features.length,
             itemBuilder: (context, index) {
@@ -1098,7 +1101,9 @@ class _FeatureCardWidget extends StatelessWidget {
         onLongPress: onLongPress,
         child: Ink(
           decoration: baseDecoration,
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(
+            feature.kind == _FeatureKind.bodyPart ? 8 : 12,
+          ),
           child: content,
         ),
       ),
@@ -1116,6 +1121,7 @@ class _SimpleFeatureCardContent extends StatelessWidget {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(feature.icon, color: feature.color, size: 36),
@@ -1182,14 +1188,15 @@ class _BodyPartWorkoutCard extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Top Section — Identity
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: accent.withValues(alpha: 0.16),
@@ -1197,7 +1204,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
               ),
               child: Icon(icon, color: accent),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 6),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1208,15 +1215,15 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 15,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 1),
                   Text(
                     _statusLabel(stats?.lastTrained),
                     style: TextStyle(
                       color: scheme.onSurface.withValues(alpha: 0.70),
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1224,7 +1231,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: Colors.white.withValues(alpha: 0.06),
@@ -1241,7 +1248,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                         padding: const EdgeInsets.only(right: 6),
                         child: Icon(
                           isPinned ? Icons.star : Icons.star_border,
-                          size: 16,
+                          size: 14,
                           color: isPinned
                               ? Colors.amber.shade400
                               : scheme.onSurface.withValues(alpha: 0.75),
@@ -1262,7 +1269,7 @@ class _BodyPartWorkoutCard extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
 
         // Middle Section — Progress Feedback
         Row(
@@ -1275,15 +1282,15 @@ class _BodyPartWorkoutCard extends StatelessWidget {
                     'Last trained',
                     style: TextStyle(
                       color: scheme.onSurface.withValues(alpha: 0.65),
-                      fontSize: 11.5,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     lastTrainedText,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1293,24 +1300,27 @@ class _BodyPartWorkoutCard extends StatelessWidget {
             _TrendPill(trend: trend, accent: accent),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
             value: progress,
-            minHeight: 8,
+            minHeight: 6,
             backgroundColor: Colors.white.withValues(alpha: 0.06),
             valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
 
         // Bottom Section — Action
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: onPrimaryAction,
-            style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size.fromHeight(32),
+            ),
             child: const Text('Start Workout', style: TextStyle(fontSize: 12)),
           ),
         ),

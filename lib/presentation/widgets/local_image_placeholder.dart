@@ -4,18 +4,38 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+String exerciseArtworkLabel({
+  required String bodyPart,
+  required String exerciseName,
+}) {
+  final prefix = switch (bodyPart.toLowerCase()) {
+    'arms' => 'arm',
+    'legs' => 'leg',
+    'glutes' => 'glute',
+    'abs' => 'abs',
+    'core' => 'core',
+    _ => bodyPart.toLowerCase(),
+  };
+  final name = exerciseName.trim().toLowerCase();
+  return name == prefix || name.startsWith('$prefix ') ? name : '$prefix $name';
+}
+
 /// Widget that displays a local image if previously picked/saved for `id`,
 /// otherwise shows a placeholder and allows picking an image from device
 /// storage. Optionally falls back to an asset image if provided.
 class LocalImagePlaceholder extends StatefulWidget {
   final String id;
   final String? assetPath;
+  final String? fallbackLabel;
+  final Color? fallbackColor;
   final BoxFit fit;
   final double? height;
 
   const LocalImagePlaceholder({
     required this.id,
     this.assetPath,
+    this.fallbackLabel,
+    this.fallbackColor,
     this.fit = BoxFit.cover,
     this.height,
     super.key,
@@ -83,6 +103,8 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
         fit: widget.fit,
         errorBuilder: (c, e, s) => _placeholder(context),
       );
+    } else if (widget.fallbackLabel != null && widget.fallbackColor != null) {
+      image = _exerciseArtwork(context);
     } else {
       image = _placeholder(context);
     }
@@ -105,6 +127,40 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
     );
   }
 
+  Widget _exerciseArtwork(BuildContext context) {
+    return Container(
+      height: widget.height,
+      color: widget.fallbackColor,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textWidth = (constraints.maxWidth - 24).clamp(
+            0.0,
+            constraints.maxWidth,
+          );
+          return Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: textWidth,
+                child: Text(
+                  widget.fallbackLabel!.toLowerCase(),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _placeholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return LayoutBuilder(
@@ -119,8 +175,8 @@ class _LocalImagePlaceholderState extends State<LocalImagePlaceholder> {
         final padding = isVeryTight
             ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10)
             : (isTight
-                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
-                : const EdgeInsets.symmetric(horizontal: 14, vertical: 14));
+                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
+                  : const EdgeInsets.symmetric(horizontal: 14, vertical: 14));
 
         final iconSize = isVeryTight ? 30.0 : (isTight ? 36.0 : 44.0);
 

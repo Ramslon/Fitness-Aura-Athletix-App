@@ -20,7 +20,7 @@ class GlutesWorkouts extends StatefulWidget {
   static final List<_Exercise> _exercises = [
     _Exercise(
       id: 'barbell_squat',
-      title: 'Barbell Squat',
+      title: 'Glute Barbell Squat',
       description:
           'Heavy compound movement that targets glutes, quads, and hamstrings.',
       image: 'assets/images/glutes_barbell_squat.png',
@@ -44,7 +44,7 @@ class GlutesWorkouts extends StatefulWidget {
     ),
     _Exercise(
       id: 'rumanian_deadlift',
-      title: 'Romanian Deadlift',
+      title: 'Glute Romanian Deadlift',
       description:
           'RDL targets glutes and hamstrings with emphasis on the posterior chain.',
       image: 'assets/images/glutes_romanian_deadlift.png',
@@ -141,8 +141,7 @@ class GlutesWorkouts extends StatefulWidget {
     _Exercise(
       id: 'sumo_squat',
       title: 'Sumo Squat',
-      description:
-          'Wide-stance squat emphasizing glutes and inner thighs.',
+      description: 'Wide-stance squat emphasizing glutes and inner thighs.',
       image: 'assets/images/glutes_sumo_squat.png',
       setsReps: '1–5 sets x 10-15 reps',
     ),
@@ -156,7 +155,7 @@ class GlutesWorkouts extends StatefulWidget {
     ),
     _Exercise(
       id: 'crusty_lunges',
-      title: 'Crusty Lunges',
+      title: 'Curtsy Lunges',
       description:
           'Lunge variation that challenges glute control and lower-body stability.',
       image: 'assets/images/glutes_crusty_lunges.png',
@@ -181,7 +180,9 @@ class _GlutesWorkoutsState extends State<GlutesWorkouts> {
     if (!mounted) return;
     if (analysis == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active Glutes workout to finish yet.')),
+        const SnackBar(
+          content: Text('No active Glutes workout to finish yet.'),
+        ),
       );
       return;
     }
@@ -260,6 +261,7 @@ class _GlutesWorkoutsState extends State<GlutesWorkouts> {
                     setsReps: ex.setsReps,
                     bodyPart: 'Glutes',
                     assetPath: ex.image,
+                    showExerciseArtwork: true,
                     accent: accent,
                     onTap: () => Navigator.push(
                       context,
@@ -334,7 +336,11 @@ class GlutesExerciseDetail extends StatelessWidget {
               height: 240,
               child: LocalImagePlaceholder(
                 id: exercise.id,
-                assetPath: exercise.image,
+                fallbackLabel: exerciseArtworkLabel(
+                  bodyPart: 'Glutes',
+                  exerciseName: exercise.title,
+                ),
+                fallbackColor: Colors.pink.shade400,
                 fit: BoxFit.cover,
                 height: 240,
               ),

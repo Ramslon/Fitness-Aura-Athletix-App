@@ -172,6 +172,7 @@ class _CoreWorkoutsState extends State<CoreWorkouts> {
                     setsReps: ex.setsReps,
                     bodyPart: 'Core',
                     assetPath: ex.image,
+                    showExerciseArtwork: true,
                     accent: accent,
                     onTap: () => Navigator.push(
                       context,
@@ -246,7 +247,11 @@ class CoreExerciseDetail extends StatelessWidget {
               height: 240,
               child: LocalImagePlaceholder(
                 id: exercise.id,
-                assetPath: exercise.image,
+                fallbackLabel: exerciseArtworkLabel(
+                  bodyPart: 'Core',
+                  exerciseName: exercise.title,
+                ),
+                fallbackColor: Colors.deepOrange.shade300,
                 fit: BoxFit.cover,
                 height: 240,
               ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_log_dialog.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_grid_card.dart';
@@ -35,14 +35,16 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'leg_in_and_outs',
       title: 'Leg In & Outs',
-      description: 'Tuck and extend legs to challenge lower abs and hip flexors.',
+      description:
+          'Tuck and extend legs to challenge lower abs and hip flexors.',
       image: null,
       setsReps: '20 reps \u2022 Core',
     ),
     _Exercise(
       id: 'one_down_two_ups',
       title: 'One Down Two Ups',
-      description: 'Lower one leg then lift twice with control to build endurance.',
+      description:
+          'Lower one leg then lift twice with control to build endurance.',
       image: null,
       setsReps: '12 reps/side \u2022 Core',
     ),
@@ -62,7 +64,7 @@ class AbsWorkouts extends StatefulWidget {
     ),
     _Exercise(
       id: 'crunches_leg_raised',
-      title: 'Crunches with Leg Raised',
+      title: 'Crunches with Legs Raised',
       description: 'Crunch while keeping legs raised to increase core demand.',
       image: null,
       setsReps: '15 reps \u2022 Core',
@@ -70,7 +72,8 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'knee_to_elbow_crunches',
       title: 'Knee to Elbow Crunches',
-      description: 'Drive knee toward elbow to emphasize rotation and obliques.',
+      description:
+          'Drive knee toward elbow to emphasize rotation and obliques.',
       image: null,
       setsReps: '20 reps/side \u2022 Core',
     ),
@@ -84,7 +87,8 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'crunch_kicks',
       title: 'Crunch Kicks',
-      description: 'Crunch and kick forward to challenge the entire midsection.',
+      description:
+          'Crunch and kick forward to challenge the entire midsection.',
       image: null,
       setsReps: '20 reps \u2022 Core',
     ),
@@ -104,7 +108,7 @@ class AbsWorkouts extends StatefulWidget {
     ),
     _Exercise(
       id: 'heel_to_the_heaven',
-      title: 'Heel to the Heaven',
+      title: 'Heels to Heaven',
       description: 'Lift hips upward with legs extended to fire the lower abs.',
       image: null,
       setsReps: '15 reps \u2022 Core',
@@ -148,7 +152,8 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'crunch_90_90',
       title: '90/90 Crunch',
-      description: 'Crunch with hips and knees at 90/90 to reduce hip flexor strain.',
+      description:
+          'Crunch with hips and knees at 90/90 to reduce hip flexor strain.',
       image: null,
       setsReps: '20 reps \u2022 Core',
     ),
@@ -204,7 +209,8 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'push_up_and_rotation',
       title: 'Push-up and Rotation',
-      description: 'Push-up then rotate into a reach to train core anti-rotation.',
+      description:
+          'Push-up then rotate into a reach to train core anti-rotation.',
       image: null,
       setsReps: '10 reps/side \u2022 Core',
     ),
@@ -253,14 +259,16 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'seated_abs_clockwise_circles',
       title: 'Seated Abs Clockwise Circles',
-      description: 'Seated circular motion to challenge core control and endurance.',
+      description:
+          'Seated circular motion to challenge core control and endurance.',
       image: null,
       setsReps: '30s \u2022 Core',
     ),
     _Exercise(
       id: 'seated_abs_counter_clockwise_circles',
       title: 'Seated Abs Counter Clockwise Circles',
-      description: 'Reverse circles to balance control and anti-rotation strength.',
+      description:
+          'Reverse circles to balance control and anti-rotation strength.',
       image: null,
       setsReps: '30s \u2022 Core',
     ),
@@ -274,14 +282,16 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'side_plank_knee_crunch_left',
       title: 'Side Plank Knee Crunch (Left)',
-      description: 'Side plank with knee drive to intensify oblique activation.',
+      description:
+          'Side plank with knee drive to intensify oblique activation.',
       image: null,
       setsReps: '15 reps \u2022 Core',
     ),
     _Exercise(
       id: 'side_plank_knee_crunch_right',
       title: 'Side Plank Knee Crunch (Right)',
-      description: 'Side plank with knee drive to intensify oblique activation.',
+      description:
+          'Side plank with knee drive to intensify oblique activation.',
       image: null,
       setsReps: '15 reps \u2022 Core',
     ),
@@ -295,7 +305,8 @@ class AbsWorkouts extends StatefulWidget {
     _Exercise(
       id: 'x_man_crunch',
       title: 'X Man Crunch',
-      description: 'Cross-body crunch pattern to hit abs and obliques together.',
+      description:
+          'Cross-body crunch pattern to hit abs and obliques together.',
       image: null,
       setsReps: '20 reps \u2022 Core',
     ),
@@ -397,6 +408,7 @@ class _AbsWorkoutsState extends State<AbsWorkouts> {
                     setsReps: ex.setsReps,
                     bodyPart: 'Abs',
                     assetPath: ex.image,
+                    showExerciseArtwork: true,
                     accent: accent,
                     onTap: () => Navigator.push(
                       context,
@@ -470,7 +482,11 @@ class AbsExerciseDetail extends StatelessWidget {
               height: 240,
               child: LocalImagePlaceholder(
                 id: exercise.id,
-                assetPath: exercise.image,
+                fallbackLabel: exerciseArtworkLabel(
+                  bodyPart: 'Abs',
+                  exerciseName: exercise.title,
+                ),
+                fallbackColor: Colors.amber.shade500,
                 fit: BoxFit.cover,
                 height: 240,
               ),

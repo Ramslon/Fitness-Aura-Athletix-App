@@ -2,12 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/exercise_insights.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/local_image_placeholder.dart';
 
+Color exerciseCardAccent(String id) {
+  var hash = 0x811c9dc5;
+  for (final codeUnit in id.toLowerCase().codeUnits) {
+    hash = ((hash ^ codeUnit) * 0x01000193) & 0xffffffff;
+  }
+
+  hash = _mixExerciseColorSeed(hash);
+  final hue = hash / 0xffffffff * 360;
+  final saturationSeed = _mixExerciseColorSeed(hash ^ 0x9e3779b9);
+  final valueSeed = _mixExerciseColorSeed(hash ^ 0x85ebca6b);
+
+  return HSVColor.fromAHSV(
+    1,
+    hue,
+    0.68 + saturationSeed / 0xffffffff * 0.18,
+    0.78 + valueSeed / 0xffffffff * 0.16,
+  ).toColor();
+}
+
+int _mixExerciseColorSeed(int value) {
+  value = ((value ^ (value >> 16)) * 0x7feb352d) & 0xffffffff;
+  value = ((value ^ (value >> 15)) * 0x846ca68b) & 0xffffffff;
+  return (value ^ (value >> 16)) & 0xffffffff;
+}
+
 class ExerciseGridCard extends StatelessWidget {
   final String id;
   final String title;
   final String setsReps;
   final String bodyPart;
   final String? assetPath;
+  final bool showExerciseArtwork;
   final Color accent;
   final VoidCallback onTap;
   final VoidCallback onPick;
@@ -19,6 +45,7 @@ class ExerciseGridCard extends StatelessWidget {
     required this.setsReps,
     required this.bodyPart,
     required this.assetPath,
+    this.showExerciseArtwork = false,
     required this.accent,
     required this.onTap,
     required this.onPick,
@@ -29,9 +56,9 @@ class ExerciseGridCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final cardBg = theme.cardTheme.color ?? theme.cardColor;
+    final cardAccent = exerciseCardAccent(id);
 
-    final setsRepsDisplay =
-        setsReps.toLowerCase().contains('set') ? setsReps : '1–5 sets • $setsReps';
+    final setsRepsDisplay = setsReps.replaceAll(' x ', ' × ');
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -41,17 +68,19 @@ class ExerciseGridCard extends StatelessWidget {
             constraints.maxHeight > 0 &&
             (constraints.maxHeight < 280 || textScale > 1.05);
 
-        final contentPadding =
-            isTight
-                ? const EdgeInsets.fromLTRB(10, 8, 10, 10)
-                : const EdgeInsets.fromLTRB(12, 10, 12, 12);
+        final contentPadding = isTight
+            ? const EdgeInsets.fromLTRB(10, 8, 10, 10)
+            : const EdgeInsets.fromLTRB(12, 10, 12, 12);
 
         final titleMaxLines = isTight ? 1 : 2;
         final double titleFontSize = isTight ? 13.0 : 13.5;
 
         final buttonStyle = ElevatedButton.styleFrom(
           minimumSize: Size.fromHeight(isTight ? 34 : 38),
-          padding: EdgeInsets.symmetric(vertical: isTight ? 8 : 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: isTight ? 8 : 12,
+            vertical: isTight ? 8 : 10,
+          ),
           textStyle: TextStyle(
             fontSize: isTight ? 12.5 : 13,
             fontWeight: FontWeight.w800,
@@ -67,16 +96,16 @@ class ExerciseGridCard extends StatelessWidget {
               context,
               exerciseName: title,
               bodyPart: bodyPart,
-              accent: accent,
+              accent: cardAccent,
             ),
             child: Ink(
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: accent.withValues(alpha: 0.40)),
+                border: Border.all(color: cardAccent.withValues(alpha: 0.40)),
                 boxShadow: [
                   BoxShadow(
-                    color: accent.withValues(alpha: 0.16),
+                    color: cardAccent.withValues(alpha: 0.16),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),
@@ -95,7 +124,14 @@ class ExerciseGridCard extends StatelessWidget {
                         children: [
                           LocalImagePlaceholder(
                             id: id,
-                            assetPath: assetPath,
+                            assetPath: showExerciseArtwork ? null : assetPath,
+                            fallbackLabel: showExerciseArtwork
+                                ? exerciseArtworkLabel(
+                                    bodyPart: bodyPart,
+                                    exerciseName: title,
+                                  )
+                                : null,
+                            fallbackColor: showExerciseArtwork ? accent : null,
                             fit: BoxFit.cover,
                           ),
                           DecoratedBox(
@@ -136,14 +172,26 @@ class ExerciseGridCard extends StatelessWidget {
                               ),
                             ),
                             SizedBox(height: isTight ? 4 : 6),
-                            Text(
-                              setsRepsDisplay,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.72),
-                                fontSize: isTight ? 11.5 : 12,
-                                fontWeight: FontWeight.w600,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: cardAccent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                setsRepsDisplay,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.82,
+                                  ),
+                                  fontSize: isTight ? 11.5 : 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                             SizedBox(height: isTight ? 6 : 8),
@@ -197,10 +245,11 @@ class ExerciseGridCard extends StatelessWidget {
                             SizedBox(height: isTight ? 8 : 10),
                             SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton(
+                              child: ElevatedButton.icon(
                                 style: buttonStyle,
                                 onPressed: onPick,
-                                child: const Text('Pick'),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Log exercise'),
                               ),
                             ),
                             if (!isTight) ...[

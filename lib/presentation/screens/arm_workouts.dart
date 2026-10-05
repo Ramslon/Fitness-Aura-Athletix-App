@@ -112,28 +112,32 @@ class ArmWorkouts extends StatefulWidget {
     _Exercise(
       id: 'farmers_walk',
       title: 'Farmers Walk',
-      description: 'Loaded carry to build grip, forearm endurance, and stability.',
+      description:
+          'Loaded carry to build grip, forearm endurance, and stability.',
       image: 'assets/images/arm_farmers_walk.png',
       setsReps: '1–5 sets x 20-60 sec',
     ),
     _Exercise(
       id: 'barbell_suitcase_hold',
       title: 'Barbell Suitcase Hold',
-      description: 'Unilateral loaded hold to challenge grip and anti-lateral flexion.',
+      description:
+          'Unilateral loaded hold to challenge grip and anti-lateral flexion.',
       image: 'assets/images/arm_barbell_suitcase_hold.png',
       setsReps: '1–5 sets x 20-45 sec each side',
     ),
     _Exercise(
       id: 'thick_bar_reverse_curls',
       title: 'Thick Bar Reverse Curls',
-      description: 'Reverse curls with a thick grip to emphasize forearms and brachioradialis.',
+      description:
+          'Reverse curls with a thick grip to emphasize forearms and brachioradialis.',
       image: 'assets/images/arm_thick_bar_reverse_curls.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'static_barbell_holds',
       title: 'Static Barbell Holds',
-      description: 'Time-based holds for maximal grip strength and forearm tension.',
+      description:
+          'Time-based holds for maximal grip strength and forearm tension.',
       image: 'assets/images/arm_static_barbell_holds.png',
       setsReps: '1–5 sets x 20-60 sec',
     ),
@@ -147,14 +151,16 @@ class ArmWorkouts extends StatefulWidget {
     _Exercise(
       id: 'reverse_barbell_curls',
       title: 'Reverse Barbell Curls',
-      description: 'Pronated curl variation to target brachioradialis and forearms.',
+      description:
+          'Pronated curl variation to target brachioradialis and forearms.',
       image: 'assets/images/arm_reverse_barbell_curls.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
     _Exercise(
       id: 'zottman_curls',
       title: 'Zottman Curls',
-      description: 'Curl and controlled rotation combo for biceps and forearms.',
+      description:
+          'Curl and controlled rotation combo for biceps and forearms.',
       image: 'assets/images/arm_zottman_curls.png',
       setsReps: '1–5 sets x 8-12 reps',
     ),
@@ -339,91 +345,86 @@ class _BodyPartWorkoutCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-            SizedBox(
-              height: 240,
-              child: LocalImagePlaceholder(
-                id: exercise.id,
-                assetPath: exercise.image,
-                fit: BoxFit.cover,
-                height: 240,
+        SizedBox(
+          height: 240,
+          child: LocalImagePlaceholder(
+            id: exercise.id,
+            assetPath: exercise.image,
+            fit: BoxFit.cover,
+            height: 240,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                exercise.title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    exercise.title,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SizedBox(height: 8),
+              Text(
+                exercise.setsReps,
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              Text(exercise.description, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Card(
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                  title: const Text(
+                    'Tip',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    exercise.setsReps,
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    exercise.description,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-                      title: const Text(
-                        'Tip',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                  subtitle: const Text('Form cue for this exercise'),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: Text(
+                        ExerciseFormTipsService.tipFor(
+                          exerciseId: exercise.id,
+                          title: exercise.title,
+                        ),
                       ),
-                      subtitle: const Text('Form cue for this exercise'),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                          child: Text(
-                            ExerciseFormTipsService.tipFor(
-                              exerciseId: exercise.id,
-                              title: exercise.title,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final restSeconds = await showDialog<int>(
-                        context: context,
-                        builder: (ctx) => ExerciseLogDialog(
-                          exerciseName: exercise.title,
-                          bodyPart: 'Arms',
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      if (restSeconds != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${exercise.title} logged successfully!',
-                            ),
-                          ),
-                        );
-                        await showRestTimerBottomSheet(
-                          context,
-                          seconds: restSeconds,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check),
-                    label: const Text('Log Exercise'),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final restSeconds = await showDialog<int>(
+                    context: context,
+                    builder: (ctx) => ExerciseLogDialog(
+                      exerciseName: exercise.title,
+                      bodyPart: 'Arms',
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  if (restSeconds != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${exercise.title} logged successfully!'),
+                      ),
+                    );
+                    await showRestTimerBottomSheet(
+                      context,
+                      seconds: restSeconds,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Log Exercise'),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
