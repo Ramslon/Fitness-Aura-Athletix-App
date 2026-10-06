@@ -33,7 +33,6 @@ class PremiumGate extends StatelessWidget {
           : benefits,
       unlockedContent: child,
       onAccessChanged: onAccessChanged,
-      initiallyPremiumActive: isPremium,
     );
   }
 }

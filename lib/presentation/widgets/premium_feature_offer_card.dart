@@ -1,6 +1,8 @@
 import 'package:fitness_aura_athletix/services/currency_service.dart';
 import 'package:fitness_aura_athletix/services/premium_access_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum _PremiumPlan { trial, monthly, annual }
 
@@ -11,7 +13,6 @@ class PremiumFeatureOfferCard extends StatefulWidget {
   final List<String> benefits;
   final Widget? unlockedContent;
   final VoidCallback? onAccessChanged;
-  final bool initiallyPremiumActive;
 
   const PremiumFeatureOfferCard({
     super.key,
@@ -21,7 +22,6 @@ class PremiumFeatureOfferCard extends StatefulWidget {
     required this.benefits,
     this.unlockedContent,
     this.onAccessChanged,
-    this.initiallyPremiumActive = false,
   });
 
   @override
@@ -38,30 +38,99 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   bool _expanded = false;
   bool _trialUsed = false;
   bool _startingTrial = false;
+  PremiumAccessStatus _accessStatus = const PremiumAccessStatus(
+    authenticated: false,
+    online: false,
+    premiumActive: false,
+    block: PremiumAccessBlock.unavailable,
+  );
 
   @override
   void initState() {
     super.initState();
-    _premiumActive = widget.initiallyPremiumActive;
-    _loading = !widget.initiallyPremiumActive;
     _loadAccess();
   }
 
   Future<void> _loadAccess() async {
     final service = PremiumAccessService();
-    final values = await Future.wait<bool>([
-      service.isPremiumActive(),
-      service.hasUsedTrial(),
-    ]);
+    final status = await service.checkAccess();
+    final trialUsed = status.authenticated && status.online
+        ? await service.hasUsedTrial()
+        : false;
     if (!mounted) return;
     setState(() {
-      _premiumActive = values[0];
-      _trialUsed = values[1];
+      _accessStatus = status;
+      _premiumActive = status.canUsePremium;
+      _trialUsed = trialUsed;
       _loading = false;
     });
   }
 
+  Future<PremiumAccessStatus> _refreshAccess() async {
+    setState(() => _loading = true);
+    try {
+      await _loadAccess();
+    } on FirebaseException {
+      if (mounted) {
+        setState(() {
+          _accessStatus = const PremiumAccessStatus(
+            authenticated: true,
+            online: false,
+            premiumActive: false,
+            block: PremiumAccessBlock.unavailable,
+          );
+          _premiumActive = false;
+          _loading = false;
+        });
+      }
+    } on PlatformException {
+      if (mounted) {
+        setState(() {
+          _accessStatus = const PremiumAccessStatus(
+            authenticated: true,
+            online: false,
+            premiumActive: false,
+            block: PremiumAccessBlock.unavailable,
+          );
+          _premiumActive = false;
+          _loading = false;
+        });
+      }
+    }
+    return _accessStatus;
+  }
+
+  void _showAccessMessage(PremiumAccessStatus status) {
+    final message = status.message.isNotEmpty
+        ? status.message
+        : 'Premium access could not be verified. Please try again.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _togglePremiumContent() async {
+    final status = await _refreshAccess();
+    if (!mounted) return;
+    if (!status.canUsePremium) {
+      _showAccessMessage(status);
+      return;
+    }
+    setState(() => _expanded = !_expanded);
+  }
+
   Future<void> _choosePlan() async {
+    final access = await _refreshAccess();
+    if (!mounted) return;
+    if (!access.authenticated || !access.online) {
+      _showAccessMessage(access);
+      return;
+    }
+    if (access.canUsePremium) {
+      setState(() => _expanded = true);
+      return;
+    }
+
     final selection = await showModalBottomSheet<_PremiumPlan>(
       context: context,
       showDragHandle: true,
@@ -205,10 +274,26 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   }
 
   Future<void> _startTrial() async {
-    setState(() => _startingTrial = true);
-    final started = await PremiumAccessService().startFreeTrial(days: 7);
+    final access = await _refreshAccess();
     if (!mounted) return;
-    setState(() => _startingTrial = false);
+    if (!access.authenticated || !access.online) {
+      _showAccessMessage(access);
+      return;
+    }
+
+    setState(() => _startingTrial = true);
+    final bool started;
+    try {
+      started = await PremiumAccessService().startFreeTrial(days: 7);
+    } on StateError {
+      if (!mounted) return;
+      final latest = await _refreshAccess();
+      if (mounted) _showAccessMessage(latest);
+      return;
+    } finally {
+      if (mounted) setState(() => _startingTrial = false);
+    }
+    if (!mounted) return;
     if (!started) {
       await _loadAccess();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -228,7 +313,7 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final active = _premiumActive;
+    final active = !_loading && _premiumActive && _accessStatus.canUsePremium;
     final revealContent = active && _expanded;
 
     return Card(
@@ -278,9 +363,7 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
             ),
             const SizedBox(height: 14),
             InkWell(
-              onTap: active
-                  ? () => setState(() => _expanded = !_expanded)
-                  : null,
+              onTap: _loading ? null : _togglePremiumContent,
               borderRadius: BorderRadius.circular(14),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
@@ -348,9 +431,7 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    for (var index = 0;
-                        index < widget.benefits.length;
-                        index++)
+                    for (var index = 0; index < widget.benefits.length; index++)
                       Padding(
                         padding: EdgeInsets.only(
                           bottom: index == widget.benefits.length - 1 ? 0 : 9,
@@ -401,64 +482,101 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
                 child: widget.unlockedContent!,
               ),
             ],
-            if (!active) ...[
+            if (!active && !_loading) ...[
               const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  color: scheme.tertiaryContainer.withValues(alpha: 0.48),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      _trialUsed
-                          ? Icons.payments_outlined
-                          : Icons.card_giftcard_rounded,
-                      color: scheme.tertiary,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'KES $_monthlyKes monthly  ·  KES $_annualKes annual',
-                            style: TextStyle(
-                              color: scheme.onSurface,
-                              fontSize: 11,
-                              height: 1.3,
-                              fontWeight: FontWeight.w800,
-                            ),
+              if (!_accessStatus.authenticated || !_accessStatus.online)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.errorContainer.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _accessStatus.block == PremiumAccessBlock.signInRequired
+                            ? Icons.person_outline_rounded
+                            : Icons.cloud_off_rounded,
+                        color: scheme.onErrorContainer,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          _accessStatus.message,
+                          style: TextStyle(
+                            color: scheme.onErrorContainer,
+                            fontSize: 12,
+                            height: 1.35,
                           ),
-                          if (!_trialUsed) ...[
-                            const SizedBox(height: 3),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.tertiaryContainer.withValues(alpha: 0.48),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _trialUsed
+                            ? Icons.payments_outlined
+                            : Icons.card_giftcard_rounded,
+                        color: scheme.tertiary,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              'A one-time 7-day free trial is also available.',
+                              'KES $_monthlyKes monthly  ·  KES $_annualKes annual',
                               style: TextStyle(
-                                color: scheme.onSurfaceVariant,
-                                fontSize: 10,
+                                color: scheme.onSurface,
+                                fontSize: 11,
                                 height: 1.3,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
+                            if (!_trialUsed) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                'A one-time 7-day free trial is also available.',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 11),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _loading || _startingTrial ? null : _choosePlan,
+                  onPressed: _startingTrial ? null : _choosePlan,
                   icon: _loading || _startingTrial
                       ? const SizedBox(
                           width: 18,
@@ -471,6 +589,11 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
                         ? 'Checking access…'
                         : _startingTrial
                         ? 'Starting trial…'
+                        : _accessStatus.block ==
+                              PremiumAccessBlock.signInRequired
+                        ? 'Sign in to unlock'
+                        : !_accessStatus.online
+                        ? 'Check connection'
                         : 'Start Premium',
                   ),
                 ),

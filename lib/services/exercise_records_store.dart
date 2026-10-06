@@ -5,8 +5,5 @@
 //
 // This avoids importing dart:io on web builds.
 
-import 'exercise_records_store_stub.dart'
-    if (dart.library.io) 'exercise_records_store_io.dart';
-
 export 'exercise_records_store_stub.dart'
     if (dart.library.io) 'exercise_records_store_io.dart';

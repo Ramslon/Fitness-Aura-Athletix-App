@@ -642,6 +642,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                               ListTile(
                                 leading: const Icon(Icons.privacy_tip_outlined),
                                 title: const Text('Privacy Policy'),
+                                subtitle: const Text(
+                                  'What data is used, where it is stored, and what you control.',
+                                ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => _openLegalDoc(
                                   'Privacy Policy',
@@ -652,6 +655,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                               ListTile(
                                 leading: const Icon(Icons.description_outlined),
                                 title: const Text('Terms of Service'),
+                                subtitle: const Text(
+                                  'Your responsibilities and the terms for using the app.',
+                                ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => _openLegalDoc(
                                   'Terms of Service',
@@ -664,6 +670,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                                   Icons.enhanced_encryption_outlined,
                                 ),
                                 title: const Text('Encryption Info'),
+                                subtitle: const Text(
+                                  'A plain-language overview of storage and data protection.',
+                                ),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () => _openLegalDoc(
                                   'Encryption Info',

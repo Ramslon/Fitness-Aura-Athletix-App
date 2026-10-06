@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 
 /// 3️⃣ Login Flow (Returning Users)
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final canUse = await _authService.canUseBiometric();
     final isEnabled = await _authService.isBiometricEnabled();
     final rememberMe = await _authService.isRememberMeEnabled();
-    
+
     if (mounted) {
       setState(() {
         _canUseBiometric = canUse;
@@ -57,16 +58,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleBiometricLogin() async {
     final authenticated = await _authService.authenticateWithBiometric();
-    
+
     if (!mounted) return;
-    
+
     if (authenticated) {
       // User is already logged in (from previous session), just navigate
       if (_authService.isLoggedIn) {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please sign in with your credentials first')),
+          const SnackBar(
+            content: Text('Please sign in with your credentials first'),
+          ),
         );
       }
     }
@@ -82,20 +85,19 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
         rememberMe: _rememberMe,
       );
-      
+
       if (!mounted) return;
-      
+
       // Enable biometric for future logins if device supports it
       if (_canUseBiometric && _rememberMe) {
         _showBiometricEnableDialog();
       } else {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       }
-      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${e.toString()}')),
+        SnackBar(content: Text(AuthErrorMessage.from(e, operation: 'sign in'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -172,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Email Field
                     TextFormField(
                       controller: _emailController,
@@ -188,13 +190,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: (value) {
                         final v = (value ?? '').trim();
                         if (v.isEmpty) return 'Email is required';
-                        if (!v.contains('@')) return 'Enter a valid email';
+                        if (!AuthErrorMessage.isValidEmail(v)) {
+                          return 'Enter a valid email';
+                        }
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Password Field
                     TextFormField(
                       controller: _passwordController,
@@ -205,23 +209,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       validator: (value) {
-                        if ((value ?? '').isEmpty) return 'Password is required';
+                        if ((value ?? '').isEmpty)
+                          return 'Password is required';
                         return null;
                       },
                       onFieldSubmitted: (_) => _handleLogin(),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Remember Me & Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -243,7 +252,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         TextButton(
-                          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.forgotPassword),
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(
+                                  context,
+                                ).pushNamed(AppRoutes.forgotPassword),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 0),
@@ -259,9 +272,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Login Button
                     ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
@@ -281,10 +294,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : const Text(
                               'Sign In',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                     ),
-                    
+
                     // Biometric Login Button
                     if (_canUseBiometric && _biometricEnabled) ...[
                       const SizedBox(height: 16),
@@ -301,9 +317,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Create account link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -317,7 +333,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: _isLoading
                               ? null
-                              : () => Navigator.of(context).pushReplacementNamed(AppRoutes.signup),
+                              : () => Navigator.of(
+                                  context,
+                                ).pushReplacementNamed(AppRoutes.signup),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 0),

@@ -3,7 +3,6 @@ import 'package:fitness_aura_athletix/services/daily_workout_analysis_engine.dar
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_card.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/daily_workout_analysis_details_sheet.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/premium_feature_offer_card.dart';
-import 'package:fitness_aura_athletix/services/premium_access_service.dart';
 
 class DailyWorkoutAnalysisScreen extends StatefulWidget {
   const DailyWorkoutAnalysisScreen({super.key});
@@ -52,7 +51,6 @@ class _DailyWorkoutAnalysisScreenState
 
     // Reuse the cached index to avoid rebuilding on every open.
     final index = await DailyWorkoutAnalysisEngine.loadIndexCached();
-    final premiumActive = await PremiumAccessService().isPremiumActive();
     if (!mounted) return;
     final keys = DailyWorkoutAnalysisEngine.sessionKeys(
       index,
@@ -74,7 +72,6 @@ class _DailyWorkoutAnalysisScreenState
       _indexData = index;
       _sessionKeys = keys;
       _index = initial.clamp(0, (_sessionKeys.length - 1).clamp(0, 999999));
-      _isPremiumActive = premiumActive;
       _loading = false;
     });
 
@@ -85,14 +82,6 @@ class _DailyWorkoutAnalysisScreenState
         }
       });
     }
-  }
-
-  bool _isPremiumActive = false;
-
-  Future<void> _refreshPremium() async {
-    final premium = await PremiumAccessService().isPremiumActive();
-    if (!mounted) return;
-    setState(() => _isPremiumActive = premium);
   }
 
   Widget _advancedDailyAnalysis(BuildContext context) {
@@ -541,8 +530,6 @@ class _DailyWorkoutAnalysisScreenState
                                 'Get next-session coaching cues from your logs.',
                               ],
                               unlockedContent: _advancedDailyAnalysis(context),
-                              onAccessChanged: _refreshPremium,
-                              initiallyPremiumActive: _isPremiumActive,
                             ),
                           ],
                         );
@@ -609,8 +596,6 @@ class _DailyWorkoutAnalysisScreenState
             'Get next-session coaching cues from your logs.',
           ],
           unlockedContent: _advancedDailyAnalysis(context),
-          onAccessChanged: _refreshPremium,
-          initiallyPremiumActive: _isPremiumActive,
         ),
       ],
     );

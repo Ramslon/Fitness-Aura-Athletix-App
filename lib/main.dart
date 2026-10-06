@@ -6,9 +6,7 @@ import 'package:fitness_aura_athletix/services/theme_settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await ThemeSettingsService().load();
   runApp(const FitnessAuraApp());
 }
@@ -28,17 +26,19 @@ class FitnessAuraApp extends StatelessWidget {
         fillColor: scheme.onSurface.withValues(alpha: 0.06),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.onSurface.withValues(alpha: 0.10)),
+          borderSide: BorderSide(
+            color: scheme.onSurface.withValues(alpha: 0.10),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.onSurface.withValues(alpha: 0.10)),
+          borderSide: BorderSide(
+            color: scheme.onSurface.withValues(alpha: 0.10),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: scheme.primary.withValues(alpha: 0.70),
-          ),
+          borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.70)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -127,13 +127,17 @@ class _GymAppFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B0F14), Color(0xFF111827), Color(0xFF0A0A0A)],
-          stops: [0.0, 0.55, 1.0],
+          colors: isDark
+              ? [Color(0xFF0B0F14), Color(0xFF111827), Color(0xFF0A0A0A)]
+              : [Color(0xFFF3F8F4), Color(0xFFEAF3ED), Color(0xFFF8FAF8)],
+          stops: const [0.0, 0.55, 1.0],
         ),
       ),
       child: SafeArea(top: false, bottom: false, child: child),

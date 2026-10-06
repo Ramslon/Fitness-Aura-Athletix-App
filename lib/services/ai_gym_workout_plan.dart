@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show HttpHeaders;
 
 import 'package:http/http.dart' as http;
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
 
 /// AI analysis service. By default uses a lightweight local heuristic,
@@ -33,12 +34,28 @@ class AiGymWorkoutPlan {
         final prompt = _buildPrompt(entries);
         final resp = await _callHostedModel(prompt);
         if (resp != null && resp.isNotEmpty) return resp;
-      } catch (_) {
-        // ignore and fallback to local analysis
+        return _offlineAnalyze(
+          entries,
+          'The online service returned an empty response.',
+        );
+      } catch (error) {
+        return _offlineAnalyze(
+          entries,
+          AuthErrorMessage.from(
+            error,
+            operation: 'get online workout analysis',
+          ),
+        );
       }
     }
 
     return _localAnalyze(entries);
+  }
+
+  String _offlineAnalyze(List<WorkoutEntry> entries, String reason) {
+    final localAnalysis = _localAnalyze(entries);
+    if (localAnalysis.isEmpty) return 'Offline analysis unavailable. $reason';
+    return '$localAnalysis\n\nLocal fallback: online analysis is unavailable. $reason';
   }
 
   String _buildPrompt(List<WorkoutEntry> entries) {
@@ -58,9 +75,16 @@ class AiGymWorkoutPlan {
   }
 
   Future<String?> _callHostedModel(String prompt) async {
-    final uri = Uri.parse(_endpoint!);
+    final uri = Uri.tryParse(_endpoint!);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
+      throw const ApiConfigurationException();
+    }
     final headers = {HttpHeaders.contentTypeHeader: 'application/json', HttpHeaders.authorizationHeader: 'Bearer $_apiKey'};
 
+    headers[HttpHeaders.authorizationHeader] = 'Bearer $_apiKey';
     final body = jsonEncode({
       'model': _model,
       'messages': [
@@ -69,9 +93,15 @@ class AiGymWorkoutPlan {
       ]
     });
 
-    final r = await http.post(uri, headers: headers, body: body).timeout(const Duration(seconds: 10));
+    final r = await http
+        .post(uri, headers: headers, body: body)
+        .timeout(const Duration(seconds: 10));
     if (r.statusCode >= 200 && r.statusCode < 300) {
-      final Map<String, dynamic> j = jsonDecode(r.body);
+      final decoded = jsonDecode(r.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Unexpected AI service response.');
+      }
+      final j = decoded;
       // Try common OpenAI Chat response shape first
       if (j.containsKey('choices')) {
         final choices = j['choices'] as List<dynamic>;
@@ -85,7 +115,7 @@ class AiGymWorkoutPlan {
       if (j.containsKey('result')) return j['result'].toString();
       return r.body;
     }
-    return null;
+    throw ApiRequestException(r.statusCode);
   }
 
   String _localAnalyze(List<WorkoutEntry> entries) {

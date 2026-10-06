@@ -1,5 +1,3 @@
-import 'dart:math';
-
 /// Very small currency service with static rates for offline conversion.
 class CurrencyService {
   CurrencyService._();

@@ -1435,7 +1435,11 @@ class _AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final drawerWidth = (MediaQuery.sizeOf(context).width * 0.72)
+        .clamp(0.0, 288.0)
+        .toDouble();
     return Drawer(
+      width: drawerWidth,
       child: ListView(
         children: [
           DrawerHeader(

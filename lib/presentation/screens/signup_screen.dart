@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 
 /// 2️⃣ Sign Up Flow (Progressive)
@@ -39,25 +40,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   PasswordStrength _calculatePasswordStrength(String password) {
     if (password.isEmpty) return PasswordStrength.weak;
-    
+
     int score = 0;
-    
+
     // Length check
     if (password.length >= 8) score++;
     if (password.length >= 12) score++;
-    
+
     // Contains number
     if (password.contains(RegExp(r'[0-9]'))) score++;
-    
+
     // Contains special character
     if (password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) score++;
-    
+
     // Contains uppercase
     if (password.contains(RegExp(r'[A-Z]'))) score++;
-    
+
     // Contains lowercase
     if (password.contains(RegExp(r'[a-z]'))) score++;
-    
+
     if (score <= 2) return PasswordStrength.weak;
     if (score <= 4) return PasswordStrength.medium;
     return PasswordStrength.strong;
@@ -72,16 +73,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
-      
+
       if (!mounted) return;
-      
+
       // Navigate to fitness onboarding (Step 2)
       Navigator.of(context).pushReplacementNamed(AppRoutes.onboardingDetails);
-      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign up failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(e, operation: 'create your account'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -128,7 +132,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Email Field
                     TextFormField(
                       controller: _emailController,
@@ -144,15 +148,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       validator: (value) {
                         final v = (value ?? '').trim();
                         if (v.isEmpty) return 'Email is required';
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                        if (!AuthErrorMessage.isValidEmail(v)) {
                           return 'Enter a valid email';
                         }
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Password Field
                     TextFormField(
                       controller: _passwordController,
@@ -164,9 +168,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -175,14 +183,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       validator: (value) {
                         final v = value ?? '';
                         if (v.isEmpty) return 'Password is required';
-                        if (v.length < 8) return 'Password must be at least 8 characters';
-                        if (!v.contains(RegExp(r'[0-9]')) && !v.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+                        if (v.length < 8)
+                          return 'Password must be at least 8 characters';
+                        if (!v.contains(RegExp(r'[0-9]')) &&
+                            !v.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
                           return 'Include at least one number or symbol';
                         }
                         return null;
                       },
                     ),
-                    
+
                     // Password Strength Indicator
                     if (_passwordController.text.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -190,9 +200,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 8),
                       _buildPasswordRequirements(),
                     ],
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Confirm Password Field
                     TextFormField(
                       controller: _confirmPasswordController,
@@ -203,9 +213,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscureConfirmPassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
-                          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                          onPressed: () => setState(
+                            () => _obscureConfirmPassword =
+                                !_obscureConfirmPassword,
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -219,9 +234,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       },
                       onFieldSubmitted: (_) => _handleSignUp(),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Sign Up Button
                     ElevatedButton(
                       onPressed: _isLoading ? null : _handleSignUp,
@@ -241,12 +256,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             )
                           : const Text(
                               'Create Account',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Already have account
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +278,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         TextButton(
                           onPressed: _isLoading
                               ? null
-                              : () => Navigator.of(context).pushReplacementNamed(AppRoutes.login),
+                              : () => Navigator.of(
+                                  context,
+                                ).pushReplacementNamed(AppRoutes.login),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: const Size(0, 0),
@@ -352,11 +372,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildRequirementItem(
-          'At least 8 characters',
-          hasMinLength,
-          scheme,
-        ),
+        _buildRequirementItem('At least 8 characters', hasMinLength, scheme),
         const SizedBox(height: 4),
         _buildRequirementItem(
           'One number or special character',
@@ -367,13 +383,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildRequirementItem(String text, bool satisfied, ColorScheme scheme) {
+  Widget _buildRequirementItem(
+    String text,
+    bool satisfied,
+    ColorScheme scheme,
+  ) {
     return Row(
       children: [
         Icon(
           satisfied ? Icons.check_circle : Icons.circle_outlined,
           size: 16,
-          color: satisfied ? Colors.green : scheme.onSurface.withValues(alpha: 0.4),
+          color: satisfied
+              ? Colors.green
+              : scheme.onSurface.withValues(alpha: 0.4),
         ),
         const SizedBox(width: 8),
         Text(

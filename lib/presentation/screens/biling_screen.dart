@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/currency_service.dart';
 import 'package:fitness_aura_athletix/services/payment_service.dart';
 import 'package:fitness_aura_athletix/services/payment_provider.dart';
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
+import 'package:fitness_aura_athletix/services/premium_access_service.dart';
 import 'package:intl/intl.dart';
 
 class BillingScreen extends StatefulWidget {
@@ -35,6 +37,20 @@ class _BillingScreenState extends State<BillingScreen> {
   Future<void> _pay() async {
     setState(() => _processing = true);
     try {
+      final access = await PremiumAccessService().checkAccess();
+      if (!access.authenticated || !access.online) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              access.message.isNotEmpty
+                  ? access.message
+                  : 'Sign in and connect to the internet before continuing.',
+            ),
+          ),
+        );
+        return;
+      }
       if (_selectedProvider == 'Test') {
         PaymentService().registerProvider(TestPaymentProvider());
       }
@@ -59,7 +75,11 @@ class _BillingScreenState extends State<BillingScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment failed: $error')),
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(error, operation: 'complete payment'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _processing = false);

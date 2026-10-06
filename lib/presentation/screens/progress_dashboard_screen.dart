@@ -443,7 +443,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              warning.warning ?? 'Muscle Imbalance',
+                              warning.warning,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -920,10 +920,4 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
-}
-
-class _DayCount {
-  final String day;
-  final int count;
-  _DayCount(this.day, this.count);
 }

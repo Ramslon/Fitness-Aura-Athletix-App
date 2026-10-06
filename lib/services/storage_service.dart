@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:isolate';
+import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -12,6 +12,7 @@ import 'package:fitness_aura_athletix/core/models/goal.dart';
 import 'package:fitness_aura_athletix/core/models/workout_history_summary.dart';
 import 'package:fitness_aura_athletix/services/exercise_records_store.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Simple StorageService to persist daily workout entries.
 /// Each entry is stored as a JSON object with:
@@ -40,6 +41,60 @@ class StorageService {
     final uid = _authService.currentUser?.uid;
     final scope = isGuest ? 'guest' : (uid ?? 'anonymous');
     return '${baseKey}_$scope';
+  }
+
+  Future<void> deleteLocalAccountData({
+    required String? userId,
+    required bool guest,
+  }) async {
+    final prefs = await _prefs;
+    final scope = guest ? 'guest' : (userId ?? 'anonymous');
+    for (final key in [_kEntriesKey, _kGoalsKey, _kActiveGoalIdKey]) {
+      await prefs.remove('${key}_$scope');
+    }
+
+    for (final key in [
+      'display_name',
+      'llm_endpoint',
+      'privacy_ai_enabled',
+      'privacy_ai_send_notes',
+      'privacy_community_profile_visible',
+      'privacy_community_show_stats',
+      'privacy_cloud_sync_enabled',
+      'privacy_app_lock_enabled',
+      'ai_suggestions_enabled',
+      'daily_analysis_notes_v1',
+    ]) {
+      await prefs.remove('$_kSettingsPrefix$key');
+    }
+    await prefs.remove(_analysisKey);
+    await deleteExerciseRecordsV2(prefs);
+    _exerciseRecordsCache = null;
+
+    await deleteSecureString('llm_api_key');
+    await deleteSecureString('llm_endpoint');
+
+    final documents = await getApplicationDocumentsDirectory();
+    await for (final entity in documents.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last.toLowerCase();
+      if (name.endsWith('.png') ||
+          name.endsWith('.jpg') ||
+          name.endsWith('.jpeg')) {
+        await entity.delete();
+      }
+    }
+
+    final temporary = await getTemporaryDirectory();
+    await for (final entity in temporary.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last.toLowerCase();
+      if (name.startsWith('workouts_') ||
+          name.startsWith('exercise_records_') ||
+          name.startsWith('profile_')) {
+        await entity.delete();
+      }
+    }
   }
 
   Future<List<Map<String, dynamic>>> _readEntriesRaw() async {
@@ -603,10 +658,6 @@ class StorageService {
     };
 
     final analysis = <MuscleBalanceAnalysis>[];
-    final totalVolume = muscleData.entries.fold<double>(0, (sum, entry) {
-      final volume = entry.value.fold<double>(0, (s, r) => s + r.volumeLoadKg);
-      return sum + volume;
-    });
 
     for (final muscle in muscleData.keys) {
       final records = muscleData[muscle]!;
@@ -617,7 +668,6 @@ class StorageService {
 
       String? warning;
       bool isUnderTrained = false;
-      bool hasImbalance = false;
 
       // Check if under-trained
       if (frequency < recommendedFreq) {

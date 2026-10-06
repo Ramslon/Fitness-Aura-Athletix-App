@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
 
 /// Forgot Password Screen
 /// Allows users to reset their password via email
@@ -30,21 +32,44 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       await _authService.sendPasswordResetEmail(_emailController.text.trim());
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _emailSent = true;
         _isLoading = false;
       });
-      
-    } catch (e) {
+    } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      
       setState(() => _isLoading = false);
-      
+
+      if (error.code == 'user-not-found') {
+        setState(() => _emailSent = true);
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send reset email: ${e.toString()}')),
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(
+              error,
+              operation: 'send the password reset email',
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(
+              error,
+              operation: 'send the password reset email',
+            ),
+          ),
+        ),
       );
     }
   }
@@ -54,16 +79,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Forgot Password'),
-      ),
+      appBar: AppBar(title: const Text('Forgot Password')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
-              child: _emailSent ? _buildSuccessView(scheme) : _buildFormView(scheme),
+              child: _emailSent
+                  ? _buildSuccessView(scheme)
+                  : _buildFormView(scheme),
             ),
           ),
         ),
@@ -77,13 +102,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            Icons.lock_reset,
-            size: 80,
-            color: scheme.primary,
-          ),
+          Icon(Icons.lock_reset, size: 80, color: scheme.primary),
           const SizedBox(height: 24),
-          
+
           Text(
             'Reset Password',
             textAlign: TextAlign.center,
@@ -94,7 +115,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           Text(
             'Enter your email address and we\'ll send you a link to reset your password.',
             textAlign: TextAlign.center,
@@ -104,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Email Field
           TextFormField(
             controller: _emailController,
@@ -120,16 +141,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             validator: (value) {
               final v = (value ?? '').trim();
               if (v.isEmpty) return 'Email is required';
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+              if (!AuthErrorMessage.isValidEmail(v)) {
                 return 'Enter a valid email';
               }
               return null;
             },
             onFieldSubmitted: (_) => _handleResetPassword(),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Send Reset Link Button
           ElevatedButton(
             onPressed: _isLoading ? null : _handleResetPassword,
@@ -152,9 +173,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Back to Login
           TextButton(
             onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
@@ -175,13 +196,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
-          Icons.check_circle_outline,
-          size: 80,
-          color: Colors.green,
-        ),
+        Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
         const SizedBox(height: 24),
-        
+
         Text(
           'Email Sent!',
           textAlign: TextAlign.center,
@@ -192,9 +209,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         Text(
-          'We\'ve sent a password reset link to:',
+          'If an account is registered for this email, a password reset link will be sent to:',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 15,
@@ -202,7 +219,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        
+
         Text(
           _emailController.text.trim(),
           textAlign: TextAlign.center,
@@ -213,7 +230,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -238,9 +255,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 12),
               _buildInstructionItem('1. Check your email inbox', scheme),
-              _buildInstructionItem('2. Click the reset link in the email', scheme),
+              _buildInstructionItem(
+                '2. Click the reset link in the email',
+                scheme,
+              ),
               _buildInstructionItem('3. Create a new password', scheme),
-              _buildInstructionItem('4. Sign in with your new password', scheme),
+              _buildInstructionItem(
+                '4. Sign in with your new password',
+                scheme,
+              ),
               const SizedBox(height: 12),
               Text(
                 'Note: The link will expire in 1 hour',
@@ -253,9 +276,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 32),
-        
+
         // Back to Login Button
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -272,9 +295,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Resend Email
         TextButton(
           onPressed: () {

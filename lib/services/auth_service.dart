@@ -4,8 +4,20 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fitness_aura_athletix/services/ai_integration_service.dart';
 import 'package:fitness_aura_athletix/services/local_cache_service.dart';
+import 'package:fitness_aura_athletix/services/storage_service.dart';
+
+class AccountDeletionException implements Exception {
+  final bool accountDeleted;
+  final Object cause;
+
+  const AccountDeletionException({
+    required this.accountDeleted,
+    required this.cause,
+  });
+}
 
 /// Enhanced AuthService with Firebase integration
 class AuthService {
@@ -28,7 +40,23 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
   String? get currentDisplayName =>
       _auth.currentUser?.displayName ?? _auth.currentUser?.email;
+  String? get currentEmail => _auth.currentUser?.email;
   bool get isLoggedIn => _auth.currentUser != null;
+  bool get requiresPasswordForSensitiveAction =>
+      _auth.currentUser?.providerData.any(
+        (provider) => provider.providerId == 'password',
+      ) ??
+      false;
+  String get signInProviderLabel {
+    final providers = _auth.currentUser?.providerData
+        .map((provider) => provider.providerId)
+        .toSet();
+    if (providers == null || providers.isEmpty) return 'Guest';
+    if (providers.contains('password')) return 'Email and password';
+    if (providers.contains('google.com')) return 'Google';
+    if (providers.contains('apple.com')) return 'Apple';
+    return 'Connected provider';
+  }
 
   // Check if user is in guest mode
   Future<bool> isGuestMode() async {
@@ -151,34 +179,166 @@ class AuthService {
     await _localCache.clearTransientCaches();
   }
 
-  /// Delete the current user account and reset AI learning state.
-  Future<void> deleteAccount() async {
+  /// Re-authenticate before sensitive account actions.
+  Future<void> reauthenticateForSensitiveAction({String? password}) async {
     final user = _auth.currentUser;
-    if (user == null) return;
-    await user.delete();
-    await _aiIntegration.onUserDeleted();
-    await setGuestMode(false);
-    await _localCache.clearTransientCaches();
+    if (user == null) {
+      throw StateError('There is no signed-in account to re-authenticate.');
+    }
+
+    if (user.providerData.any(
+      (provider) => provider.providerId == 'password',
+    )) {
+      final email = user.email;
+      if (email == null || password == null || password.isEmpty) {
+        throw FirebaseAuthException(code: 'requires-recent-login');
+      }
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+      return;
+    }
+
+    if (user.providerData.any(
+      (provider) => provider.providerId == 'google.com',
+    )) {
+      await _ensureGoogleSignInInitialized();
+      final account = await _googleSignIn.authenticate();
+      final token = account.authentication.idToken;
+      if (token == null || token.isEmpty) {
+        throw FirebaseAuthException(code: 'invalid-credential');
+      }
+      await user.reauthenticateWithCredential(
+        GoogleAuthProvider.credential(idToken: token),
+      );
+      return;
+    }
+
+    if (user.providerData.any(
+      (provider) => provider.providerId == 'apple.com',
+    )) {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final token = credential.identityToken;
+      if (token == null || token.isEmpty) {
+        throw FirebaseAuthException(code: 'invalid-credential');
+      }
+      await user.reauthenticateWithCredential(
+        OAuthProvider(
+          'apple.com',
+        ).credential(idToken: token, accessToken: credential.authorizationCode),
+      );
+      return;
+    }
+
+    throw FirebaseAuthException(code: 'provider-not-supported');
+  }
+
+  /// Deletes the signed-in account and its locally stored workout data.
+  Future<void> deleteAccount({String? password}) async {
+    final user = _auth.currentUser;
+    final guest = user == null && await isGuestMode();
+    if (user == null && !guest) {
+      throw StateError('There is no account to delete.');
+    }
+
+    if (user != null) {
+      await reauthenticateForSensitiveAction(password: password);
+      await user.delete();
+      await _clearGoogleSession();
+    }
+
+    Object? cleanupError;
+    try {
+      await StorageService().deleteLocalAccountData(
+        userId: user?.uid,
+        guest: guest,
+      );
+    } catch (error) {
+      cleanupError = error;
+    }
+    try {
+      await _aiIntegration.onUserDeleted();
+    } catch (error) {
+      cleanupError ??= error;
+    }
+    try {
+      await setGuestMode(false);
+    } catch (error) {
+      cleanupError ??= error;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyRememberMe);
+      await prefs.setBool(_keyBiometricEnabled, false);
+    } catch (error) {
+      cleanupError ??= error;
+    }
+    try {
+      await _localCache.clearTransientCaches();
+    } catch (error) {
+      cleanupError ??= error;
+    }
+
+    if (cleanupError != null) {
+      throw AccountDeletionException(
+        accountDeleted: user != null,
+        cause: cleanupError,
+      );
+    }
   }
 
   // Send password reset email
   Future<void> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      rethrow;
-    }
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  Future<void> updateDisplayName(String displayName) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(displayName.trim());
+    await user.reload();
   }
 
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
-    await _googleSignIn.signOut();
-    await setGuestMode(false);
-    await _localCache.clearTransientCaches();
+    Object? cleanupError;
+    try {
+      await setGuestMode(false);
+    } catch (error) {
+      cleanupError = error;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyRememberMe);
+      await prefs.setBool(_keyBiometricEnabled, false);
+    } catch (error) {
+      cleanupError ??= error;
+    }
+    await _clearGoogleSession();
+    try {
+      await _localCache.clearTransientCaches();
+    } catch (error) {
+      cleanupError ??= error;
+    }
+    if (cleanupError != null) throw cleanupError;
+  }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyRememberMe);
+  Future<void> _clearGoogleSession() async {
+    try {
+      await _googleSignIn.signOut();
+    } on Exception catch (error) {
+      debugPrint(
+        'Google local session cleanup failed after Firebase sign-out: $error',
+      );
+    }
   }
 
   // Check if biometric is available

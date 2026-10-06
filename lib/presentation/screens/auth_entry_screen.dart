@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:fitness_aura_athletix/services/auth_service.dart';
+import 'package:fitness_aura_athletix/services/auth_error_message.dart';
 import 'package:fitness_aura_athletix/routes/app_route.dart';
 
 /// 1️⃣ Entry Screen (First Auth Screen)
@@ -21,7 +23,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
     try {
       final userCredential = await _authService.signInWithGoogle();
       if (!mounted) return;
-      
+
       if (userCredential != null) {
         // Navigate to home or onboarding details based on user profile completion
         Navigator.of(context).pushReplacementNamed(AppRoutes.onboardingDetails);
@@ -29,7 +31,11 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(e, operation: 'sign in with Google'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -41,14 +47,18 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
     try {
       final userCredential = await _authService.signInWithApple();
       if (!mounted) return;
-      
+
       if (userCredential != null) {
         Navigator.of(context).pushReplacementNamed(AppRoutes.onboardingDetails);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Apple sign-in failed: ${e.toString()}')),
+        SnackBar(
+          content: Text(
+            AuthErrorMessage.from(e, operation: 'sign in with Apple'),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -60,7 +70,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
     try {
       await _authService.continueAsGuest();
       if (!mounted) return;
-      
+
       Navigator.of(context).pushReplacementNamed(AppRoutes.home);
     } catch (e) {
       if (!mounted) return;
@@ -88,15 +98,11 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 16),
-                  
+
                   // App Logo
-                  Icon(
-                    Icons.fitness_center,
-                    size: 80,
-                    color: scheme.primary,
-                  ),
+                  Icon(Icons.fitness_center, size: 80, color: scheme.primary),
                   const SizedBox(height: 24),
-                  
+
                   // App Name
                   Text(
                     'Fitness Aura',
@@ -108,7 +114,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Tagline
                   Text(
                     'Track. Improve. Progress.',
@@ -119,14 +125,15 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 60),
-                  
+
                   // Primary CTA: Continue with Email
                   ElevatedButton(
                     onPressed: _isLoading
                         ? null
-                        : () => Navigator.of(context).pushNamed(AppRoutes.signup),
+                        : () =>
+                              Navigator.of(context).pushNamed(AppRoutes.signup),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: scheme.primary,
@@ -134,16 +141,23 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                     ),
                     child: const Text(
                       'Continue with Email',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Divider
                   Row(
                     children: [
-                      Expanded(child: Divider(color: scheme.onSurface.withValues(alpha: 0.2))),
+                      Expanded(
+                        child: Divider(
+                          color: scheme.onSurface.withValues(alpha: 0.2),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
@@ -153,26 +167,33 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                           ),
                         ),
                       ),
-                      Expanded(child: Divider(color: scheme.onSurface.withValues(alpha: 0.2))),
+                      Expanded(
+                        child: Divider(
+                          color: scheme.onSurface.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Google Sign-In
                   OutlinedButton.icon(
                     onPressed: _isLoading ? null : _handleGoogleSignIn,
                     icon: const Icon(Icons.g_mobiledata, size: 28),
                     label: const Text(
                       'Continue with Google',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side: BorderSide(color: scheme.outline),
                     ),
                   ),
-                  
+
                   // Apple Sign-In (iOS only)
                   if (isIOS) ...[
                     const SizedBox(height: 12),
@@ -181,7 +202,10 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       icon: const Icon(Icons.apple, size: 24),
                       label: const Text(
                         'Continue with Apple',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -189,9 +213,9 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       ),
                     ),
                   ],
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Guest Mode Link
                   TextButton(
                     onPressed: _isLoading ? null : _handleGuestMode,
@@ -204,9 +228,9 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Already have account
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -220,7 +244,9 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       TextButton(
                         onPressed: _isLoading
                             ? null
-                            : () => Navigator.of(context).pushNamed(AppRoutes.login),
+                            : () => Navigator.of(
+                                context,
+                              ).pushNamed(AppRoutes.login),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 0),
@@ -236,7 +262,7 @@ class _AuthEntryScreenState extends State<AuthEntryScreen> {
                       ),
                     ],
                   ),
-                  
+
                   if (_isLoading)
                     const Padding(
                       padding: EdgeInsets.only(top: 20),

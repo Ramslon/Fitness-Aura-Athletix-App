@@ -153,7 +153,7 @@ class _OnboardingPage {
 class _OnboardingCard extends StatelessWidget {
   final _OnboardingPage page;
 
-  const _OnboardingCard({required this.page, super.key});
+  const _OnboardingCard({required this.page});
 
   @override
   Widget build(BuildContext context) {
@@ -219,28 +219,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _loadSavedProfile() async {
-    final raw =
-        await StorageService().loadStringSetting(_kOnboardingDataKey);
+    final raw = await StorageService().loadStringSetting(_kOnboardingDataKey);
     if (raw == null || raw.isEmpty) return;
     try {
       final data = Map<String, dynamic>.from(jsonDecode(raw) as Map);
       setState(() {
         _nameController.text = (data['name'] as String?) ?? '';
-        _ageController.text =
-            (data['age'] != null) ? data['age'].toString() : '';
+        _ageController.text = (data['age'] != null)
+            ? data['age'].toString()
+            : '';
         _gender = (data['gender'] as String?) ?? _gender;
         _goal = (data['goal'] as String?) ?? _goal;
         _experience = (data['experience'] as String?) ?? _experience;
-        _preferredTime =
-            (data['preferredTime'] as String?) ?? _preferredTime;
+        _preferredTime = (data['preferredTime'] as String?) ?? _preferredTime;
         _useMetric = (data['useMetric'] as bool?) ?? _useMetric;
         _heightController.text = (data['height'] as String?) ?? '';
         _weightController.text = (data['weight'] as String?) ?? '';
         if (data['days'] is List) {
           final savedDays = List<String>.from(data['days'] as List);
-          _days = {
-            for (final d in _days.keys) d: savedDays.contains(d),
-          };
+          _days = {for (final d in _days.keys) d: savedDays.contains(d)};
         }
       });
     } catch (_) {
@@ -275,16 +272,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     };
 
     // Persist locally via StorageService so edits survive restart.
-    await StorageService()
-        .saveStringSetting(_kOnboardingDataKey, jsonEncode(data));
+    await StorageService().saveStringSetting(
+      _kOnboardingDataKey,
+      jsonEncode(data),
+    );
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(widget.isEditMode
-            ? 'Fitness profile updated'
-            : 'Onboarding saved locally'),
+        content: Text(
+          widget.isEditMode
+              ? 'Fitness profile updated'
+              : 'Onboarding saved locally',
+        ),
       ),
     );
 
@@ -312,7 +313,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isEditMode ? 'Update Fitness Profile' : 'Onboarding')),
+      appBar: AppBar(
+        title: Text(
+          widget.isEditMode ? 'Update Fitness Profile' : 'Onboarding',
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -455,9 +460,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _saveOnboarding,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 14.0),
-                      child: Text(widget.isEditMode
-                          ? 'Save Changes'
-                          : 'Save and Continue'),
+                      child: Text(
+                        widget.isEditMode
+                            ? 'Save Changes'
+                            : 'Save and Continue',
+                      ),
                     ),
                   ),
                 ),

@@ -15,10 +15,14 @@ const String kExerciseRecordsV2FileName = 'exercise_records_v2.jsonl';
 
 Future<File> _recordsFile() async {
   final dir = await getApplicationDocumentsDirectory();
-  return File('${dir.path}${Platform.pathSeparator}$kExerciseRecordsV2FileName');
+  return File(
+    '${dir.path}${Platform.pathSeparator}$kExerciseRecordsV2FileName',
+  );
 }
 
-Future<List<ExerciseRecord>> loadExerciseRecordsV2(SharedPreferences prefs) async {
+Future<List<ExerciseRecord>> loadExerciseRecordsV2(
+  SharedPreferences prefs,
+) async {
   final file = await _recordsFile();
   if (await file.exists()) {
     final raw = await file.readAsString();
@@ -58,6 +62,14 @@ Future<void> writeExerciseRecordsV2(
     await file.delete();
   }
   await tmp.rename(file.path);
+}
+
+Future<void> deleteExerciseRecordsV2(SharedPreferences prefs) async {
+  final file = await _recordsFile();
+  final temporaryFile = File('${file.path}.tmp');
+  if (await file.exists()) await file.delete();
+  if (await temporaryFile.exists()) await temporaryFile.delete();
+  await prefs.remove(kExerciseRecordsLegacyKey);
 }
 
 Future<List<ExerciseRecord>> _decodeLegacyList(String legacy) async {
