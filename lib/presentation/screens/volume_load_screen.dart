@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fitness_aura_athletix/services/storage_service.dart';
-import 'package:fitness_aura_athletix/core/models/volume_load.dart';
 import 'package:fitness_aura_athletix/core/models/exercise.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_bar_chart.dart';
 import 'package:fitness_aura_athletix/presentation/widgets/simple_line_chart.dart';
@@ -24,7 +23,6 @@ class VolumeLoadScreen extends StatefulWidget {
 class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
   bool _loading = true;
   bool _isPremium = false;
-  BodyLoadSummary? _summary;
 
   List<ExerciseRecord> _records = const [];
 
@@ -52,12 +50,10 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final summary = await StorageService().getBodyLoadSummary();
     final records = await StorageService().loadExerciseRecords();
     final premium = await PremiumAccessService().isPremiumActive();
     if (!mounted) return;
     setState(() {
-      _summary = summary;
       _records = records;
       _isPremium = premium;
       _loading = false;
@@ -94,20 +90,66 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
             title: 'Volume comparisons',
             description: 'Compare training volume across time periods.',
             icon: Icons.compare_arrows_rounded,
+            featureLabel: 'VOLUME TRENDS',
+            accentColor: const Color(0xFF7653D6),
+            unlockedContent: _comparisonOfferDetails(sheetContext),
             benefits: const [
-              'Compare your current period with previous training blocks.',
-              'Spot load changes and consistency shifts at a glance.',
-              'Use the comparison toggle on weekly and monthly summaries.',
+              'Compare complete, like-for-like 7-day or 30-day windows.',
+              'See total load, percentage change, and training-day frequency.',
+              'Identify which muscle-group volumes changed most.',
+              'Use the trend as context alongside recovery and effort, not as a target to chase.',
             ],
-            onAccessChanged: () {
-              _load().then((_) {
-                if (mounted && _isPremium) {
-                  setState(() => _compareMode = true);
-                }
-              });
+            onAccessChanged: () async {
+              await _load();
+              if (!mounted || !_isPremium) return;
+              setState(() => _compareMode = true);
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _comparisonOfferDetails(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final weekly = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 7);
+    final previous = _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
+    final weekChange = previous > 0
+        ? ((weekly - previous) / previous) * 100
+        : null;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your comparison dashboard',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            weekChange == null
+                ? 'Your last 7 days contain ${weekly.toStringAsFixed(0)} kg of logged volume. Log a previous week to establish a comparison baseline.'
+                : 'Your last 7 days: ${weekly.toStringAsFixed(0)} kg (${_pctText(weekChange)} vs the previous 7 days).',
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The dashboard adds frequency and muscle-group changes, and also works with full monthly windows.',
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+          ),
+        ],
       ),
     );
   }
@@ -124,48 +166,85 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     return '$sign${pct.toStringAsFixed(0)}%';
   }
 
-  double _totalVolumeForDays(int days) {
-    final cutoff = DateTime.now().subtract(Duration(days: days - 1));
-    return _records
-        .where((r) => !r.dateRecorded.isBefore(cutoff))
-        .fold<double>(0, (s, r) => s + r.volumeLoadKg);
-  }
-
   double _totalVolumeForWindow({
     required int startDaysAgo,
     required int lengthDays,
   }) {
-    final end = DateTime.now().subtract(Duration(days: startDaysAgo));
+    final end = _dayStart(
+      DateTime.now(),
+    ).subtract(Duration(days: startDaysAgo));
     final start = end.subtract(Duration(days: lengthDays - 1));
     return _records
         .where(
           (r) =>
-              !r.dateRecorded.isBefore(start) && !r.dateRecorded.isAfter(end),
+              !_dayStart(r.dateRecorded).isBefore(start) &&
+              !_dayStart(r.dateRecorded).isAfter(end),
         )
         .fold<double>(0, (s, r) => s + r.volumeLoadKg);
   }
 
+  DateTime _dayStart(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
   int _trainingDaysInLastDays(int days) {
-    final cutoff = DateTime.now().subtract(Duration(days: days - 1));
+    final today = _dayStart(DateTime.now());
+    final cutoff = today.subtract(Duration(days: days - 1));
     final set = <DateTime>{};
     for (final r in _records) {
-      if (r.dateRecorded.isBefore(cutoff)) continue;
-      set.add(
-        DateTime(r.dateRecorded.year, r.dateRecorded.month, r.dateRecorded.day),
-      );
+      final day = _dayStart(r.dateRecorded);
+      if (day.isBefore(cutoff) || day.isAfter(today)) continue;
+      set.add(day);
     }
     return set.length;
   }
 
   Map<String, double> _muscleVolumeInLastDays(int days) {
-    final cutoff = DateTime.now().subtract(Duration(days: days - 1));
+    final today = _dayStart(DateTime.now());
+    final cutoff = today.subtract(Duration(days: days - 1));
     final m = <String, double>{};
     for (final r in _records) {
-      if (r.dateRecorded.isBefore(cutoff)) continue;
+      final day = _dayStart(r.dateRecorded);
+      if (day.isBefore(cutoff) || day.isAfter(today)) continue;
       final vol = r.volumeLoadKg;
       m.update(r.bodyPart, (v) => v + vol, ifAbsent: () => vol);
     }
     return m;
+  }
+
+  Map<String, double> _muscleVolumeForWindow({
+    required int startDaysAgo,
+    required int lengthDays,
+  }) {
+    final end = _dayStart(
+      DateTime.now(),
+    ).subtract(Duration(days: startDaysAgo));
+    final start = end.subtract(Duration(days: lengthDays - 1));
+    final volumes = <String, double>{};
+    for (final record in _records) {
+      final day = _dayStart(record.dateRecorded);
+      if (day.isBefore(start) || day.isAfter(end)) continue;
+      volumes.update(
+        record.bodyPart,
+        (value) => value + record.volumeLoadKg,
+        ifAbsent: () => record.volumeLoadKg,
+      );
+    }
+    return volumes;
+  }
+
+  int _trainingDaysForWindow({
+    required int startDaysAgo,
+    required int lengthDays,
+  }) {
+    final end = _dayStart(
+      DateTime.now(),
+    ).subtract(Duration(days: startDaysAgo));
+    final start = end.subtract(Duration(days: lengthDays - 1));
+    return _records
+        .map((record) => _dayStart(record.dateRecorded))
+        .where((day) => !day.isBefore(start) && !day.isAfter(end))
+        .toSet()
+        .length;
   }
 
   String _mostTrainedBodyPart(int days) {
@@ -388,93 +467,10 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     return (_OverloadSignal.maintain, 'Maintain — steady output.');
   }
 
-  List<String> _aiInsightsForWeek({required bool premium}) {
-    // Max 2, actionable, trend-based.
-    if (_records.isEmpty) return const [];
-
-    final thisWeek = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 7);
-    final lastWeek = _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
-    final pct = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0.0;
-
-    final insights = <String>[];
-
-    if (pct >= 20) {
-      insights.add(
-        'Total load ↑ ${pct.toStringAsFixed(0)}% vs last week — consider a lighter session or an extra rest day.',
-      );
-    } else if (pct.abs() <= 4 && thisWeek > 0) {
-      insights.add(
-        'Total volume has been steady for 2 weeks — add 1 set to your main lift this week.',
-      );
-    }
-
-    // Muscle balance + spike check.
-    final thisBy = _muscleVolumeInLastDays(7);
-    final lastBy = _muscleVolumeInLastDays(14);
-    final lastOnlyBy = <String, double>{};
-    for (final e in lastBy.entries) {
-      lastOnlyBy[e.key] = e.value - (thisBy[e.key] ?? 0);
-    }
-
-    String? spike;
-    for (final m in thisBy.keys) {
-      final t = thisBy[m] ?? 0;
-      final l = lastOnlyBy[m] ?? 0;
-      if (l <= 0) continue;
-      final p = ((t - l) / l) * 100;
-      if (p >= 20) {
-        spike =
-            '$m load ↑ ${p.toStringAsFixed(0)}% — monitor recovery and keep form strict.';
-        break;
-      }
-    }
-    if (spike != null && insights.length < 2) insights.add(spike);
-
-    // Premium: add an extra layer of deload-style guidance (still actionable).
-    if (premium && insights.length < 2) {
-      final plateaued = _exerciseStats(
-        days: 30,
-      ).where((e) => e.signal == _OverloadSignal.plateau).toList();
-      if (plateaued.isNotEmpty) {
-        insights.add(
-          '${plateaued.first.exerciseName} is plateauing — reduce volume ~20% for 1 week, then rebuild.',
-        );
-      }
-    }
-
-    if (insights.length >= 2) return insights.take(2).toList();
-
-    final under = _undertrainedMuscles(thisBy);
-    if (under.isNotEmpty && insights.length < 2) {
-      insights.add(
-        '${under.first} is undertrained this week — add 1 accessory movement (2–3 sets).',
-      );
-    }
-
-    return insights.take(2).toList();
-  }
-
-  List<String> _undertrainedMuscles(Map<String, double> weekByMuscle) {
-    final entries = weekByMuscle.entries.toList();
-    if (entries.isEmpty) return const [];
-    final total = entries.fold<double>(0, (s, e) => s + e.value);
-    if (total <= 0) return const [];
-
-    entries.sort((a, b) => a.value.compareTo(b.value));
-    final out = <String>[];
-    for (final e in entries) {
-      final pct = (e.value / total) * 100;
-      if (pct < 8) out.add(e.key);
-    }
-    return out;
-  }
-
   Widget _topWeeklySummary() {
     final scheme = Theme.of(context).colorScheme;
-    final week = _summary?.totalWeekVolume ?? _totalVolumeForDays(7);
-    final lastWeek =
-        _summary?.totalLastWeekVolume ??
-        _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
+    final week = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 7);
+    final lastWeek = _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
     final pct = lastWeek > 0 ? ((week - lastWeek) / lastWeek) * 100 : 0.0;
     final sessions = _trainingDaysInLastDays(7);
     final focus = _mostTrainedBodyPart(7);
@@ -515,19 +511,27 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                   child: _summaryLine(
                     title: 'Total Volume',
                     value: '${week.toStringAsFixed(0)} kg',
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(deltaIcon, color: deltaColor, size: 26),
-                        Text(
-                          _pctText(pct),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: deltaColor,
+                    trailing: lastWeek == 0
+                        ? Text(
+                            'Baseline needed',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(deltaIcon, color: deltaColor, size: 26),
+                              Text(
+                                _pctText(pct),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: deltaColor,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -555,6 +559,14 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                 rightLabel: 'Last week',
                 rightValue: lastWeek,
               ),
+              const SizedBox(height: 10),
+              _comparisonInsights(
+                days: 7,
+                currentLabel: 'Last 7 days',
+                previousLabel: 'Previous 7 days',
+                currentVolume: week,
+                previousVolume: lastWeek,
+              ),
             ],
           ],
         ),
@@ -564,10 +576,8 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
 
   Widget _topMonthlySummary() {
     final scheme = Theme.of(context).colorScheme;
-    final month = _summary?.totalMonthVolume ?? _totalVolumeForDays(30);
-    final lastMonth =
-        _summary?.totalLastMonthVolume ??
-        _totalVolumeForWindow(startDaysAgo: 30, lengthDays: 30);
+    final month = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 30);
+    final lastMonth = _totalVolumeForWindow(startDaysAgo: 30, lengthDays: 30);
     final pct = lastMonth > 0 ? ((month - lastMonth) / lastMonth) * 100 : 0.0;
     final sessions = _trainingDaysInLastDays(30);
     final focus = _mostTrainedBodyPart(30);
@@ -605,19 +615,27 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
             _summaryLine(
               title: 'Total Volume',
               value: '${month.toStringAsFixed(0)} kg',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(deltaIcon, color: deltaColor, size: 26),
-                  Text(
-                    _pctText(pct),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: deltaColor,
+              trailing: lastMonth == 0
+                  ? Text(
+                      'Baseline needed',
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(deltaIcon, color: deltaColor, size: 26),
+                        Text(
+                          _pctText(pct),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: deltaColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 10),
             Row(
@@ -641,6 +659,14 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                 leftValue: month,
                 rightLabel: 'Last month',
                 rightValue: lastMonth,
+              ),
+              const SizedBox(height: 10),
+              _comparisonInsights(
+                days: 30,
+                currentLabel: 'Last 30 days',
+                previousLabel: 'Previous 30 days',
+                currentVolume: month,
+                previousVolume: lastMonth,
               ),
             ],
           ],
@@ -741,10 +767,8 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
 
   Widget _safetyCardIfNeeded() {
     final scheme = Theme.of(context).colorScheme;
-    final week = _summary?.totalWeekVolume ?? _totalVolumeForDays(7);
-    final lastWeek =
-        _summary?.totalLastWeekVolume ??
-        _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
+    final week = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 7);
+    final lastWeek = _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
     final pct = lastWeek > 0 ? ((week - lastWeek) / lastWeek) * 100 : 0.0;
     if (pct < 20) return const SizedBox.shrink();
 
@@ -771,55 +795,236 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
 
   Widget _aiInsightCard() {
     final scheme = Theme.of(context).colorScheme;
-    final insights = _aiInsightsForWeek(premium: _isPremium);
-    if (insights.isEmpty) return const SizedBox.shrink();
+    final thisWeek = _totalVolumeForWindow(startDaysAgo: 0, lengthDays: 7);
+    final lastWeek = _totalVolumeForWindow(startDaysAgo: 7, lengthDays: 7);
+    final change = lastWeek > 0
+        ? ((thisWeek - lastWeek) / lastWeek) * 100
+        : null;
+    final trainingDays = _trainingDaysForWindow(startDaysAgo: 0, lengthDays: 7);
+    final muscles = _muscleVolumeForWindow(
+      startDaysAgo: 0,
+      lengthDays: 7,
+    ).entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final exerciseStats = _exerciseStats(days: 30).take(3).toList();
+    final focus = muscles.isEmpty
+        ? 'No muscle-group volume recorded this week.'
+        : thisWeek <= 0
+        ? 'The current week has no positive load total to compare.'
+        : '${muscles.first.key} leads this week at '
+              '${(muscles.first.value / thisWeek * 100).toStringAsFixed(0)}% '
+              'of logged volume.';
+    final loadGuidance = change == null
+        ? 'Log training in two consecutive weeks to unlock a like-for-like load trend.'
+        : change >= 25
+        ? 'Weekly volume is up ${change.toStringAsFixed(0)}%. Review effort and recovery before adding more work.'
+        : change <= -25
+        ? 'Weekly volume is down ${change.abs().toStringAsFixed(0)}%. Check whether this was planned recovery or missed logging before changing your plan.'
+        : 'Weekly volume is ${_pctText(change)} versus the previous week. Keep progression aligned with your planned training and recovery.';
 
     return Card(
-      child: Padding(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              scheme.primaryContainer.withValues(alpha: 0.48),
+              scheme.surfaceContainerLow,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome_outlined, color: scheme.primary),
-                SizedBox(width: 8),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Weekly training brief',
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        'Based on your logged training data',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _comparisonMetric(
+                  context,
+                  'LAST 7 DAYS',
+                  '${thisWeek.toStringAsFixed(0)} kg',
+                  color: scheme.primary,
+                ),
+                _comparisonMetric(
+                  context,
+                  'ACTIVE DAYS',
+                  '$trainingDays',
+                  color: scheme.onSurface,
+                ),
+                _comparisonMetric(
+                  context,
+                  'WEEK-OVER-WEEK',
+                  change == null ? 'Baseline needed' : _pctText(change),
+                  color: change == null
+                      ? scheme.onSurfaceVariant
+                      : _deltaColor(change),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _loadBriefSection(
+              context,
+              icon: Icons.monitor_heart_outlined,
+              title: 'Load context',
+              message: loadGuidance,
+            ),
+            const SizedBox(height: 10),
+            _loadBriefSection(
+              context,
+              icon: Icons.pie_chart_outline_rounded,
+              title: 'Muscle-group distribution',
+              message: focus,
+            ),
+            if (exerciseStats.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Recent exercise signals',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              for (final stats in exerciseStats)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        switch (stats.signal) {
+                          _OverloadSignal.overload => Icons.trending_up_rounded,
+                          _OverloadSignal.maintain =>
+                            Icons.trending_flat_rounded,
+                          _OverloadSignal.plateau =>
+                            Icons.trending_down_rounded,
+                        },
+                        size: 17,
+                        color: switch (stats.signal) {
+                          _OverloadSignal.overload => scheme.tertiary,
+                          _OverloadSignal.maintain => scheme.secondary,
+                          _OverloadSignal.plateau => scheme.error,
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${stats.exerciseName} · ${stats.signalReason}',
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              'Volume is a comparison aid, not a measure of recovery or a prescription. Interpret changes alongside effort, pain, sleep, and your training plan.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _loadBriefSection(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 19, color: scheme.primary),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'AI Insights',
+                  title,
                   style: TextStyle(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 10),
-            for (final insight in insights)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 9),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        insight,
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1394,6 +1599,171 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
     );
   }
 
+  Widget _comparisonInsights({
+    required int days,
+    required String currentLabel,
+    required String previousLabel,
+    required double currentVolume,
+    required double previousVolume,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final currentDays = _trainingDaysForWindow(
+      startDaysAgo: 0,
+      lengthDays: days,
+    );
+    final previousDays = _trainingDaysForWindow(
+      startDaysAgo: days,
+      lengthDays: days,
+    );
+    final currentMuscles = _muscleVolumeForWindow(
+      startDaysAgo: 0,
+      lengthDays: days,
+    );
+    final previousMuscles = _muscleVolumeForWindow(
+      startDaysAgo: days,
+      lengthDays: days,
+    );
+    final muscleChanges =
+        <({String name, double current, double previous})>[
+          for (final name in {...currentMuscles.keys, ...previousMuscles.keys})
+            (
+              name: name,
+              current: currentMuscles[name] ?? 0,
+              previous: previousMuscles[name] ?? 0,
+            ),
+        ]..sort(
+          (a, b) => (b.current - b.previous).abs().compareTo(
+            (a.current - a.previous).abs(),
+          ),
+        );
+    final totalChange = previousVolume > 0
+        ? ((currentVolume - previousVolume) / previousVolume) * 100
+        : null;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$currentLabel vs $previousLabel',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 18,
+            runSpacing: 8,
+            children: [
+              _comparisonMetric(
+                context,
+                'LOAD CHANGE',
+                totalChange == null ? 'No baseline yet' : _pctText(totalChange),
+                color: totalChange == null
+                    ? scheme.onSurfaceVariant
+                    : _deltaColor(totalChange),
+              ),
+              _comparisonMetric(
+                context,
+                'TRAINING DAYS',
+                '$currentDays vs $previousDays',
+                color: scheme.onSurface,
+              ),
+              _comparisonMetric(
+                context,
+                'AVG LOAD / DAY',
+                '${(currentDays == 0 ? 0 : currentVolume / currentDays).toStringAsFixed(0)} kg',
+                color: scheme.onSurface,
+              ),
+            ],
+          ),
+          if (muscleChanges.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Largest muscle-group shifts',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 5),
+            for (final change in muscleChanges.take(2))
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        change.name,
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                    Text(
+                      '${change.current.toStringAsFixed(0)} kg vs ${change.previous.toStringAsFixed(0)} kg',
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          if (previousVolume == 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'A percentage change will appear after you have volume logged in both periods.',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _comparisonMetric(
+    BuildContext context,
+    String label,
+    String value, {
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final weeklyPoints = _weeklyVolumeSeries();
@@ -1432,13 +1802,16 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                         _safetyCardIfNeeded(),
                         PremiumGate(
                           isPremium: _isPremium,
-                          title: 'AI Insights',
+                          title: 'Weekly training brief',
                           previewText:
-                              'Unlock insights 🔒 (plateaus, deloads, trends).',
+                              'Get a data-backed readout of weekly load, training frequency, muscle-group distribution, and recent exercise signals.',
+                          featureLabel: 'WEEKLY LOAD COACHING',
+                          accentColor: const Color(0xFFC65B47),
                           benefits: const [
-                            'Surface possible plateaus from your training history.',
-                            'Review volume trends before planning a deload.',
-                            'Get practical context for changes in training load.',
+                            'Compare this week’s logged volume with the previous week.',
+                            'See active training days and the largest muscle-group focus.',
+                            'Review recent exercise-level increases, stable trends, or drops.',
+                            'Get cautious context for interpreting changes alongside recovery.',
                           ],
                           onAccessChanged: _load,
                           child: _aiInsightCard(),
@@ -1460,7 +1833,9 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           isPremium: _isPremium,
                           title: 'Muscle breakdown',
                           previewText:
-                              'Unlock muscle group load + balance view 🔒',
+                              'Explore where logged training volume is concentrated across muscle groups.',
+                          featureLabel: 'MUSCLE DISTRIBUTION',
+                          accentColor: const Color(0xFF168A63),
                           benefits: const [
                             'See how weekly training load is distributed by muscle.',
                             'Find muscle groups receiving less or more attention.',
@@ -1490,7 +1865,9 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           isPremium: _isPremium,
                           title: 'Exercise-level tracking',
                           previewText:
-                              'Unlock last/best/avg + overload signals 🔒',
+                              'Inspect recent, average, and best loads movement by movement.',
+                          featureLabel: 'MOVEMENT TRENDS',
+                          accentColor: const Color(0xFFD97706),
                           benefits: const [
                             'Compare recent, average, and best exercise loads.',
                             'Track overload signals across logged sessions.',
@@ -1511,7 +1888,10 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                         PremiumGate(
                           isPremium: _isPremium,
                           title: 'Monthly analytics',
-                          previewText: 'Unlock long-term trends (months) 🔒',
+                          previewText:
+                              'Review the last 30 days against the previous month with weekly load and muscle-group context.',
+                          featureLabel: 'LONG-RANGE TRENDS',
+                          accentColor: const Color(0xFF3575D3),
                           benefits: const [
                             'Review volume patterns across recent months.',
                             'Compare weekly totals and muscle-group distribution.',
@@ -1557,7 +1937,9 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           isPremium: _isPremium,
                           title: 'Exercise load tracking',
                           previewText:
-                              'Unlock recent, average, and best exercise loads.',
+                              'Search and filter your exercise history to inspect recent, average, best, and changing loads.',
+                          featureLabel: 'EXERCISE HISTORY',
+                          accentColor: const Color(0xFFD97706),
                           benefits: const [
                             'Review recent, average, and best loads per exercise.',
                             'Spot progress or plateaus in individual movements.',
@@ -1583,7 +1965,9 @@ class _VolumeLoadScreenState extends State<VolumeLoadScreen> {
                           isPremium: _isPremium,
                           title: 'Muscle-group analytics',
                           previewText:
-                              'Unlock training load distribution across muscle groups.',
+                              'Compare each muscle group’s logged load and share of the selected period.',
+                          featureLabel: 'MUSCLE LOAD MAP',
+                          accentColor: const Color(0xFF168A63),
                           benefits: const [
                             'Compare training load across muscle groups.',
                             'See a breakdown of each group’s share of weekly load.',

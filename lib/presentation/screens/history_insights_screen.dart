@@ -1199,6 +1199,8 @@ class _HistoryInsightsScreenState extends State<HistoryInsightsScreen>
               description:
                   'Find longer-term consistency patterns and strength estimates from your workout history.',
               icon: Icons.query_stats_rounded,
+              featureLabel: 'TRAINING HISTORY',
+              accentColor: const Color(0xFF3575D3),
               benefits: const [
                 'Compare unique training days across recent 28-day periods.',
                 'Surface your strongest estimated lifts from logged sets.',

@@ -1319,6 +1319,8 @@ class _GoalBasedTrackingScreenState extends State<GoalBasedTrackingScreen> {
                         description:
                             'Get a fuller progress snapshot for your active target, built from the workouts you have logged.',
                         icon: Icons.flag_rounded,
+                        featureLabel: 'GOAL COACHING',
+                        accentColor: const Color(0xFF168A63),
                         benefits: const [
                           'Compare your heaviest logged lift with an estimated one-rep max.',
                           'See remaining kilograms and progress toward a strength target.',

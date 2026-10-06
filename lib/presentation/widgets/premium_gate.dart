@@ -7,6 +7,8 @@ class PremiumGate extends StatelessWidget {
   final String title;
   final String previewText;
   final List<String> benefits;
+  final String? featureLabel;
+  final Color? accentColor;
   final VoidCallback? onAccessChanged;
 
   const PremiumGate({
@@ -16,6 +18,8 @@ class PremiumGate extends StatelessWidget {
     required this.title,
     required this.previewText,
     this.benefits = const [],
+    this.featureLabel,
+    this.accentColor,
     this.onAccessChanged,
   });
 
@@ -25,6 +29,8 @@ class PremiumGate extends StatelessWidget {
       title: title,
       description: previewText,
       icon: Icons.lock_outline_rounded,
+      featureLabel: featureLabel,
+      accentColor: accentColor,
       benefits: benefits.isEmpty
           ? const [
               'Get deeper context from your saved training activity.',

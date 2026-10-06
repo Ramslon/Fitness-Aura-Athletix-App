@@ -11,6 +11,8 @@ class PremiumFeatureOfferCard extends StatefulWidget {
   final String description;
   final IconData icon;
   final List<String> benefits;
+  final String? featureLabel;
+  final Color? accentColor;
   final Widget? unlockedContent;
   final VoidCallback? onAccessChanged;
 
@@ -20,6 +22,8 @@ class PremiumFeatureOfferCard extends StatefulWidget {
     required this.description,
     required this.icon,
     required this.benefits,
+    this.featureLabel,
+    this.accentColor,
     this.unlockedContent,
     this.onAccessChanged,
   });
@@ -69,6 +73,7 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   Future<PremiumAccessStatus> _refreshAccess() async {
     setState(() => _loading = true);
     try {
+      PremiumAccessService().invalidateCache();
       await _loadAccess();
     } on FirebaseException {
       if (mounted) {
@@ -110,6 +115,16 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   }
 
   Future<void> _togglePremiumContent() async {
+    if (_accessStatus.canUsePremium) {
+      setState(() => _expanded = !_expanded);
+      return;
+    }
+
+    if (_accessStatus.authenticated && _accessStatus.online) {
+      await _choosePlan(refreshAccess: false);
+      return;
+    }
+
     final status = await _refreshAccess();
     if (!mounted) return;
     if (!status.canUsePremium) {
@@ -119,8 +134,8 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
     setState(() => _expanded = !_expanded);
   }
 
-  Future<void> _choosePlan() async {
-    final access = await _refreshAccess();
+  Future<void> _choosePlan({bool refreshAccess = true}) async {
+    final access = refreshAccess ? await _refreshAccess() : _accessStatus;
     if (!mounted) return;
     if (!access.authenticated || !access.online) {
       _showAccessMessage(access);
@@ -313,16 +328,25 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final accent = widget.accentColor ?? scheme.primary;
+    final accentForeground =
+        ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     final active = !_loading && _premiumActive && _accessStatus.canUsePremium;
     final revealContent = active && _expanded;
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: accent.withValues(alpha: 0.28)),
+      ),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              scheme.primaryContainer.withValues(alpha: 0.75),
+              accent.withValues(alpha: 0.13),
               scheme.surfaceContainerLow,
             ],
             begin: Alignment.topLeft,
@@ -330,290 +354,320 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
           ),
         ),
         padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.workspace_premium_rounded,
-                  size: 15,
-                  color: scheme.tertiary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'PREMIUM FEATURE',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.workspace_premium_rounded,
+                    size: 15,
+                    color: accent,
                   ),
-                ),
-                const Spacer(),
-                _statusPill(
-                  context,
-                  label: active ? 'ACCESS ACTIVE' : 'LOCKED',
-                  icon: active
-                      ? Icons.check_circle_rounded
-                      : Icons.lock_outline_rounded,
-                  active: active,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            InkWell(
-              onTap: _loading ? null : _togglePremiumContent,
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Icon(widget.icon, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'PREMIUM FEATURE',
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.8,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    if (active)
-                      Icon(
-                        revealContent
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                        color: scheme.primary,
-                      ),
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  _statusPill(
+                    context,
+                    label: active ? 'ACCESS ACTIVE' : 'LOCKED',
+                    icon: active
+                        ? Icons.check_circle_rounded
+                        : Icons.lock_outline_rounded,
+                    active: active,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.description,
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                height: 1.45,
-                fontSize: 13,
-              ),
-            ),
-            if (widget.benefits.isNotEmpty && (!active || revealContent)) ...[
               const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.65),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      active ? 'YOUR PREMIUM TOOLS' : 'WHAT YOU’LL UNLOCK',
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    for (var index = 0; index < widget.benefits.length; index++)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == widget.benefits.length - 1 ? 0 : 9,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 23,
-                              height: 23,
-                              decoration: BoxDecoration(
-                                color: scheme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(
-                                active
-                                    ? Icons.check_rounded
-                                    : Icons.auto_awesome_rounded,
-                                size: 14,
-                                color: scheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                widget.benefits[index],
-                                style: TextStyle(
-                                  color: scheme.onSurface,
-                                  fontSize: 12,
-                                  height: 1.35,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            if (revealContent && widget.unlockedContent != null) ...[
-              const SizedBox(height: 12),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                child: widget.unlockedContent!,
-              ),
-            ],
-            if (!active && !_loading) ...[
-              const SizedBox(height: 8),
-              if (!_accessStatus.authenticated || !_accessStatus.online)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 11,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.errorContainer.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+              InkWell(
+                onTap: _loading ? null : _togglePremiumContent,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        _accessStatus.block == PremiumAccessBlock.signInRequired
-                            ? Icons.person_outline_rounded
-                            : Icons.cloud_off_rounded,
-                        color: scheme.onErrorContainer,
-                        size: 19,
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Text(
-                          _accessStatus.message,
-                          style: TextStyle(
-                            color: scheme.onErrorContainer,
-                            fontSize: 12,
-                            height: 1.35,
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.22),
                           ),
                         ),
+                        child: Icon(widget.icon, color: accent),
                       ),
-                    ],
-                  ),
-                )
-              else ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 11,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.tertiaryContainer.withValues(alpha: 0.48),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        _trialUsed
-                            ? Icons.payments_outlined
-                            : Icons.card_giftcard_rounded,
-                        color: scheme.tertiary,
-                        size: 19,
-                      ),
-                      const SizedBox(width: 9),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'KES $_monthlyKes monthly  ·  KES $_annualKes annual',
-                              style: TextStyle(
-                                color: scheme.onSurface,
-                                fontSize: 11,
-                                height: 1.3,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              widget.title,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w900),
                             ),
-                            if (!_trialUsed) ...[
+                            if (widget.featureLabel != null) ...[
                               const SizedBox(height: 3),
                               Text(
-                                'A one-time 7-day free trial is also available.',
+                                widget.featureLabel!,
                                 style: TextStyle(
-                                  color: scheme.onSurfaceVariant,
-                                  fontSize: 10,
-                                  height: 1.3,
+                                  color: accent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.65,
                                 ),
                               ),
                             ],
                           ],
                         ),
                       ),
+                      if (active)
+                        Icon(
+                          revealContent
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
+                          color: accent,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.description,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.45,
+                  fontSize: 13,
+                ),
+              ),
+              if (widget.benefits.isNotEmpty && (!active || revealContent)) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: scheme.surface.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: accent.withValues(alpha: 0.24)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        active ? 'YOUR PREMIUM TOOLS' : 'WHAT YOU’LL UNLOCK',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (
+                        var index = 0;
+                        index < widget.benefits.length;
+                        index++
+                      )
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == widget.benefits.length - 1 ? 0 : 9,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 23,
+                                height: 23,
+                                decoration: BoxDecoration(
+                                  color: accent.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  active
+                                      ? Icons.check_rounded
+                                      : Icons.auto_awesome_rounded,
+                                  size: 14,
+                                  color: accent,
+                                ),
+                              ),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Text(
+                                  widget.benefits[index],
+                                  style: TextStyle(
+                                    color: scheme.onSurface,
+                                    fontSize: 12,
+                                    height: 1.35,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ],
-              const SizedBox(height: 11),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _startingTrial ? null : _choosePlan,
-                  icon: _loading || _startingTrial
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.workspace_premium_rounded),
-                  label: Text(
-                    _loading
-                        ? 'Checking access…'
-                        : _startingTrial
-                        ? 'Starting trial…'
-                        : _accessStatus.block ==
-                              PremiumAccessBlock.signInRequired
-                        ? 'Sign in to unlock'
-                        : !_accessStatus.online
-                        ? 'Check connection'
-                        : 'Start Premium',
-                  ),
+              if (revealContent && widget.unlockedContent != null) ...[
+                const SizedBox(height: 12),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  child: widget.unlockedContent!,
                 ),
-              ),
-            ],
-            if (active)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Center(
-                  child: Text(
-                    revealContent
-                        ? 'Tap to hide Premium insights'
-                        : 'Tap to view unlocked insights',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+              ],
+              if (!active && !_loading) ...[
+                const SizedBox(height: 8),
+                if (!_accessStatus.authenticated || !_accessStatus.online)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.errorContainer.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _accessStatus.block ==
+                                  PremiumAccessBlock.signInRequired
+                              ? Icons.person_outline_rounded
+                              : Icons.cloud_off_rounded,
+                          color: scheme.onErrorContainer,
+                          size: 19,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            _accessStatus.message,
+                            style: TextStyle(
+                              color: scheme.onErrorContainer,
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.tertiaryContainer.withValues(alpha: 0.48),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _trialUsed
+                              ? Icons.payments_outlined
+                              : Icons.card_giftcard_rounded,
+                          color: scheme.tertiary,
+                          size: 19,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'KES $_monthlyKes monthly  ·  KES $_annualKes annual',
+                                style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontSize: 11,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (!_trialUsed) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  'A one-time 7-day free trial is also available.',
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 11),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: accentForeground,
+                    ),
+                    onPressed: _startingTrial ? null : _choosePlan,
+                    icon: _loading || _startingTrial
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.workspace_premium_rounded),
+                    label: Text(
+                      _loading
+                          ? 'Checking access…'
+                          : _startingTrial
+                          ? 'Starting trial…'
+                          : _accessStatus.block ==
+                                PremiumAccessBlock.signInRequired
+                          ? 'Sign in to unlock'
+                          : !_accessStatus.online
+                          ? 'Check connection'
+                          : 'Start Premium',
                     ),
                   ),
                 ),
-              ),
-          ],
+              ],
+              if (active)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: Text(
+                      revealContent
+                          ? 'Tap to hide Premium insights'
+                          : 'Tap to view unlocked insights',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -626,9 +680,10 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
     required bool active,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final foreground = active ? scheme.primary : scheme.onSurfaceVariant;
+    final accent = widget.accentColor ?? scheme.primary;
+    final foreground = active ? accent : scheme.onSurfaceVariant;
     final background = active
-        ? scheme.primary.withValues(alpha: 0.12)
+        ? accent.withValues(alpha: 0.12)
         : scheme.surface.withValues(alpha: 0.72);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
@@ -637,7 +692,7 @@ class _PremiumFeatureOfferCardState extends State<PremiumFeatureOfferCard> {
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
           color: active
-              ? scheme.primary.withValues(alpha: 0.16)
+              ? accent.withValues(alpha: 0.22)
               : scheme.outlineVariant.withValues(alpha: 0.65),
         ),
       ),

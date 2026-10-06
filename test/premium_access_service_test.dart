@@ -37,6 +37,52 @@ void main() {
   });
 
   test(
+    'reuses a recent access verification across Premium feature cards',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final access = PremiumAccessService();
+      var checks = 0;
+      access.setStatusLoaderForTesting(() async {
+        checks++;
+        return const PremiumAccessStatus(
+          authenticated: true,
+          online: true,
+          premiumActive: true,
+        );
+      });
+
+      final first = await access.checkAccess();
+      final second = await access.checkAccess();
+
+      expect(first.canUsePremium, isTrue);
+      expect(second.canUsePremium, isTrue);
+      expect(checks, 1);
+      access.setStatusLoaderForTesting(null);
+    },
+  );
+
+  test('does not cache an unavailable verification result', () async {
+    SharedPreferences.setMockInitialValues({});
+    final access = PremiumAccessService();
+    var checks = 0;
+    access.setStatusLoaderForTesting(() async {
+      checks++;
+      return const PremiumAccessStatus(
+        authenticated: true,
+        online: false,
+        premiumActive: false,
+        block: PremiumAccessBlock.unavailable,
+      );
+    });
+
+    await access.checkAccess();
+    await access.checkAccess();
+
+    expect(checks, 2);
+    access.setStatusLoaderForTesting(null);
+  });
+
+  test(
     'free trial cannot start unless user is authenticated and online',
     () async {
       SharedPreferences.setMockInitialValues({});

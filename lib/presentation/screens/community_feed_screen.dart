@@ -142,11 +142,16 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                 PremiumGate(
                   isPremium: _isPremium,
                   title: 'Advanced filters',
-                  previewText: 'Unlock Nearby / Same level / Same goals 🔒',
+                  previewText:
+                      'Shape the feed around your training circle, experience, and current goals.',
+                  featureLabel: 'A MORE RELEVANT FEED',
+                  accentColor: const Color(0xFF3575D3),
                   benefits: const [
-                    'Find lifters by location, training level, or shared goals.',
-                    'Narrow your feed to people and posts relevant to you.',
-                    'Switch filters on or off whenever you like.',
+                    'Filter for nearby lifters when location details are available.',
+                    'See posts from people at a similar training level.',
+                    'Find members working toward goals that match yours.',
+                    'Combine these options with following and body-part filters.',
+                    'Turn each filter on or off without changing your saved workouts.',
                   ],
                   onAccessChanged: _load,
                   child: Column(
@@ -1224,11 +1229,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
             PremiumGate(
               isPremium: _isPremium,
               title: 'AI post insights',
-              previewText: 'Unlock smart insights + safety notes 🔒',
+              previewText:
+                  'Get a post-specific coaching prompt with practical context and a safety-minded next step.',
+              featureLabel: 'COMMUNITY COACHING',
+              accentColor: const Color(0xFFC65B47),
               benefits: const [
-                'Get a concise summary of the workout post.',
-                'See training context and practical safety reminders.',
-                'Use insights to start more informed community discussions.',
+                'Get a focused takeaway matched to the post type.',
+                'Find a practical next action for training, recovery, or asking for advice.',
+                'Use safety reminders as general guidance, not a diagnosis or a substitute for a coach.',
+                'Keep the conversation grounded in the goal and details shared in the post.',
               ],
               onAccessChanged: _load,
               child: _aiPostInsightPanel(p),
@@ -1630,11 +1639,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                     PremiumGate(
                       isPremium: _isPremium,
                       title: 'Challenge analytics',
-                      previewText: 'Unlock deeper progress analytics 🔒',
+                      previewText:
+                          'Turn a challenge target into clear pacing and consistency guidance while you take part.',
+                      featureLabel: 'CHALLENGE PLANNING',
+                      accentColor: const Color(0xFF168A63),
                       benefits: const [
-                        'Review consistency and progress toward your target.',
-                        'See pace-to-goal context for an active challenge.',
-                        'Use recovery notes to guide your next session.',
+                        'Break the challenge target into manageable checkpoints.',
+                        'Review the cadence needed to stay on pace through the challenge period.',
+                        'Use recovery and effort reminders to avoid chasing the target at any cost.',
+                        'Keep your leaderboard participation optional and in your control.',
                       ],
                       onAccessChanged: _load,
                       child: Container(
@@ -1646,12 +1659,46 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                           ),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          'Analytics: consistency curve, pace to target, and recovery notes.',
-                          style: TextStyle(
-                            color: scheme.onPrimaryContainer,
-                            height: 1.4,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Challenge planning',
+                              style: TextStyle(
+                                color: scheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${c.target} target units • ${c.tags.join(' / ')}',
+                              style: TextStyle(
+                                color: scheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              isJoined
+                                  ? 'You are participating. Use regular check-ins to keep your effort steady, and adjust the pace when recovery calls for it.'
+                                  : 'Join the challenge to start tracking participation. Set a sustainable pace and check in regularly rather than trying to catch up all at once.',
+                              style: TextStyle(
+                                color: scheme.onPrimaryContainer,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Challenge targets are motivational guides; progress is not automatically measured from workout logs yet.',
+                              style: TextStyle(
+                                color: scheme.onPrimaryContainer.withValues(
+                                  alpha: 0.78,
+                                ),
+                                fontSize: 11,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1672,11 +1719,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
       child: PremiumGate(
         isPremium: _isPremium,
         title: 'Private groups',
-        previewText: 'Unlock private groups 🔒 (train with your circle).',
+        previewText:
+            'A quieter space for your training circle, separate from public community posts.',
+        featureLabel: 'YOUR TRAINING CIRCLE',
+        accentColor: const Color(0xFF7653D6),
         benefits: const [
-          'Create a focused training space for your circle.',
-          'Share progress and coordinate around shared goals.',
-          'Keep group activity separate from the public feed.',
+          'Keep group conversations focused on people you train with.',
+          'Share milestones and encourage one another around shared goals.',
+          'Separate circle activity from the public community feed.',
+          'Private group creation and joining are not available yet.',
         ],
         onAccessChanged: _load,
         child: Card(
@@ -1699,7 +1750,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Create or join private groups to keep each other accountable. Coming soon.',
+                  'Private groups are planned but are not available yet. Group creation, invites, and member posts will appear here when the feature is ready.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: _communityScheme.onSurfaceVariant),
                 ),

@@ -141,14 +141,13 @@ class _AchievementsMotivationScreenState
         bestByExercise[record.exerciseName] = estimate;
       }
     }
-    final topEstimates = bestByExercise.entries
-        .where((entry) => entry.value > 0)
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final weightedRecords = _records.where((record) => record.weight > 0).length;
-    final repRecords = _records
-        .where((record) => record.repsPerSet > 0)
+    final topEstimates =
+        bestByExercise.entries.where((entry) => entry.value > 0).toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+    final weightedRecords = _records
+        .where((record) => record.weight > 0)
         .length;
+    final repRecords = _records.where((record) => record.repsPerSet > 0).length;
 
     if (_records.isEmpty) {
       return Text(
@@ -166,16 +165,19 @@ class _AchievementsMotivationScreenState
           children: [
             _PrInsightStat(label: 'WEIGHTED LOGS', value: '$weightedRecords'),
             _PrInsightStat(label: 'REP LOGS', value: '$repRecords'),
-            _PrInsightStat(label: 'EXERCISES', value: '${_records.map((r) => r.exerciseName).toSet().length}'),
+            _PrInsightStat(
+              label: 'EXERCISES',
+              value: '${_records.map((r) => r.exerciseName).toSet().length}',
+            ),
           ],
         ),
         if (topEstimates.isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(
             'Top estimated 1RMs',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           for (final entry in topEstimates.take(3))
@@ -199,9 +201,9 @@ class _AchievementsMotivationScreenState
             ),
           Text(
             'Epley estimates use logged sets of 12 reps or fewer; estimates are not tested maxes.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ],
@@ -533,6 +535,8 @@ class _AchievementsMotivationScreenState
                         description:
                             'Go beyond recent bests with richer strength estimates and performance trends.',
                         icon: Icons.insights_rounded,
+                        featureLabel: 'STRENGTH • PERSONAL RECORDS',
+                        accentColor: const Color(0xFFD97706),
                         benefits: const [
                           'Estimated one-rep max and strength projections.',
                           'Separate weight, reps, and volume record insights.',
@@ -903,17 +907,17 @@ class _PrInsightStat extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: scheme.primary,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

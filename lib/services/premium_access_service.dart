@@ -34,21 +34,92 @@ class PremiumAccessStatus {
 class PremiumAccessService {
   static const _kPremiumFlag = 'premium';
   static const _kTrialUntilKey = 'premium_trial_until_iso';
+  static const _cacheDuration = Duration(seconds: 15);
 
   PremiumAccessService._();
   static final PremiumAccessService _instance = PremiumAccessService._();
   factory PremiumAccessService() => _instance;
 
   Future<PremiumAccessStatus> Function()? _statusLoaderForTesting;
+  PremiumAccessStatus? _cachedStatus;
+  DateTime? _cachedAt;
+  String? _cachedUserId;
+  Future<PremiumAccessStatus>? _accessCheck;
+  String? _accessCheckUserId;
+  int _cacheGeneration = 0;
 
   @visibleForTesting
   void setStatusLoaderForTesting(
     Future<PremiumAccessStatus> Function()? loader,
   ) {
     _statusLoaderForTesting = loader;
+    invalidateCache();
   }
 
   Future<PremiumAccessStatus> checkAccess() async {
+    final userId = await _cacheUserId();
+    final cachedAt = _cachedAt;
+    if (userId != null &&
+        _cachedUserId == userId &&
+        _cachedStatus != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _cacheDuration) {
+      return _cachedStatus!;
+    }
+
+    final pending = _accessCheck;
+    if (pending != null && _accessCheckUserId == userId) return pending;
+
+    final generation = _cacheGeneration;
+    final request = _checkAccess();
+    _accessCheck = request;
+    _accessCheckUserId = userId;
+    try {
+      final status = await request;
+      if (generation == _cacheGeneration &&
+          userId != null &&
+          status.authenticated &&
+          status.online) {
+        _cachedStatus = status;
+        _cachedAt = DateTime.now();
+        _cachedUserId = userId;
+      }
+      return status;
+    } finally {
+      if (identical(_accessCheck, request)) {
+        _accessCheck = null;
+        _accessCheckUserId = null;
+      }
+    }
+  }
+
+  Future<String?> _cacheUserId() async {
+    if (_statusLoaderForTesting != null) return '<test-loader>';
+
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('is_guest') ?? false) return null;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.isAnonymous || user.providerData.isEmpty) {
+        return null;
+      }
+      return user.uid;
+    } on FirebaseException {
+      return null;
+    }
+  }
+
+  void invalidateCache() {
+    _cacheGeneration++;
+    _cachedStatus = null;
+    _cachedAt = null;
+    _cachedUserId = null;
+    _accessCheck = null;
+    _accessCheckUserId = null;
+  }
+
+  Future<PremiumAccessStatus> _checkAccess() async {
     final testLoader = _statusLoaderForTesting;
     if (testLoader != null) return testLoader();
 
@@ -152,6 +223,7 @@ class PremiumAccessService {
   }
 
   Future<bool> startFreeTrial({int days = 7}) async {
+    invalidateCache();
     final access = await checkAccess();
     if (!access.authenticated || !access.online) {
       throw StateError(access.message);
@@ -162,6 +234,7 @@ class PremiumAccessService {
       _kTrialUntilKey,
       until.toIso8601String(),
     );
+    invalidateCache();
     return true;
   }
 
@@ -171,6 +244,7 @@ class PremiumAccessService {
       _kTrialUntilKey,
       DateTime.fromMillisecondsSinceEpoch(0).toIso8601String(),
     );
+    invalidateCache();
   }
 
   Future<void> resetForTesting() async {
@@ -180,6 +254,7 @@ class PremiumAccessService {
     final storage = StorageService();
     await storage.saveBoolSetting(_kPremiumFlag, false);
     await storage.removeSetting(_kTrialUntilKey);
+    invalidateCache();
   }
 
   bool _isConnectivityError(String code) {

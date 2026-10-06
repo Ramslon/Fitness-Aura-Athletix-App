@@ -524,6 +524,8 @@ class _DailyWorkoutAnalysisScreenState
                               description:
                                   'Unlock deeper training-load context, recovery cues, and focused coaching for each session.',
                               icon: Icons.monitor_heart_rounded,
+                              featureLabel: 'SESSION RECOVERY',
+                              accentColor: const Color(0xFFC65B47),
                               benefits: const [
                                 'Get a unified load, effort, and trend breakdown.',
                                 'See strength milestones and progression signals.',
@@ -590,6 +592,8 @@ class _DailyWorkoutAnalysisScreenState
           description:
               'Unlock deeper training-load context, recovery cues, and focused coaching for each session.',
           icon: Icons.monitor_heart_rounded,
+          featureLabel: 'SESSION RECOVERY',
+          accentColor: const Color(0xFFC65B47),
           benefits: const [
             'Compare session load with your previous workout.',
             'See strength milestones and progression signals.',

@@ -92,9 +92,7 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
                               _premiumActive
                                   ? 'Your Premium access is active'
                                   : 'More insight for every rep',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
+                              style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     color: scheme.onPrimaryContainer,
                                     fontWeight: FontWeight.w900,
@@ -120,9 +118,9 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
               const SizedBox(height: 18),
               Text(
                 'Premium perks',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 5),
               Text(
@@ -143,17 +141,20 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
               _PerkRow(
                 icon: Icons.insights_rounded,
                 title: 'Deeper training analytics',
-                subtitle: 'Explore additional context for your training trends.',
+                subtitle:
+                    'Explore additional context for your training trends.',
               ),
               _PerkRow(
                 icon: Icons.auto_awesome_rounded,
                 title: 'AI coaching and guidance',
-                subtitle: 'Available where supported by your configured AI tools.',
+                subtitle:
+                    'Available where supported by your configured AI tools.',
               ),
               _PerkRow(
                 icon: Icons.tune_rounded,
                 title: 'Premium customization',
-                subtitle: 'More options and shortcuts as Premium perks roll out.',
+                subtitle:
+                    'More options and shortcuts as Premium perks roll out.',
               ),
               const SizedBox(height: 12),
               if (_loading)
@@ -170,6 +171,8 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
                       ? 'Your Premium access is active on this account.'
                       : 'Choose a one-time 7-day trial, monthly access, or annual access.',
                   icon: Icons.workspace_premium_rounded,
+                  featureLabel: 'ALL-ACCESS MEMBERSHIP',
+                  accentColor: const Color(0xFFD19A28),
                   benefits: const [
                     'Plan options are available from this card and feature-specific offers.',
                     'Your workout logging and basic tracking remain available without Premium.',
@@ -196,9 +199,9 @@ class _PremiumFeaturesScreenState extends State<PremiumFeaturesScreen> {
               Text(
                 'Premium checkout currently uses the configured test payment provider. Real payment providers must be configured before accepting live payments.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
